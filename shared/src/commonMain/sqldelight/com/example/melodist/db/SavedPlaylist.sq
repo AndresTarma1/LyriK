@@ -1,0 +1,35 @@
+CREATE TABLE IF NOT EXISTS SavedPlaylist (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    authorName TEXT,
+    authorId TEXT,
+    songCountText TEXT,
+    thumbnail TEXT,
+    savedAt INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM SavedPlaylist ORDER BY savedAt DESC;
+
+selectById:
+SELECT * FROM SavedPlaylist WHERE id = ?;
+
+exists:
+SELECT COUNT(*) > 0 FROM SavedPlaylist WHERE id = ?;
+
+insert:
+INSERT OR REPLACE INTO SavedPlaylist (id, title, authorName, authorId, songCountText, thumbnail, savedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+delete:
+DELETE FROM SavedPlaylist WHERE id = ?;
+
+updateSongCountText:
+UPDATE SavedPlaylist SET songCountText = ? WHERE id = ?;
+
+updateSongCountTextAndThumbnail:
+UPDATE SavedPlaylist SET songCountText = ?, thumbnail = ? WHERE id = ?;
+
+deleteAll:
+DELETE FROM SavedPlaylist;
+

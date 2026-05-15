@@ -1,0 +1,28 @@
+CREATE TABLE IF NOT EXISTS AlbumArtistMap (
+    albumId TEXT NOT NULL,
+    artistId TEXT NOT NULL,
+    artistOrder INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (albumId, artistId),
+    FOREIGN KEY (albumId) REFERENCES Album(id) ON DELETE CASCADE,
+    FOREIGN KEY (artistId) REFERENCES Artist(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_album_artist_map_albumId ON AlbumArtistMap(albumId);
+CREATE INDEX IF NOT EXISTS idx_album_artist_map_artistId ON AlbumArtistMap(artistId);
+
+insertAlbumArtistMap:
+INSERT OR REPLACE INTO AlbumArtistMap (albumId, artistId, artistOrder) VALUES (?, ?, ?);
+
+deleteAlbumArtistMap:
+DELETE FROM AlbumArtistMap WHERE albumId = ? AND artistId = ?;
+
+deleteAlbumArtistMapsByAlbum:
+DELETE FROM AlbumArtistMap WHERE albumId = ?;
+
+selectByAlbum:
+SELECT * FROM AlbumArtistMap WHERE albumId = ? ORDER BY artistOrder;
+
+selectByArtist:
+SELECT * FROM AlbumArtistMap WHERE artistId = ?;
+
+

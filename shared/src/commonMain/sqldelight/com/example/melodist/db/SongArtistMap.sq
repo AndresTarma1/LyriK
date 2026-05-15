@@ -1,0 +1,51 @@
+CREATE TABLE IF NOT EXISTS SongArtistMap (
+    songId TEXT NOT NULL,
+    artistId TEXT NOT NULL,
+    position INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (songId, artistId),
+    FOREIGN KEY (songId) REFERENCES Song(id) ON DELETE CASCADE,
+    FOREIGN KEY (artistId) REFERENCES Artist(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_song_artist_map_songId ON SongArtistMap(songId);
+CREATE INDEX IF NOT EXISTS idx_song_artist_map_artistId ON SongArtistMap(artistId);
+
+insertSongArtistMap:
+INSERT OR REPLACE INTO SongArtistMap (songId, artistId, position) VALUES (?, ?, ?);
+
+deleteSongArtistMap:
+DELETE FROM SongArtistMap WHERE songId = ? AND artistId = ?;
+
+deleteSongArtistMapsBySong:
+DELETE FROM SongArtistMap WHERE songId = ?;
+
+selectBySong:
+SELECT * FROM SongArtistMap WHERE songId = ? ORDER BY position;
+
+selectByArtist:
+SELECT * FROM SongArtistMap WHERE artistId = ?;
+
+artistsForPlaylistSongs:
+SELECT SongArtistMap.songId, Artist.id, Artist.name
+FROM SongArtistMap
+INNER JOIN Artist ON SongArtistMap.artistId = Artist.id
+INNER JOIN PlaylistSongMap ON SongArtistMap.songId = PlaylistSongMap.songId
+WHERE PlaylistSongMap.playlistId = ?
+ORDER BY SongArtistMap.songId, SongArtistMap.position;
+
+artistsForAlbumSongs:
+SELECT SongArtistMap.songId, Artist.id, Artist.name
+FROM SongArtistMap
+INNER JOIN Artist ON SongArtistMap.artistId = Artist.id
+INNER JOIN SongAlbumMap ON SongArtistMap.songId = SongAlbumMap.songId
+WHERE SongAlbumMap.albumId = ?
+ORDER BY SongArtistMap.songId, SongArtistMap.position;
+
+artistsForDownloadedSongs:
+SELECT SongArtistMap.songId, Artist.id, Artist.name
+FROM SongArtistMap
+INNER JOIN Artist ON SongArtistMap.artistId = Artist.id
+INNER JOIN Song ON SongArtistMap.songId = Song.id
+WHERE Song.isDownloaded = 1
+ORDER BY SongArtistMap.songId, SongArtistMap.position;
+

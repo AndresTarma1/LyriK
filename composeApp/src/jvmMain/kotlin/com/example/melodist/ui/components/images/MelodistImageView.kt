@@ -1,0 +1,148 @@
+package com.example.melodist.ui.components
+
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Album
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import coil3.compose.LocalPlatformContext
+import coil3.compose.SubcomposeAsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
+import com.example.melodist.utils.LocalUserPreferences
+
+enum class PlaceholderType {
+    SONG, ALBUM, ARTIST, PLAYLIST, DOWNLOADS
+}
+
+@Composable
+fun ShimmerBox(modifier: Modifier = Modifier, shape: Shape = RectangleShape) {
+    val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.15f,
+        targetValue = 0.4f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "shimmerAlpha"
+    )
+    Box(
+        modifier = modifier
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = alpha))
+    )
+}
+
+/**
+ * ✅ Optimizado: limita la resolución máxima de descarga para ahorrar RAM.
+ * En listas usa tamaño bajo (64px), en detalles usa alto (256px).
+ */
+@Composable
+fun MelodistImage(
+    url: String?,
+    contentDescription: String?,
+    modifier: Modifier = Modifier,
+    shape: Shape = RectangleShape,
+    placeholderType: PlaceholderType = PlaceholderType.SONG,
+    iconSize: Dp = 32.dp,
+    contentScale: ContentScale = ContentScale.Fit,
+    alignment: Alignment = Alignment.Center,
+    // ✅ Nuevo: permite controlar la calidad/resolución de descarga
+    isLowRes: Boolean = true,
+) {
+    val placeholderIcon: ImageVector = when (placeholderType) {
+        PlaceholderType.SONG -> Icons.Default.MusicNote
+        PlaceholderType.ALBUM -> Icons.Default.Album
+        PlaceholderType.ARTIST -> Icons.Default.Person
+        PlaceholderType.PLAYLIST -> Icons.Default.MusicNote
+        PlaceholderType.DOWNLOADS -> Icons.Default.Download
+    }
+
+    val placeholderTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+    val placeholderBg = MaterialTheme.colorScheme.surfaceContainerHighest
+    val imagesEnabled by LocalUserPreferences.current.imagesEnabled.collectAsState(true)
+
+    val finalIconSize = if (placeholderType == PlaceholderType.DOWNLOADS) 64.dp else iconSize
+
+    if (url.isNullOrBlank() || !imagesEnabled) {
+        Box(
+            modifier = modifier.clip(shape).background(placeholderBg),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = placeholderIcon,
+                contentDescription = contentDescription,
+                modifier = Modifier.size(finalIconSize),
+                tint = placeholderTint
+            )
+        }
+    } else {
+        val errorPlaceholder: @Composable () -> Unit = {
+            Box(
+                modifier = Modifier.fillMaxSize().background(placeholderBg),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = placeholderIcon,
+                    contentDescription = null,
+                    modifier = Modifier.size(iconSize),
+                    tint = placeholderTint
+                )
+            }
+        }
+
+        // ✅ Limitar tamaño de descarga: las miniaturas de listas no necesitan alta resolución
+        val coilSize = if (isLowRes) 64 else 256
+
+        SubcomposeAsyncImage(
+            model = ImageRequest.Builder(LocalPlatformContext.current)
+                .data(url)
+                .crossfade(true)
+                .build(),
+            contentDescription = contentDescription,
+            modifier = modifier
+                .clip(shape)
+                .clipToBounds(),
+            contentScale = contentScale,
+            alignment = alignment,
+            loading = {
+                ShimmerBox(
+                    modifier = Modifier.fillMaxSize(),
+                    shape = shape
+                )
+            },
+            error = {
+                errorPlaceholder()
+            }
+        )
+    }
+}
+

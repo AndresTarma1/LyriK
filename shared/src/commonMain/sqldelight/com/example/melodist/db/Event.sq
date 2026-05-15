@@ -1,0 +1,31 @@
+CREATE TABLE IF NOT EXISTS Event (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    songId TEXT NOT NULL,
+    timestamp INTEGER NOT NULL,
+    playTime INTEGER NOT NULL DEFAULT 0,
+    FOREIGN KEY (songId) REFERENCES Song(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_event_songId ON Event(songId);
+
+insertEvent:
+INSERT INTO Event (songId, timestamp, playTime) VALUES (?, ?, ?);
+
+deleteEvent:
+DELETE FROM Event WHERE id = ?;
+
+deleteEventsBySong:
+DELETE FROM Event WHERE songId = ?;
+
+eventsBySong:
+SELECT * FROM Event WHERE songId = ? ORDER BY timestamp DESC;
+
+recentEvents:
+SELECT * FROM Event ORDER BY timestamp DESC LIMIT ?;
+
+totalPlayTimeInRange:
+SELECT SUM(playTime) FROM Event WHERE timestamp >= ? AND timestamp <= ?;
+
+uniqueSongCountInRange:
+SELECT COUNT(DISTINCT songId) FROM Event WHERE timestamp >= ? AND timestamp <= ?;
+

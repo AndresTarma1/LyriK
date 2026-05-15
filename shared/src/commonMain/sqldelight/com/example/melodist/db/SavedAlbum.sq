@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS SavedAlbum (
+    browseId TEXT NOT NULL PRIMARY KEY,
+    playlistId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    artists TEXT NOT NULL,
+    year INTEGER,
+    thumbnail TEXT NOT NULL,
+    explicit INTEGER NOT NULL DEFAULT 0,
+    savedAt INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM SavedAlbum ORDER BY savedAt DESC;
+
+selectById:
+SELECT * FROM SavedAlbum WHERE browseId = ?;
+
+exists:
+SELECT COUNT(*) > 0 FROM SavedAlbum WHERE browseId = ?;
+
+insert:
+INSERT OR REPLACE INTO SavedAlbum (browseId, playlistId, title, artists, year, thumbnail, explicit, savedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+
+delete:
+DELETE FROM SavedAlbum WHERE browseId = ?;
+
+deleteAll:
+DELETE FROM SavedAlbum;
+

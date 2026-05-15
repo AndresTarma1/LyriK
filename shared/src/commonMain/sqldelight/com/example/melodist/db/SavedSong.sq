@@ -1,0 +1,31 @@
+CREATE TABLE IF NOT EXISTS SavedSong (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    artists TEXT NOT NULL,
+    albumName TEXT,
+    albumId TEXT,
+    duration INTEGER,
+    thumbnail TEXT NOT NULL,
+    explicit INTEGER NOT NULL DEFAULT 0,
+    savedAt INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM SavedSong ORDER BY savedAt DESC;
+
+selectById:
+SELECT * FROM SavedSong WHERE id = ?;
+
+exists:
+SELECT COUNT(*) > 0 FROM SavedSong WHERE id = ?;
+
+insert:
+INSERT OR REPLACE INTO SavedSong (id, title, artists, albumName, albumId, duration, thumbnail, explicit, savedAt)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+delete:
+DELETE FROM SavedSong WHERE id = ?;
+
+deleteAll:
+DELETE FROM SavedSong;
+

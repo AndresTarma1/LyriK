@@ -1,0 +1,38 @@
+CREATE TABLE IF NOT EXISTS RecognitionHistory (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    trackId TEXT NOT NULL,
+    title TEXT NOT NULL,
+    artist TEXT NOT NULL,
+    album TEXT,
+    coverArtUrl TEXT,
+    coverArtHqUrl TEXT,
+    genre TEXT,
+    releaseDate TEXT,
+    label TEXT,
+    shazamUrl TEXT,
+    appleMusicUrl TEXT,
+    spotifyUrl TEXT,
+    isrc TEXT,
+    youtubeVideoId TEXT,
+    recognizedAt INTEGER NOT NULL,
+    liked INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IF NOT EXISTS idx_recognition_history_trackId ON RecognitionHistory(trackId);
+
+selectAll:
+SELECT * FROM RecognitionHistory ORDER BY recognizedAt DESC;
+
+selectById:
+SELECT * FROM RecognitionHistory WHERE id = ?;
+
+insertRecognition:
+INSERT INTO RecognitionHistory (trackId, title, artist, album, coverArtUrl, coverArtHqUrl, genre, releaseDate, label, shazamUrl, appleMusicUrl, spotifyUrl, isrc, youtubeVideoId, recognizedAt, liked)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteRecognition:
+DELETE FROM RecognitionHistory WHERE id = ?;
+
+deleteAll:
+DELETE FROM RecognitionHistory;
+

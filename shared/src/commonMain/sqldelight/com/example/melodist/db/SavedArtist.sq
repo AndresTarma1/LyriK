@@ -1,0 +1,27 @@
+CREATE TABLE IF NOT EXISTS SavedArtist (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT NOT NULL,
+    thumbnail TEXT,
+    subscriberCount TEXT,
+    savedAt INTEGER NOT NULL
+);
+
+selectAll:
+SELECT * FROM SavedArtist ORDER BY savedAt DESC;
+
+selectById:
+SELECT * FROM SavedArtist WHERE id = ?;
+
+exists:
+SELECT COUNT(*) > 0 FROM SavedArtist WHERE id = ?;
+
+insert:
+INSERT OR REPLACE INTO SavedArtist (id, title, thumbnail, subscriberCount, savedAt)
+VALUES (?, ?, ?, ?, ?);
+
+delete:
+DELETE FROM SavedArtist WHERE id = ?;
+
+deleteAll:
+DELETE FROM SavedArtist;
+

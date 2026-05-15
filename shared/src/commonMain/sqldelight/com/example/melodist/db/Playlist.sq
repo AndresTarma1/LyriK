@@ -1,0 +1,46 @@
+CREATE TABLE IF NOT EXISTS Playlist (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    browseId TEXT,
+    createdAt INTEGER,
+    lastUpdateTime INTEGER,
+    isEditable INTEGER NOT NULL DEFAULT 1,
+    bookmarkedAt INTEGER,
+    remoteSongCount INTEGER,
+    playEndpointParams TEXT,
+    thumbnailUrl TEXT,
+    shuffleEndpointParams TEXT,
+    radioEndpointParams TEXT,
+    isLocal INTEGER NOT NULL DEFAULT 0,
+    isAutoSync INTEGER NOT NULL DEFAULT 0
+);
+
+selectAllPlaylists:
+SELECT * FROM Playlist;
+
+playlistsByNameAsc:
+SELECT * FROM Playlist WHERE bookmarkedAt IS NOT NULL ORDER BY name ASC;
+
+bookmarkedPlaylists:
+SELECT * FROM Playlist WHERE bookmarkedAt IS NOT NULL ORDER BY bookmarkedAt DESC;
+
+playlistById:
+SELECT * FROM Playlist WHERE id = ?;
+
+insertPlaylist:
+INSERT OR REPLACE INTO Playlist (id, name, browseId, createdAt, lastUpdateTime, isEditable, bookmarkedAt, remoteSongCount, playEndpointParams, thumbnailUrl, shuffleEndpointParams, radioEndpointParams, isLocal, isAutoSync)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updatePlaylist:
+UPDATE Playlist SET name = ?, browseId = ?, lastUpdateTime = ?, isEditable = ?, bookmarkedAt = ?, remoteSongCount = ?, thumbnailUrl = ?
+WHERE id = ?;
+
+updatePlaylistBookmark:
+UPDATE Playlist SET bookmarkedAt = ? WHERE id = ?;
+
+deletePlaylist:
+DELETE FROM Playlist WHERE id = ?;
+
+playlistExists:
+SELECT COUNT(*) > 0 FROM Playlist WHERE id = ?;
+

@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS SetVideoId (
+    videoId TEXT NOT NULL PRIMARY KEY,
+    setVideoId TEXT
+);
+
+selectByVideoId:
+SELECT * FROM SetVideoId WHERE videoId = ?;
+
+insertSetVideoId:
+INSERT OR REPLACE INTO SetVideoId (videoId, setVideoId) VALUES (?, ?);
+
+deleteSetVideoId:
+DELETE FROM SetVideoId WHERE videoId = ?;
+

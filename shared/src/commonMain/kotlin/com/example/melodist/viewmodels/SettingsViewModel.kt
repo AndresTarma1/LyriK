@@ -1,0 +1,94 @@
+package com.example.melodist.viewmodels
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.melodist.data.repository.AudioQuality
+import com.example.melodist.data.repository.ThemeMode
+import com.example.melodist.data.repository.ThemePalette
+import com.example.melodist.data.repository.UserPreferencesRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+class SettingsViewModel(
+    private val preferencesRepository: UserPreferencesRepository
+) : ViewModel() {
+
+    val audioQuality: StateFlow<AudioQuality> = preferencesRepository.audioQuality
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AudioQuality.NORMAL)
+
+    val themeMode: StateFlow<ThemeMode> = preferencesRepository.themeMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.DARK)
+
+    val dynamicColorFromArtwork: StateFlow<Boolean> = preferencesRepository.dynamicColorFromArtwork
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val highResCoverArt: StateFlow<Boolean> = preferencesRepository.highResCoverArt
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val crossfadeEnabled: StateFlow<Boolean> = preferencesRepository.crossfadeEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val cacheImages: StateFlow<Boolean> = preferencesRepository.cacheImages
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val imagesEnabled: StateFlow<Boolean> = preferencesRepository.imagesEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val minimizeToTray: StateFlow<Boolean> = preferencesRepository.minimizeToTray
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val queueLocked: StateFlow<Boolean> = preferencesRepository.queueLocked
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val equalizerBands: StateFlow<List<Float>> = preferencesRepository.equalizerBands
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), List(10) { 0f })
+
+    val themePalette: StateFlow<ThemePalette> = preferencesRepository.themePalette
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemePalette.DEFAULT)
+
+    fun setAudioQuality(quality: AudioQuality) {
+        viewModelScope.launch { preferencesRepository.setAudioQuality(quality) }
+    }
+
+    fun setThemeMode(mode: ThemeMode) {
+        viewModelScope.launch { preferencesRepository.setThemeMode(mode) }
+    }
+
+    fun setDynamicColorFromArtwork(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setDynamicColorFromArtwork(enabled) }
+    }
+
+    fun setHighResCoverArt(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setHighResCoverArt(enabled) }
+    }
+
+    fun setCrossfadeEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setCrossfadeEnabled(enabled) }
+    }
+
+    fun setCacheImages(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setCacheImages(enabled) }
+    }
+
+    fun setImagesEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setImagesEnabled(enabled) }
+    }
+
+    fun setMinimizeToTray(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setMinimizeToTray(enabled) }
+    }
+
+    fun setQueueLocked(locked: Boolean) {
+        viewModelScope.launch { preferencesRepository.setQueueLocked(locked) }
+    }
+
+    fun setEqualizerBands(bands: List<Float>) {
+        viewModelScope.launch { preferencesRepository.setEqualizerBands(bands) }
+    }
+
+    fun setThemePalette(palette: ThemePalette) {
+        viewModelScope.launch { preferencesRepository.setThemePalette(palette) }
+    }
+}

@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS Format (
+    id TEXT NOT NULL PRIMARY KEY,
+    itag INTEGER NOT NULL,
+    mimeType TEXT NOT NULL,
+    codecs TEXT NOT NULL,
+    bitrate INTEGER NOT NULL,
+    sampleRate INTEGER,
+    contentLength INTEGER NOT NULL,
+    loudnessDb REAL,
+    perceptualLoudnessDb REAL,
+    playbackUrl TEXT
+);
+
+selectById:
+SELECT * FROM Format WHERE id = ?;
+
+insertFormat:
+INSERT OR REPLACE INTO Format (id, itag, mimeType, codecs, bitrate, sampleRate, contentLength, loudnessDb, perceptualLoudnessDb, playbackUrl)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+deleteFormat:
+DELETE FROM Format WHERE id = ?;
+

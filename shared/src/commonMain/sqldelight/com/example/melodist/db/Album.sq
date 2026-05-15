@@ -1,0 +1,50 @@
+CREATE TABLE IF NOT EXISTS Album (
+    id TEXT NOT NULL PRIMARY KEY,
+    playlistId TEXT,
+    title TEXT NOT NULL,
+    year INTEGER,
+    thumbnailUrl TEXT,
+    themeColor INTEGER,
+    songCount INTEGER NOT NULL DEFAULT 0,
+    duration INTEGER NOT NULL DEFAULT 0,
+    explicit INTEGER NOT NULL DEFAULT 0,
+    lastUpdateTime INTEGER NOT NULL DEFAULT 0,
+    bookmarkedAt INTEGER,
+    likedDate INTEGER,
+    inLibrary INTEGER,
+    isLocal INTEGER NOT NULL DEFAULT 0,
+    isUploaded INTEGER NOT NULL DEFAULT 0
+);
+
+selectAllAlbums:
+SELECT * FROM Album;
+
+albumById:
+SELECT * FROM Album WHERE id = ?;
+
+albumsByIds:
+SELECT * FROM Album WHERE id IN ?;
+
+bookmarkedAlbums:
+SELECT * FROM Album WHERE bookmarkedAt IS NOT NULL ORDER BY bookmarkedAt DESC;
+
+albumsInLibrary:
+SELECT * FROM Album WHERE inLibrary IS NOT NULL ORDER BY inLibrary DESC;
+
+insertAlbum:
+INSERT OR REPLACE INTO Album (id, playlistId, title, year, thumbnailUrl, themeColor, songCount, duration, explicit, lastUpdateTime, bookmarkedAt, likedDate, inLibrary, isLocal, isUploaded)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+updateAlbum:
+UPDATE Album SET playlistId = ?, title = ?, year = ?, thumbnailUrl = ?, themeColor = ?, songCount = ?, duration = ?, explicit = ?, lastUpdateTime = ?, bookmarkedAt = ?, likedDate = ?, inLibrary = ?
+WHERE id = ?;
+
+updateAlbumBookmark:
+UPDATE Album SET bookmarkedAt = ? WHERE id = ?;
+
+deleteAlbum:
+DELETE FROM Album WHERE id = ?;
+
+albumExists:
+SELECT COUNT(*) > 0 FROM Album WHERE id = ?;
+

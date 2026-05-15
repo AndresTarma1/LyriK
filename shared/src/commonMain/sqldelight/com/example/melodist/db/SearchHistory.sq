@@ -1,0 +1,24 @@
+CREATE TABLE IF NOT EXISTS SearchHistory (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "query" TEXT NOT NULL,
+    timestamp INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_search_history_query ON SearchHistory("query");
+
+selectAll:
+SELECT * FROM SearchHistory ORDER BY timestamp DESC, id DESC;
+
+insertQuery:
+INSERT OR REPLACE INTO SearchHistory ("query", timestamp) VALUES (?, ?);
+
+deleteQuery:
+DELETE FROM SearchHistory WHERE "query" = ?;
+
+deleteAll:
+DELETE FROM SearchHistory;
+
+searchByPrefix:
+SELECT * FROM SearchHistory WHERE "query" LIKE ? ORDER BY timestamp DESC LIMIT ?;
+
+

@@ -1,0 +1,113 @@
+[versions]
+androidx-lifecycle = "2.9.6"
+composeHotReload = "1.0.0"
+composeMultiplatform = "1.10.0"
+decompose = "3.3.0-beta01"
+junit = "4.13.2"
+kotlin = "2.3.0"
+kotlinx-coroutines = "1.10.2"
+kotlinx-serialization = "1.8.1"
+ktor = "3.3.3"
+material3 = "1.10.0-alpha05"
+materialIconsExtended = "1.7.3"
+brotli = "0.1.2"
+newpipeextractor = "v0.26.1"
+koin-bom = "4.1.1"
+sqldelight = "2.0.2"
+coil = "3.1.0"
+composeNativeTray="1.1.0"
+jnativehook = "2.2.2"
+materialKolor = "4.1.1"
+kmpalette = "4.0.0-beta02"
+jna= "5.18.1"
+jewel = "0.34.0-253.31033.149"
+jbr = "1.10.1"
+reorderable = "3.0.0"
+heze = "2.0.0-alpha01"
+
+[libraries]
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+junit = { module = "junit:junit", version.ref = "junit" }
+androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
+compose-runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "composeMultiplatform" }
+compose-foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "composeMultiplatform" }
+compose-material3 = { module = "org.jetbrains.compose.material3:material3", version.ref = "material3" }
+compose-materialIconsExtended = { module = "org.jetbrains.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
+compose-ui = { module = "org.jetbrains.compose.ui:ui", version.ref = "composeMultiplatform" }
+compose-components-resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "composeMultiplatform" }
+compose-uiToolingPreview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "composeMultiplatform" }
+kotlinx-coroutinesSwing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+
+#KTOR
+ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
+ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
+ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-encoding = { module = "io.ktor:ktor-client-encoding", version.ref = "ktor" }
+ktor-serialization-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+
+#Koin
+koin-bom = { module = "io.insert-koin:koin-bom", version.ref = "koin-bom" }
+koin-core = { module = "io.insert-koin:koin-core", version.ref= "koin-bom" }
+koin-compose = { module = "io.insert-koin:koin-compose", version.ref = "koin-bom" }
+koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin-bom" }
+
+brotli = { module = "org.brotli:dec", version.ref = "brotli" }
+
+#Decompose
+decompose = { module = "com.arkivanov.decompose:decompose", version.ref = "decompose" }
+decompose-compose = { module = "com.arkivanov.decompose:extensions-compose", version.ref = "decompose" }
+
+#Serialization
+kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+
+newpipeextractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "newpipeextractor" }
+
+
+#SQLDelight
+sqldelight-driver-jvm = { module = "app.cash.sqldelight:sqlite-driver", version.ref = "sqldelight" }
+sqldelight-coroutines = { module = "app.cash.sqldelight:coroutines-extensions-jvm", version.ref = "sqldelight" }
+
+#Coil
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
+coil-network-ktor3 = { module = "io.coil-kt.coil3:coil-network-ktor3", version.ref = "coil" }
+
+
+#JNativeHook (global media keys)
+jnativehook = { module = "com.github.kwhat:jnativehook", version.ref = "jnativehook" }
+
+#JBR y All necesario para modificar la titlebar
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna"}
+jna-platform-jpms = {module = "net.java.dev.jna:jna-platform-jpms", version.ref = "jna"}
+jbr = { module = "org.jetbrains.runtime:jbr-api", version.ref = "jbr"}
+
+# Jewel
+jewel-ui-standalone = {module= "org.jetbrains.jewel:jewel-int-ui-standalone", version.ref = "jewel"}
+jewel-ui-decorated-window = {module = "org.jetbrains.jewel:jewel-int-ui-decorated-window", version.ref = "jewel"}
+
+# Reordenable
+reorderable = { module = "sh.calvin.reorderable:reorderable", version.ref = "reorderable" }
+
+# Heze
+heze = { module = "dev.chrisbanes.haze:haze", version.ref = "heze"}
+heze-blur = { module = "dev.chrisbanes.haze:haze-blur", version.ref = "heze"}
+
+#Design
+compose-native-tray = {module= "io.github.kdroidfilter:composenativetray", version.ref= "composeNativeTray"}
+materialKolor = {module= "com.materialkolor:material-kolor", version.ref = "materialKolor"}
+kmpalette-core = { module = "com.materialkolor.palette:core", version.ref = "kmpalette" }
+kmpalette_network = { module = "com.materialkolor.palette:extensions-network", version.ref = "kmpalette" }
+kmpalette-extensions-file = { module = "com.materialkolor.palette:extensions-file", version.ref = "kmpalette" }
+
+[plugins]
+sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
+composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }
+composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "composeMultiplatform" }
+composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

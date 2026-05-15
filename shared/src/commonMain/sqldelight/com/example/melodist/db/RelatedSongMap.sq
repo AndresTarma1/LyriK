@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS RelatedSongMap (
+    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    songId TEXT NOT NULL,
+    relatedSongId TEXT NOT NULL,
+    FOREIGN KEY (songId) REFERENCES Song(id) ON DELETE CASCADE,
+    FOREIGN KEY (relatedSongId) REFERENCES Song(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_related_song_map_songId ON RelatedSongMap(songId);
+CREATE INDEX IF NOT EXISTS idx_related_song_map_relatedSongId ON RelatedSongMap(relatedSongId);
+
+insertRelatedSongMap:
+INSERT INTO RelatedSongMap (songId, relatedSongId) VALUES (?, ?);
+
+deleteRelatedSongMap:
+DELETE FROM RelatedSongMap WHERE id = ?;
+
+selectBySong:
+SELECT * FROM RelatedSongMap WHERE songId = ?;
+
+
