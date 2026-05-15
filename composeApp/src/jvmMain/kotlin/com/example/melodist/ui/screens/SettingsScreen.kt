@@ -30,7 +30,6 @@ import com.example.melodist.ui.screens.shared.openFolder
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.viewmodels.JvmSettingsViewModel
 import com.example.melodist.viewmodels.SettingsViewModel
-import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -607,7 +606,7 @@ private fun AboutCard() {
 
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
                 Text(
-                    text = "v0.1.1",
+                    text = "v0.1.2",
                     style    = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color    = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)

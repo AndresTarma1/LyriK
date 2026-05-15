@@ -107,10 +107,10 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "Melodist"
-            packageVersion = "0.1.1"
+            packageVersion = "0.1.2"
 
             windows {
-                msiPackageVersion = "0.1.1"
+                msiPackageVersion = "0.1.2"
                 packageName = "Melodist"
                 iconFile.set(project.file("icons/music.ico"))
                 menu = true

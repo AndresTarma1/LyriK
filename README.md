@@ -1,6 +1,6 @@
 # Melodist
 
-> **Versión actual:** v0.1.1 (Beta) · Desarrollado con Compose Multiplatform
+> **Versión actual:** v0.1.2 (Beta) · Desarrollado con Compose Multiplatform
 
 Reproductor de música de escritorio con streaming desde YouTube Music, motor de audio MPV nativo y interfaz Material Design 3 con temas dinámicos basados en carátulas.
 
