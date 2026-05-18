@@ -125,6 +125,7 @@ internal fun AlbumScreenLayout(
                 onPlayAll = actions.onPlayAll,
                 onShuffle = actions.onShuffle,
                 showDeleteDialog = { showDeleteDialog = true },
+                onNavigate = actions.onNavigate,
             )
         } else {
             AlbumWideLayout(
@@ -158,6 +159,7 @@ internal fun AlbumScreenLayout(
                 onPlayAll = actions.onPlayAll,
                 onShuffle = actions.onShuffle,
                 showDeleteDialog = { showDeleteDialog = true },
+                onNavigate = actions.onNavigate,
             )
         }
     }
@@ -184,9 +186,9 @@ internal fun AlbumWideLayout(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     showDeleteDialog: () -> Unit,
+    onNavigate: (Route) -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxSize().padding(start = 48.dp, end = 24.dp, top = 16.dp)) {
-        // Panel lateral fijo con scroll propio
         Column(
             modifier = Modifier
                 .width(320.dp)
@@ -207,6 +209,7 @@ internal fun AlbumWideLayout(
                 onPlayAll = onPlayAll,
                 onShuffle = onShuffle,
                 showDeleteDialog = showDeleteDialog,
+                onNavigate = onNavigate,
             )
         }
 
@@ -250,6 +253,7 @@ internal fun AlbumCompactLayout(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     showDeleteDialog: () -> Unit,
+    onNavigate: (Route) -> Unit,
 ) {
     Box {
         val lazyColumnState = rememberLazyListState()
@@ -312,6 +316,7 @@ internal fun AlbumCompactLayout(
                         onPlayAll = onPlayAll,
                         onShuffle = onShuffle,
                         showDeleteDialog = showDeleteDialog,
+                        onNavigate = onNavigate,
                     )
                     Spacer(Modifier.height(12.dp))
                 }
@@ -455,6 +460,7 @@ internal fun AlbumInfoPanel(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     showDeleteDialog: () -> Unit,
+    onNavigate: (Route) -> Unit,
 ) {
     val downloadViewModel = LocalDownloadViewModel.current
 
@@ -467,42 +473,25 @@ internal fun AlbumInfoPanel(
         downloadViewModel.isFullyDownloadedFlow(songIds)
     }.collectAsState(initial = false)
 
+    val firstArtist = albumPage.album.artists?.firstOrNull()
+
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .clickable { albumPage.album.artists?.firstOrNull()?.id?.let { /* navegar a artista */ } }
-            .pointerHoverIcon(PointerIcon.Hand)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                contentAlignment = Alignment.Center
-            ) {
-                MelodistImage(
-                    url = null,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    shape = CircleShape,
-                    placeholderType = PlaceholderType.ARTIST,
-                    iconSize = 14.dp
-                )
+            .clickable(enabled = firstArtist?.id != null) {
+                firstArtist?.id?.let { onNavigate(Route.Artist(it)) }
             }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                albumPage.album.artists?.firstOrNull()?.name ?: "Artista",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = onSurfaceColor
-            )
-        }
+            .pointerHoverIcon(if (firstArtist?.id != null) PointerIcon.Hand else PointerIcon.Default)
+    ) {
+        Text(
+            text = "Autor • ${firstArtist?.name ?: "Artista"}",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = onSurfaceColor,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        )
     }
 
     Spacer(Modifier.height(20.dp))

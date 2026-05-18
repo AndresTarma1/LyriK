@@ -10,8 +10,8 @@ import kotlinx.coroutines.flow.map
 
 data class JvmConfig(
     val xmx: String = "512m",
-    val xms: String = "128m",
-    val useG1GC: Boolean = false,
+    val xms: String = "256m",
+    val useG1GC: Boolean = true,
     val useZGC: Boolean = false,
     val gcLogging: Boolean = false,
 ) {
@@ -104,8 +104,8 @@ class JvmConfigRepository(private val dataStore: DataStore<Preferences>) {
     val config: Flow<JvmConfig> = dataStore.data.map { prefs ->
         JvmConfig(
             xmx = prefs[Keys.XMX] ?: "512m",
-            xms = prefs[Keys.XMS] ?: "128m",
-            useG1GC = prefs[Keys.G1GC] ?: false,
+            xms = prefs[Keys.XMS] ?: "256m",
+            useG1GC = prefs[Keys.G1GC] ?: true,
             useZGC = prefs[Keys.ZGC] ?: false,
             gcLogging = prefs[Keys.GC_LOGGING] ?: false,
         )

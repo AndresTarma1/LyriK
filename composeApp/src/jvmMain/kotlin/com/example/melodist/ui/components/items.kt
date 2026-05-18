@@ -167,7 +167,6 @@ fun YouTubeGridItem(
                     iconSize = if (isArtist) 56.dp else 40.dp,
                     contentScale = ContentScale.Crop,
                     alignment = if (isArtist) Alignment.TopCenter else Alignment.Center,
-                    isLowRes = true  // ✅ Baja resolución en listas — ahorra RAM significativamente
                 )
 
                 Box(
@@ -329,7 +328,6 @@ fun MediaGridItem(
                         iconSize = 40.dp,
                         contentScale = ContentScale.Crop,
                         alignment = if (isCircle) Alignment.TopCenter else Alignment.Center,
-                        isLowRes = true  // ✅ Baja resolución en listas
                     )
 
                     Box(

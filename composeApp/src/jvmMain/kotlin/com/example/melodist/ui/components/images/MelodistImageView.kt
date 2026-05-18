@@ -61,10 +61,6 @@ fun ShimmerBox(modifier: Modifier = Modifier, shape: Shape = RectangleShape) {
     )
 }
 
-/**
- * ✅ Optimizado: limita la resolución máxima de descarga para ahorrar RAM.
- * En listas usa tamaño bajo (64px), en detalles usa alto (256px).
- */
 @Composable
 fun MelodistImage(
     url: String?,
@@ -75,8 +71,7 @@ fun MelodistImage(
     iconSize: Dp = 32.dp,
     contentScale: ContentScale = ContentScale.Fit,
     alignment: Alignment = Alignment.Center,
-    // ✅ Nuevo: permite controlar la calidad/resolución de descarga
-    isLowRes: Boolean = true,
+    isLowRes: Boolean = false,
 ) {
     val placeholderIcon: ImageVector = when (placeholderType) {
         PlaceholderType.SONG -> Icons.Default.MusicNote
@@ -119,13 +114,13 @@ fun MelodistImage(
             }
         }
 
-        // ✅ Limitar tamaño de descarga: las miniaturas de listas no necesitan alta resolución
-        val coilSize = if (isLowRes) 64 else 256
+        val coilSize = if (isLowRes) 128 else 384
 
         SubcomposeAsyncImage(
             model = ImageRequest.Builder(LocalPlatformContext.current)
                 .data(url)
                 .crossfade(true)
+                .size(coilSize)
                 .build(),
             contentDescription = contentDescription,
             modifier = modifier

@@ -15,7 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -27,6 +29,7 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.unit.dp
+import com.example.melodist.db.DatabaseDao
 import com.example.melodist.navigation.Route
 import com.example.melodist.ui.components.AlbumScreenSkeleton
 import com.example.melodist.ui.screens.album.AlbumScreenLayout
@@ -35,6 +38,8 @@ import com.example.melodist.viewmodels.AlbumViewModel
 import com.metrolist.innertube.models.SongItem
 import com.example.melodist.ui.components.artwork.ArtworkColors
 import com.example.melodist.ui.components.artwork.rememberArtworkColors
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.runBlocking
 
 data class AlbumScreenState(
     val songs: List<SongItem> = emptyList(),

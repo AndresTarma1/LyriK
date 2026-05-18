@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.db.DatabaseDao
+import com.example.melodist.db.entities.AlbumEntity
+import com.example.melodist.db.entities.ArtistEntity
 import com.example.melodist.models.MediaMetadata
 import com.example.melodist.models.toMediaMetadata
 import com.example.melodist.player.AgeRestrictedException
@@ -175,6 +177,12 @@ class PlayerViewModel(
                 databaseDao.insertSong(song.toSongEntity().localToggleLike())
                 song.artists.forEachIndexed { i, artist ->
                     artist.id?.let { id ->
+                        val artistEntity = ArtistEntity(
+                            id = id,
+                            name = artist.name,
+                            lastUpdateTime = java.time.LocalDateTime.now()
+                        )
+                        databaseDao.insertArtist(artistEntity)
                         databaseDao.insertSongArtistMap(song.id, id, i)
                     }
                 }
@@ -618,6 +626,12 @@ class PlayerViewModel(
         if (currentArtists.isEmpty() && song.artists.isNotEmpty()) {
             song.artists.forEachIndexed { i, artist ->
                 artist.id?.let { id ->
+                    val artistEntity = ArtistEntity(
+                        id = id,
+                        name = artist.name,
+                        lastUpdateTime = java.time.LocalDateTime.now()
+                    )
+                    databaseDao.insertArtist(artistEntity)
                     databaseDao.insertSongArtistMap(song.id, id, i)
                 }
             }

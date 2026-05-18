@@ -16,8 +16,8 @@ import kotlinx.coroutines.launch
 
 data class JvmSettingsUiState(
     val xmx: String = "512m",
-    val xms: String = "128m",
-    val useG1GC: Boolean = false,
+    val xms: String = "256m",
+    val useG1GC: Boolean = true,
     val useZGC: Boolean = false,
     val gcLogging: Boolean = false,
     val validationError: String? = null,
@@ -108,8 +108,8 @@ class JvmSettingsViewModel(
         _uiState.update {
             it.copy(
                 xmx = "512m",
-                xms = "128m",
-                useG1GC = false,
+                xms = "256m",
+                useG1GC = true,
                 useZGC = false,
                 gcLogging = false,
                 validationError = null,

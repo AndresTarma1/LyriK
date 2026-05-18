@@ -183,7 +183,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         label = "Configuración avanzada de JVM",
                         icon = Icons.Rounded.Memory,
                         value = "Memoria, GC, reinicio",
-                        onClick = {}
+                        onClick = { showJvmSettingsDialog = true }
                     )
                 }
 

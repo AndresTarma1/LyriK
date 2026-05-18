@@ -116,7 +116,7 @@ fun AdvancedJvmSettingsScreen(
                         onValueChange = viewModel::setXms,
                         min = 64,
                         max = 2048,
-                        default = 128,
+                        default = 256,
                     )
 
                     Spacer(Modifier.height(16.dp))
@@ -130,7 +130,7 @@ fun AdvancedJvmSettingsScreen(
 
                     GcSwitchRow(
                         label = "G1 Garbage Collector",
-                        description = "Optimizado para baja latencia",
+                        description = "Optimizado para baja latencia (recomendado)",
                         checked = uiState.useG1GC,
                         onCheckedChange = viewModel::setG1GC,
                     )

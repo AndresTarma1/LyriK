@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -361,7 +362,11 @@ private fun TitleBarScope.MelodistTitleBar(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.widthIn(max = 300.dp),
+                        modifier = Modifier
+                            .widthIn(max = 300.dp)
+                            .basicMarquee(
+                                velocity = if(isPlaying) 25.dp else 0.dp,
+                            ),
                     )
             }
         }

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,10 +85,14 @@ import androidx.compose.animation.core.RepeatMode as InfiniteRepeatMode
 import androidx.compose.material.icons.filled.PlayArrow // ¡Asegúrate de importar esto!
 import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.material.icons.filled.RemoveFromQueue
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.input.pointer.isPrimaryPressed
 import androidx.compose.ui.input.pointer.isSecondaryPressed
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import com.example.melodist.ui.components.context.SongContextMenu
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
+import org.jetbrains.jewel.foundation.modifier.onHover
 
 @Composable
 fun NowPlayingLayout(
@@ -405,16 +410,6 @@ fun PlaybackQueuePanel(
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 12.dp),
                         verticalArrangement = Arrangement.spacedBy(4.dp)
                     ) {
-                        stickyHeader(key = "now_playing") {
-                            val currentSong = state.queue.getOrNull(state.currentIndex)
-                            if (currentSong != null) {
-                                NowPlayingHeader(
-                                    song = currentSong,
-                                    onClick = { playerViewModel.playAtIndex(state.currentIndex) },
-                                    onRemove = { playerViewModel.removeFromQueue(state.currentIndex) },
-                                )
-                            }
-                        }
 
                         itemsIndexed(
                             items = state.queue,
@@ -422,13 +417,13 @@ fun PlaybackQueuePanel(
                                 state.queueSession.order.getOrNull(index) ?: index
                             }
                         ) { index, queueSong ->
-                            if (index == state.currentIndex) return@itemsIndexed
+                            val isCurrent = index == state.currentIndex
                             val itemKey = state.queueSession.order.getOrNull(index) ?: index
                             ReorderableItem(reorderableState, key = itemKey) { isDragging ->
-                                val dragModifier = if (!queueLocked) Modifier.longPressDraggableHandle() else Modifier
+                                val dragModifier = if (!queueLocked) Modifier.draggableHandle() else Modifier
                                 QueueItem(
                                     song = queueSong,
-                                    isCurrent = false,
+                                    isCurrent = isCurrent,
                                     isDragging = isDragging,
                                     dragModifier = dragModifier,
                                     onClick = { playerViewModel.playAtIndex(index) },
@@ -630,23 +625,13 @@ fun NowPlayingHeader(
     var isHovered by remember { mutableStateOf(false) }
 
     Surface(
-        color = MaterialTheme.colorScheme.primaryContainer,
+        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .95F),
         shape = RoundedCornerShape(10.dp),
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .clickable(onClick = onClick)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        when (event.type) {
-                            PointerEventType.Enter -> isHovered = true
-                            PointerEventType.Exit -> isHovered = false
-                        }
-                    }
-                }
-            }
+            .onHover{ isHovered = it}
             .pointerHoverIcon(PointerIcon.Hand)
     ) {
         Column {
@@ -667,7 +652,8 @@ fun NowPlayingHeader(
                         shape = RoundedCornerShape(8.dp),
                         placeholderType = PlaceholderType.SONG,
                         iconSize = 22.dp,
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        isLowRes = true
                     )
                     Box(
                         modifier = Modifier.matchParentSize().background(
@@ -676,7 +662,7 @@ fun NowPlayingHeader(
                     ) {
                         AnimatedEqualizer(
                             isPlaying = uiState.playbackState == PlaybackState.PLAYING,
-                            modifier = Modifier.size(22.dp).align(Alignment.Center)
+                            modifier = Modifier.size(width = 18.dp, height = 22.dp).align(Alignment.Center)
                         )
                     }
                 }
@@ -732,6 +718,7 @@ fun NowPlayingHeader(
 }
 
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun QueueItem(
     song: MediaMetadata,
@@ -747,10 +734,6 @@ fun QueueItem(
 
     var isHovered by remember { mutableStateOf(false) }
 
-    // Eliminamos el color de fondo para isHovered, ya que ahora queremos
-    // el efecto sobre la imagen
-    val bgColor = if (isDragging) MaterialTheme.colorScheme.surfaceContainerHighest
-    else Color.Transparent
 
     val currentBg = if (isCurrent && !isDragging)
         MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.15f)
@@ -760,54 +743,26 @@ fun QueueItem(
     Surface(
         color = currentBg,
         shape = RoundedCornerShape(10.dp),
-        shadowElevation = if (isDragging) 4.dp else 0.dp,
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
             .then(dragModifier)
             .clickable(onClick = onClick)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-
-                        event.buttons.isSecondaryPressed
-                            .takeIf { it }
-                            ?.let {
-                                showMenu = true;
-                            }
+            .onPointerEvent(PointerEventType.Press) { event ->
+                when {
+                    event.buttons.isSecondaryPressed -> {
+                        showMenu = true
                     }
                 }
             }
-            .pointerHoverIcon(if (isDragging) PointerIcon.Crosshair else PointerIcon.Hand)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val event = awaitPointerEvent()
-                        when (event.type) {
-                            PointerEventType.Enter -> isHovered = true
-                            PointerEventType.Exit -> isHovered = false
-                        }
-                    }
-                }
-            },
+            .onHover{ isHovered = it }
+            .pointerHoverIcon(if (isDragging) PointerIcon.Crosshair else PointerIcon.Hand),
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            if (isCurrent && !isDragging) {
-                Box(
-                    modifier = Modifier
-                        .width(3.dp)
-                        .fillMaxHeight()
-                        .background(
-                            MaterialTheme.colorScheme.primary,
-                            RoundedCornerShape(2.dp)
-                        )
-                )
-            }
 
             Box {
                 // Thumbnail
@@ -829,7 +784,8 @@ fun QueueItem(
                         shape = RoundedCornerShape(8.dp),
                         placeholderType = PlaceholderType.SONG,
                         iconSize = 22.dp,
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        isLowRes = true
                     )
 
                     if (isCurrent) {
