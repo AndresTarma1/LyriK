@@ -10,6 +10,7 @@ class PlayerService {
 
     private val log = Logger.getLogger("PlayerService")
     private val mpvPlayer = MpvAudioPlayer()
+    private val isMpvDisabled = false
 
     private val _playbackState = MutableStateFlow(PlaybackState.IDLE)
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -39,12 +40,22 @@ class PlayerService {
     fun init() {
         if (initAttempted) return
         initAttempted = true
+        if (isMpvDisabled) {
+            log.warning("mpv disabled via -Dmelodist.disableMpv=true")
+            return
+        }
         mpvPlayer.init()
         startPositionTicker()
     }
 
     fun play(url: String) {
         init()
+        if (isMpvDisabled) {
+            _playbackState.value = PlaybackState.ERROR
+            _position.value = 0L
+            _duration.value = 0L
+            return
+        }
         scope.launch {
             try {
                 _playbackState.value = PlaybackState.LOADING
@@ -63,6 +74,7 @@ class PlayerService {
         isTransitioning = false
         endNotified = false
         _playbackState.value = PlaybackState.PAUSED
+        if (isMpvDisabled) return
         mpvPlayer.pause()
     }
 
@@ -70,6 +82,7 @@ class PlayerService {
         isTransitioning = false
         endNotified = false
         _playbackState.value = PlaybackState.PLAYING
+        if (isMpvDisabled) return
         mpvPlayer.play()
     }
 
@@ -83,10 +96,12 @@ class PlayerService {
         _playbackState.value = PlaybackState.IDLE
         _position.value = 0L
         _duration.value = 0L
+        if (isMpvDisabled) return
         mpvPlayer.stop()
     }
 
     fun seekTo(millis: Long) {
+        if (isMpvDisabled) return
         val dur = _duration.value
         if (dur > 0) {
             val endThresholdMs = 1000L
@@ -100,6 +115,7 @@ class PlayerService {
     fun setVolume(value: Int) {
         _volume.value = value
         _previousVolume = value
+        if (isMpvDisabled) return
         mpvPlayer.volume = value.toFloat() / 100f
     }
 
@@ -113,17 +129,21 @@ class PlayerService {
     }
 
     fun setEqualizer(bands: List<Float>) {
+        if (isMpvDisabled) return
         // Send values to mpv
         mpvPlayer.setEqualizer(bands)
     }
 
     fun release() {
         tickJob?.cancel()
-        mpvPlayer.dispose()
+        if (!isMpvDisabled) {
+            mpvPlayer.dispose()
+        }
         scope.cancel()
     }
 
     private fun startPositionTicker() {
+        if (isMpvDisabled) return
         tickJob = scope.launch {
             while (isActive) {
                 try {
@@ -178,6 +198,7 @@ class PlayerService {
         isTransitioning = true
         _position.value = 0L
         _duration.value = 0L
+        if (isMpvDisabled) return
         scope.launch {
             try {
                 mpvPlayer.pause()

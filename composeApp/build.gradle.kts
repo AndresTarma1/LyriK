@@ -9,10 +9,34 @@ plugins {
 
 }
 
+val melodistJvmArgs = listOf(
+    "--add-modules=java.sql",
+    "--enable-native-access=ALL-UNNAMED",
+    "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
+    "-XX:+UseG1GC",
+    "-Xmx512m",
+    "-Xms256m",
+    "-XX:MaxGCPauseMillis=80",
+    "-XX:+UseStringDeduplication",
+    "-XX:+UseCompressedOops",
+    "-XX:MaxHeapFreeRatio=30",
+    "-XX:MinHeapFreeRatio=10",
+    "-Dskiko.renderApi=SOFTWARE"
+)
+
+val melodistDevJvmArgs = melodistJvmArgs + "-XX:NativeMemoryTracking=summary"
+
+tasks.withType<JavaExec>().configureEach {
+    if (name.contains("run", ignoreCase = true)) {
+        jvmArgs(*melodistDevJvmArgs.toTypedArray())
+    }
+}
+
 kotlin {
     jvm()
 
     jvmToolchain(21) // Esto fuerza a Gradle a buscar/descargar un JDK completo (v21)
+
 
     sourceSets {
         commonMain.dependencies {
@@ -89,24 +113,15 @@ compose.desktop {
     application {
         mainClass = "com.example.melodist.MainKt"
 
-        jvmArgs(
-            "--add-modules=java.sql",
-            "--enable-native-access=ALL-UNNAMED",
-            "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
-            "-XX:MaxGCPauseMillis=80",
-            "-XX:+UseStringDeduplication",
-            "-XX:+UseCompressedOops",
-            "-XX:MaxHeapFreeRatio=30",
-            "-XX:MinHeapFreeRatio=10"
-        )
+        jvmArgs(*melodistJvmArgs.toTypedArray())
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "Melodist"
-            packageVersion = "0.1.2"
+            packageVersion = "0.1.3"
 
             windows {
-                msiPackageVersion = "0.1.2"
+                msiPackageVersion = "0.1.3"
                 packageName = "Melodist"
                 iconFile.set(project.file("icons/music.ico"))
                 menu = true

@@ -606,7 +606,7 @@ private fun AboutCard() {
 
             Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
                 Text(
-                    text = "v0.1.2",
+                    text = "v0.1.3",
                     style    = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color    = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)

@@ -84,6 +84,7 @@ fun MelodistImage(
     val placeholderTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
     val placeholderBg = MaterialTheme.colorScheme.surfaceContainerHighest
     val imagesEnabled by LocalUserPreferences.current.imagesEnabled.collectAsState(true)
+    val highResEnabled by LocalUserPreferences.current.highResCoverArt.collectAsState(true)
 
     val finalIconSize = if (placeholderType == PlaceholderType.DOWNLOADS) 64.dp else iconSize
 
@@ -114,7 +115,8 @@ fun MelodistImage(
             }
         }
 
-        val coilSize = if (isLowRes) 128 else 384
+        val effectiveLowRes = isLowRes || !highResEnabled
+        val coilSize = if (effectiveLowRes) 160 else 320
 
         SubcomposeAsyncImage(
             model = ImageRequest.Builder(LocalPlatformContext.current)
@@ -140,4 +142,3 @@ fun MelodistImage(
         )
     }
 }
-

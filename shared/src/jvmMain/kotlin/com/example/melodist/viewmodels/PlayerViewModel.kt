@@ -25,6 +25,7 @@ import java.util.logging.Logger
 import kotlin.jvm.JvmName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -57,6 +58,8 @@ class PlayerViewModel(
     val progressState: StateFlow<PlayerProgressState> = _progressState.asStateFlow()
 
     private var resolveJob: Job? = null
+    private var fetchMoreJob: Job? = null
+    private var playRequestId = 0L
 
     /**
      * ✅ Inicialización diferida de PlayerService y MediaSession.
@@ -384,23 +387,24 @@ class PlayerViewModel(
             val currentContinuation = session.continuation
             _uiState.update { it.copy(queueSession = it.queueSession.copy(continuation = null)) }
 
-            viewModelScope.launch(Dispatchers.IO) {
+            fetchMoreJob?.cancel()
+            fetchMoreJob = viewModelScope.launch(Dispatchers.IO) {
                 try {
                     val result = YouTube.next(session.endpoint, currentContinuation).getOrNull()
                     if (result != null && result.items.isNotEmpty()) {
                         val newSongs = result.items.map { it.toMediaMetadata() }
-                        
+
                         _uiState.update { currentState ->
                             val currentSession = currentState.queueSession
                             val updatedItems = currentSession.items + newSongs
                             val newOrder = currentSession.order + newSongs.indices.map { currentSession.items.size + it }
-                            
+
                             val updatedSession = currentSession.copy(
                                 items = updatedItems,
                                 order = newOrder,
                                 continuation = result.continuation
                             )
-                            
+
                             currentState.copy(
                                 queueSession = updatedSession,
                                 queue = updatedSession.queueItems()
@@ -475,6 +479,7 @@ class PlayerViewModel(
 
     fun stop() {
         resolveJob?.cancel()
+        playRequestId += 1
         playerService.stop()
         _progressState.value = PlayerProgressState()
         _uiState.update {
@@ -577,8 +582,10 @@ class PlayerViewModel(
 
     private fun resolveAndPlay(song: MediaMetadata) {
         resolveJob?.cancel()
+        playRequestId += 1
+        val requestId = playRequestId
 
-        _progressState.update { it.copy( positionMs = 0, durationMs = song.duration.toLong() * 1000) }
+        _progressState.update { it.copy(positionMs = 0, durationMs = song.duration.toLong() * 1000) }
 
         resolveJob = viewModelScope.launch {
             _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
@@ -588,18 +595,24 @@ class PlayerViewModel(
                 val cachedFile = withContext(Dispatchers.IO) {
                     DownloadService.getCachedFile(song.id)
                 }
+                if (requestId != playRequestId) return@launch
+
                 if (cachedFile != null) {
                     playerService.play(cachedFile.absolutePath)
                 } else {
                     val streamUrl = withContext(Dispatchers.IO) {
                         streamResolver.resolveAudioStream(song.id)
                     }.streamUrl
+                    if (requestId != playRequestId) return@launch
+
                     if (streamUrl.isNotEmpty()) {
                         playerService.play(streamUrl)
-                    } else {
+                    } else if (requestId == playRequestId) {
                         _uiState.update { it.copy(error = "No se pudo obtener el audio para \"${song.title}\"") }
                     }
                 }
+                if (requestId != playRequestId) return@launch
+
                 // Guardar canción en caché y registrar reproducción
                 withContext(Dispatchers.IO) {
                     cacheSongMetadata(song)
@@ -609,10 +622,12 @@ class PlayerViewModel(
                         playTime = 0L,
                     )
                 }
-            } catch (e: AgeRestrictedException) {
-                _uiState.update { it.copy(playbackState = PlaybackState.ERROR, error = e.message) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+                if (requestId == playRequestId) {
+                    _uiState.update { it.copy(error = e.message) }
+                }
             }
         }
     }
@@ -699,6 +714,7 @@ class PlayerViewModel(
 
     override fun onCleared() {
         resolveJob?.cancel()
+        playRequestId += 1
         resolveJob = null
         playerService.stopAudioOnly()
         super.onCleared()

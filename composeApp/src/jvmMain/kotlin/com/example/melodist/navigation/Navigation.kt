@@ -173,7 +173,7 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                             .fillMaxWidth()
                     ) {
 
-                        // 🏝️ CONTENIDO PRINCIPAL
+                        // ️ CONTENIDO PRINCIPAL
                         Box(
                             modifier = Modifier
                                 .weight(1f)
