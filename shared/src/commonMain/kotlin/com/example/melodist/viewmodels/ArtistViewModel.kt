@@ -1,6 +1,5 @@
 package com.example.melodist.viewmodels
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.ArtistRepository
@@ -26,7 +25,7 @@ sealed class ArtistState {
 class ArtistViewModel(
     private val apiService: ApiService,
     private val repository: ArtistRepository
-) : ViewModel() {
+) : MelodistViewModel() {
 
     private val log = Logger.getLogger("ArtistViewModel")
 

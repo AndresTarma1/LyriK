@@ -112,6 +112,7 @@ fun main() {
         setSingletonImageLoaderFactory { context ->
             CoilSetup.createImageLoader(context)
         }
+        System.setProperty("compose.swing.render.on.graphics", "true")
         val windowState = rememberWindowState(
             placement = if (initialMaximized) WindowPlacement.Maximized else WindowPlacement.Floating,
             width = initialWidth.dp,

@@ -1,6 +1,5 @@
 package com.example.melodist.viewmodels
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.PlaylistRepository
@@ -40,7 +39,7 @@ class PlaylistViewModel(
     private val repository: PlaylistRepository,
     private val songRepository: SongRepository,
     private val playerCoordinator: PlayerCoordinator,
-) : ViewModel() {
+) : MelodistViewModel() {
 
     private val log = Logger.getLogger("PlaylistViewModel")
 

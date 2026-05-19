@@ -1,6 +1,7 @@
 package com.example.melodist.navigation
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.decompose.router.stack.*
 import com.arkivanov.decompose.value.Value
 import com.example.melodist.viewmodels.*
@@ -93,6 +94,9 @@ class AlbumComponent(
 ) : ComponentContext by componentContext {
     init {
         viewModel.loadAlbum(browseId)
+        lifecycle.subscribe(object : Lifecycle.Callbacks {
+            override fun onDestroy() { viewModel.dispose() }
+        })
     }
 }
 
@@ -103,6 +107,9 @@ class PlaylistComponent(
 ) : ComponentContext by componentContext {
     init {
         viewModel.loadPlaylist(playlistId)
+        lifecycle.subscribe(object : Lifecycle.Callbacks {
+            override fun onDestroy() { viewModel.dispose() }
+        })
     }
 }
 
@@ -113,11 +120,20 @@ class ArtistComponent(
 ) : ComponentContext by componentContext {
     init {
         viewModel.loadArtist(artistId)
+        lifecycle.subscribe(object : Lifecycle.Callbacks {
+            override fun onDestroy() { viewModel.dispose() }
+        })
     }
 }
 
 class AccountComponent(componentContext: ComponentContext, val viewModel: AccountViewModel) :
-    ComponentContext by componentContext
+    ComponentContext by componentContext {
+    init {
+        lifecycle.subscribe(object : Lifecycle.Callbacks {
+            override fun onDestroy() { viewModel.dispose() }
+        })
+    }
+}
 
 class YouTubeBrowseComponent(
     componentContext: ComponentContext,
@@ -127,5 +143,8 @@ class YouTubeBrowseComponent(
 ) : ComponentContext by componentContext {
     init {
         viewModel.load(browseId, params)
+        lifecycle.subscribe(object : Lifecycle.Callbacks {
+            override fun onDestroy() { viewModel.dispose() }
+        })
     }
 }

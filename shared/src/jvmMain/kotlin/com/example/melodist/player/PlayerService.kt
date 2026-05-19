@@ -37,6 +37,9 @@ class PlayerService {
     @Volatile
     private var endNotified = false
 
+    private var prevPlayingPos = 0L
+    private var statsTickCounter = 0
+
     fun init() {
         if (initAttempted) return
         initAttempted = true
@@ -61,6 +64,7 @@ class PlayerService {
                 _playbackState.value = PlaybackState.LOADING
                 isTransitioning = false
                 endNotified = false
+                prevPlayingPos = 0L
                 _position.value = 0L
                 _duration.value = 0L
                 mpvPlayer.openUri(url)
@@ -93,6 +97,7 @@ class PlayerService {
     fun stop() {
         isTransitioning = false
         endNotified = false
+        prevPlayingPos = 0L
         _playbackState.value = PlaybackState.IDLE
         _position.value = 0L
         _duration.value = 0L
@@ -108,6 +113,7 @@ class PlayerService {
             if (millis < dur - endThresholdMs) {
                 endNotified = false
             }
+            prevPlayingPos = 0L
             mpvPlayer.seekTo(millis.toFloat() / dur.toFloat())
         }
     }
@@ -159,12 +165,27 @@ class PlayerService {
                         val pos = mpvPlayer.getCurrentPosition()
                         _position.value = pos
 
+                        statsTickCounter++
+                        if (statsTickCounter >= 120) {
+                            statsTickCounter = 0
+                            mpvPlayer.logMemoryStats()
+                        }
+
                         val endThresholdMs = 1000L
+                        // Detecta si mpv reseteó time-pos a 0 después de que la canción terminó
+                        val posReset = prevPlayingPos > endThresholdMs && pos <= 100 &&
+                                _playbackState.value == PlaybackState.PLAYING
+
                         val looksEnded =
                             !endNotified &&
                             dur > endThresholdMs &&
-                            pos >= (dur - endThresholdMs) &&
+                            (pos >= (dur - endThresholdMs) || posReset) &&
                             _playbackState.value != PlaybackState.LOADING
+
+                        // Guarda la posición para detectar reseteo en la próxima iteración
+                        if (pos > 0 && _playbackState.value == PlaybackState.PLAYING) {
+                            prevPlayingPos = pos
+                        }
 
                         if (looksEnded) {
                             endNotified = true
@@ -196,6 +217,8 @@ class PlayerService {
 
     fun stopAudioOnly() {
         isTransitioning = true
+        endNotified = false
+        prevPlayingPos = 0L
         _position.value = 0L
         _duration.value = 0L
         if (isMpvDisabled) return

@@ -5,6 +5,7 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -161,40 +162,79 @@ private fun ArtistScreenContent(
     isSaved: Boolean,
     actions: ArtistScreenActions
 ) {
-    val scrollState = rememberScrollState()
+    val lazyListState = rememberLazyListState()
     val surface = MaterialTheme.colorScheme.surface
 
     Box(modifier = Modifier.fillMaxSize()) {
 
         Box(modifier = Modifier.fillMaxSize().background(surface))
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier.fillMaxSize()
         ) {
-            ArtistBanner(
-                artistPage = artistPage,
-                isSaved = isSaved,
-                actions = actions,
-                surfaceColor = surface
-            )
+            item(key = "banner") {
+                ArtistBanner(
+                    artistPage = artistPage,
+                    isSaved = isSaved,
+                    actions = actions,
+                    surfaceColor = surface
+                )
+            }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(28.dp)
-            ) {
-                artistPage.sections.forEach { section ->
-                    ArtistSectionRow(section = section, onNavigate = onNavigate)
+            items(
+                artistPage.sections,
+                key = { it.title }
+            ) { section ->
+
+                val songSection =
+                    section.items.all { it is SongItem }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 32.dp,
+                            vertical = 16.dp
+                        )
+                ) {
+
+                    Text(
+                        text = section.title
+                    )
+
+                    if (songSection) {
+                        Column {
+                            section.items.forEach { item ->
+                                ArtistSectionListItem(
+                                    item = item,
+                                    onNavigate = onNavigate
+                                )
+                            }
+                        }
+
+                    } else {
+                        HorizontalScrollableRow(
+                            state = rememberLazyListState()
+                        ) {
+
+                            items(
+                                section.items,
+                                key = { it.id }
+                            ) {
+                                ArtistSectionGridItem(
+                                    item = it,
+                                    onNavigate = onNavigate
+                                )
+                            }
+                        }
+                    }
                 }
-                Spacer(Modifier.height(24.dp))
             }
         }
 
         AppVerticalScrollbar(
-            state = scrollState,
+            state = lazyListState,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .fillMaxHeight()
@@ -405,53 +445,6 @@ private fun ArtistBanner(
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(Icons.Rounded.MoreVert, "Más opciones", tint = Color.White, modifier = Modifier.size(20.dp))
-                }
-            }
-        }
-    }
-}
-
-// SECCIONES DE CONTENIDO
-
-@Composable
-private fun ArtistSectionRow(
-    section: ArtistSection,
-    onNavigate: (Route) -> Unit,
-) {
-    val songSection = section.items.all { it is SongItem }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = section.title,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        if (songSection) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                section.items.forEach { item ->
-                    ArtistSectionListItem(
-                        item = item,
-                        onNavigate = onNavigate,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        } else {
-            HorizontalScrollableRow(
-                modifier = Modifier.fillMaxWidth(),
-                state = rememberLazyListState(),
-                contentPadding = PaddingValues(end = 16.dp, top = 4.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(items = section.items, key = { it.id }) { item ->
-                    ArtistSectionGridItem(
-                        item = item,
-                        onNavigate = onNavigate,
-                        modifier = Modifier.animateItem(
-                            placementSpec = spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMediumLow)
-                        )
-                    )
                 }
             }
         }

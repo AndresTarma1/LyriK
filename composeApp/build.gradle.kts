@@ -15,12 +15,14 @@ val melodistJvmArgs = listOf(
     "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
     "-XX:+UseG1GC",
     "-Xmx512m",
-    "-Xms256m",
+    "-Xms64m",
     "-XX:MaxGCPauseMillis=80",
     "-XX:+UseStringDeduplication",
     "-XX:+UseCompressedOops",
     "-XX:MaxHeapFreeRatio=30",
     "-XX:MinHeapFreeRatio=10",
+    "-Dskiko.renderApi=SOFTWARE",
+//    "-Dskiko.renderApi=OPENGL"
 )
 
 val melodistDevJvmArgs = melodistJvmArgs + "-XX:NativeMemoryTracking=summary"

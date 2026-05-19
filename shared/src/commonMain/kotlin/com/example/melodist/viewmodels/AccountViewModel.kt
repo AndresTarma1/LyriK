@@ -1,6 +1,5 @@
 package com.example.melodist.viewmodels
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.account.AccountManager
 import com.metrolist.innertube.YouTube
@@ -28,7 +27,7 @@ sealed class AccountState {
 
 // ─── ViewModel ────────────────────────────────────────────────
 
-class AccountViewModel : ViewModel() {
+class AccountViewModel : MelodistViewModel() {
 
     private val _uiState = MutableStateFlow<AccountState>(AccountState.NotLoggedIn)
     val uiState: StateFlow<AccountState> = _uiState.asStateFlow()

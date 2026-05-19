@@ -12,7 +12,7 @@ interface MpvLib : Library {
     fun mpv_command(handle: Pointer, args: Array<String?>): Int
     fun mpv_terminate_destroy(handle: Pointer)
     fun mpv_set_property_string(handle: Pointer, name: String, value: String): Int
-    fun mpv_get_property_string(handle: Pointer, name: String): String?
+    fun mpv_get_property_string(handle: Pointer, name: String): Pointer
     fun mpv_free(data: Pointer)
 
     companion object {
