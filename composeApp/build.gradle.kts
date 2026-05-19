@@ -21,7 +21,6 @@ val melodistJvmArgs = listOf(
     "-XX:+UseCompressedOops",
     "-XX:MaxHeapFreeRatio=30",
     "-XX:MinHeapFreeRatio=10",
-    "-Dskiko.renderApi=SOFTWARE"
 )
 
 val melodistDevJvmArgs = melodistJvmArgs + "-XX:NativeMemoryTracking=summary"
@@ -134,12 +133,8 @@ compose.desktop {
             vendor = "Tarma"
             description = "Reproductor de música de escritorio"
 
-            // Módulos específicos para evitar el peso excesivo de includeAllModules
             includeAllModules = true
 
-            // Compose Desktop copia el contenido de windows/ (o common/) de este dir
-            // a $APPDIR/resources/ durante el packaging.
-            // La carpeta mpv-resources/windows/ debe contener libmpv-2.dll
             appResourcesRootDir.set(project.layout.projectDirectory.dir("../mpv-resources"))
         }
     }

@@ -35,6 +35,8 @@ import java.time.LocalDateTime
 import kotlin.system.exitProcess
 import java.io.PrintStream
 import java.io.FileOutputStream
+import coil3.compose.setSingletonImageLoaderFactory
+import com.example.melodist.ui.components.CoilSetup
 
 fun main() {
 
@@ -107,6 +109,9 @@ fun main() {
 
 
     application {
+        setSingletonImageLoaderFactory { context ->
+            CoilSetup.createImageLoader(context)
+        }
         val windowState = rememberWindowState(
             placement = if (initialMaximized) WindowPlacement.Maximized else WindowPlacement.Floating,
             width = initialWidth.dp,

@@ -345,13 +345,12 @@ fun MiniPlayer(
                                 onValueChange = {
                                     isDragging = true // El usuario empezó a moverlo
                                     seekValue = it
-                                    // Nota: Es mejor hacer el seek al ViewModel aquí para feedback visual,
-                                    // pero solo si tu ViewModel es rápido.
                                 },
                                 onValueChangeFinished = {
                                     isDragging = false // El usuario soltó el slider
                                     playerViewModel.seekTo((seekValue?.times(progressState.durationMs))?.toLong() ?: 0L)
-                                },
+                                    seekValue = null // Limpiar el valor temporal
+                                                        },
                                 // Visual: Si está en pausa Y no lo estoy moviendo, la ola se detiene
                                 waveLength = 102.dp, // Mantén una longitud constante para que no desaparezca
                                 waveHeight = if (isPlaying || isDragging) 10.dp else 0.dp, // Se aplana solo en pausa real

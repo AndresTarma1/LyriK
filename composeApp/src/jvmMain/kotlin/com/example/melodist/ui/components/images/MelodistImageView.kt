@@ -25,13 +25,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
@@ -101,24 +105,11 @@ fun MelodistImage(
             )
         }
     } else {
-        val errorPlaceholder: @Composable () -> Unit = {
-            Box(
-                modifier = Modifier.fillMaxSize().background(placeholderBg),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = placeholderIcon,
-                    contentDescription = null,
-                    modifier = Modifier.size(iconSize),
-                    tint = placeholderTint
-                )
-            }
-        }
 
         val effectiveLowRes = isLowRes || !highResEnabled
         val coilSize = if (effectiveLowRes) 160 else 320
 
-        SubcomposeAsyncImage(
+        AsyncImage(
             model = ImageRequest.Builder(LocalPlatformContext.current)
                 .data(url)
                 .crossfade(true)
@@ -130,15 +121,7 @@ fun MelodistImage(
                 .clipToBounds(),
             contentScale = contentScale,
             alignment = alignment,
-            loading = {
-                ShimmerBox(
-                    modifier = Modifier.fillMaxSize(),
-                    shape = shape
-                )
-            },
-            error = {
-                errorPlaceholder()
-            }
+            placeholder = ColorPainter(Color.DarkGray),
         )
     }
 }
