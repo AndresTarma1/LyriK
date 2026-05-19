@@ -7,7 +7,7 @@ import kotlin.system.exitProcess
 
 object AppRestarter {
 
-    private val REQUIRED_JVM_ARGS = listOf(
+    val requiredJvmArgs = listOf(
         "--add-modules=java.sql",
         "--enable-native-access=ALL-UNNAMED",
         "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
@@ -17,9 +17,12 @@ object AppRestarter {
         "-XX:MinHeapFreeRatio=10",
     )
 
-    private val GC_TUNING_ARGS = listOf(
+    val gcTuningArgs = listOf(
         "-XX:MaxGCPauseMillis=80",
     )
+
+    fun previewJvmArgs(config: JvmConfig): List<String> =
+        requiredJvmArgs + gcTuningArgs + config.toJvmArgs()
 
     suspend fun restartWithJvmArgs(config: JvmConfig) {
         withContext(Dispatchers.IO) {
@@ -32,9 +35,7 @@ object AppRestarter {
 
                 val command = mutableListOf<String>()
                 command.add(javaBin)
-                command.addAll(REQUIRED_JVM_ARGS)
-                command.addAll(GC_TUNING_ARGS)
-                command.addAll(config.toJvmArgs())
+                command.addAll(previewJvmArgs(config))
                 command.add("-cp")
                 command.add(classpath)
                 command.add(mainClass)

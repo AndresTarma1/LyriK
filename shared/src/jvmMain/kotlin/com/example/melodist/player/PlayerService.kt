@@ -165,11 +165,11 @@ class PlayerService {
                         val pos = mpvPlayer.getCurrentPosition()
                         _position.value = pos
 
-                        statsTickCounter++
-                        if (statsTickCounter >= 120) {
-                            statsTickCounter = 0
-                            mpvPlayer.logMemoryStats()
-                        }
+//                        statsTickCounter++
+//                        if (statsTickCounter >= 120) {
+//                            statsTickCounter = 0
+//                            mpvPlayer.logMemoryStats()
+//                        }
 
                         val endThresholdMs = 1000L
                         // Detecta si mpv reseteó time-pos a 0 después de que la canción terminó

@@ -323,13 +323,6 @@ private fun LoginSection(
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        com.example.melodist.data.AppDirs.cookieFile.absolutePath,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
                 }
             }
         }
@@ -474,12 +467,8 @@ private fun LoggedInSection(
 
 @Composable
 private fun AccountProfileHeader(accountInfo: com.metrolist.innertube.models.AccountInfo) {
-    val cookiePath = remember {
-        com.example.melodist.data.AppDirs.cookieFile.absolutePath
-    }
-    val cookieSize = remember {
-        try { com.example.melodist.data.AppDirs.cookieFile.length() } catch (_: Exception) { 0L }
-    }
+    val cookiePath = ""
+    val cookieSize = 0L
 
     Card(
         modifier = Modifier

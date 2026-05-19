@@ -21,11 +21,9 @@ val melodistJvmArgs = listOf(
     "-XX:+UseCompressedOops",
     "-XX:MaxHeapFreeRatio=30",
     "-XX:MinHeapFreeRatio=10",
-    "-Dskiko.renderApi=SOFTWARE",
-//    "-Dskiko.renderApi=OPENGL"
 )
 
-val melodistDevJvmArgs = melodistJvmArgs + "-XX:NativeMemoryTracking=summary"
+val melodistDevJvmArgs = melodistJvmArgs
 
 tasks.withType<JavaExec>().configureEach {
     if (name.contains("run", ignoreCase = true)) {
@@ -128,7 +126,7 @@ compose.desktop {
                 menu = true
                 menuGroup = "Melodist"
                 shortcut = true
-                dirChooser = true
+                dirChooser = false
                 perUserInstall = true
                 upgradeUuid = "4A2F8B6C-1D3E-4F5A-B7C8-9D0E1F2A3B4C"
             }

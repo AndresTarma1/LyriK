@@ -6,6 +6,7 @@ import com.example.melodist.data.repository.JvmConfig
 import com.example.melodist.data.repository.JvmConfigRepository
 import com.example.melodist.data.repository.JvmRuntimeInfo
 import com.example.melodist.data.repository.JvmValidationResult
+import com.example.melodist.data.repository.RenderApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,10 +17,11 @@ import kotlinx.coroutines.launch
 
 data class JvmSettingsUiState(
     val xmx: String = "512m",
-    val xms: String = "256m",
+    val xms: String = "64m",
     val useG1GC: Boolean = true,
     val useZGC: Boolean = false,
     val gcLogging: Boolean = false,
+    val renderApi: RenderApi = RenderApi.DIRECTX,
     val validationError: String? = null,
     val isApplying: Boolean = false,
 )
@@ -44,6 +46,7 @@ class JvmSettingsViewModel(
                         useG1GC = config.useG1GC,
                         useZGC = config.useZGC,
                         gcLogging = config.gcLogging,
+                        renderApi = config.renderApi,
                         validationError = null,
                     )
                 }
@@ -83,6 +86,10 @@ class JvmSettingsViewModel(
         _uiState.update { it.copy(gcLogging = enabled, validationError = null) }
     }
 
+    fun setRenderApi(renderApi: RenderApi) {
+        _uiState.update { it.copy(renderApi = renderApi, validationError = null) }
+    }
+
     fun applyAndRestart() {
         val config = JvmConfig(
             xmx = _uiState.value.xmx,
@@ -90,6 +97,7 @@ class JvmSettingsViewModel(
             useG1GC = _uiState.value.useG1GC,
             useZGC = _uiState.value.useZGC,
             gcLogging = _uiState.value.gcLogging,
+            renderApi = _uiState.value.renderApi,
         )
 
         val result = config.validate()
@@ -104,14 +112,35 @@ class JvmSettingsViewModel(
         }
     }
 
+    suspend fun saveCurrentConfig(): Boolean {
+        val config = JvmConfig(
+            xmx = _uiState.value.xmx,
+            xms = _uiState.value.xms,
+            useG1GC = _uiState.value.useG1GC,
+            useZGC = _uiState.value.useZGC,
+            gcLogging = _uiState.value.gcLogging,
+            renderApi = _uiState.value.renderApi,
+        )
+
+        val result = config.validate()
+        if (result !is JvmValidationResult.Valid) {
+            _uiState.update { it.copy(validationError = result.errorMessage) }
+            return false
+        }
+
+        jvmConfigRepository.updateConfig(config)
+        return true
+    }
+
     fun resetToDefaults() {
         _uiState.update {
             it.copy(
                 xmx = "512m",
-                xms = "256m",
+                xms = "64m",
                 useG1GC = true,
                 useZGC = false,
                 gcLogging = false,
+                renderApi = RenderApi.DIRECTX,
                 validationError = null,
             )
         }

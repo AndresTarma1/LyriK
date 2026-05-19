@@ -18,7 +18,7 @@ object CoilSetup {
         val cacheDir = AppDirs.imageCacheDir
         if (!cacheDir.exists()) cacheDir.mkdirs()
 
-        println(
+        System.out.println(
             "[CoilSetup] memoryCache=20MB diskCache=128MB dir=${cacheDir.absolutePath}"
         )
 
