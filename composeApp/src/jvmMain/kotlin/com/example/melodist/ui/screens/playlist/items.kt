@@ -335,7 +335,7 @@ internal fun SongListItem(
                                         shape = RoundedCornerShape(ThumbnailCornerRadius),
                                         placeholderType = PlaceholderType.SONG,
                                         iconSize = 24.dp,
-                                        isLowRes = true  // ✅ Baja resolución en listas
+                                        isLowRes = true
                                     )
                                     Box(
                                         modifier = Modifier

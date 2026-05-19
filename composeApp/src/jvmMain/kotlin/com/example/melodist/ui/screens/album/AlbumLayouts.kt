@@ -507,7 +507,6 @@ internal fun AlbumInfoPanel(
             placeholderType = PlaceholderType.ALBUM,
             contentScale = ContentScale.Crop,
             iconSize = coverSize * 0.33f,
-            isLowRes = false
         )
     }
 

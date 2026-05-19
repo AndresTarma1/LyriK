@@ -107,7 +107,7 @@ fun MelodistImage(
     } else {
 
         val effectiveLowRes = isLowRes || !highResEnabled
-        val coilSize = if (effectiveLowRes) 160 else 320
+        val coilSize = if (effectiveLowRes) 160 else 512
 
         AsyncImage(
             model = ImageRequest.Builder(LocalPlatformContext.current)
