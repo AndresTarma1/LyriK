@@ -9,7 +9,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
@@ -43,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.player.PlaybackState
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.isWideThumbnail
@@ -256,7 +256,7 @@ fun MiniPlayer(
                             FilledIconButton(
                                 onClick = { playerViewModel.togglePlayPause() },
                                 modifier = Modifier.size(46.dp).pointerHoverIcon(PointerIcon.Hand),
-                                shape = CircleShape,
+                                shape = circleAwareShape(),
                                 colors = IconButtonDefaults.filledIconButtonColors(
                                     containerColor = MaterialTheme.colorScheme.onSurface,
                                     contentColor = MaterialTheme.colorScheme.surface
@@ -546,3 +546,4 @@ fun CompactSlider(
         )
     }
 }
+

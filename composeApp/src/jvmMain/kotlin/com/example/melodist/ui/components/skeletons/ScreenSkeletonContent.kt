@@ -3,7 +3,6 @@ package com.example.melodist.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -17,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
+import com.example.melodist.ui.utils.circleAwareShape
 
 @Composable
 internal fun AlbumScreenSkeletonContent() {
@@ -110,10 +110,10 @@ internal fun ArtistScreenSkeletonContent() {
                 Box(Modifier.fillMaxWidth(0.34f).height(15.dp).clip(RoundedCornerShape(4.dp)).background(brush))
                 Spacer(Modifier.height(22.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.width(118.dp).height(42.dp).clip(CircleShape).background(brush))
-                    Box(Modifier.width(96.dp).height(42.dp).clip(CircleShape).background(brush))
-                    Box(Modifier.width(150.dp).height(42.dp).clip(CircleShape).background(brush))
-                    Box(Modifier.size(36.dp).clip(CircleShape).background(brush))
+                    Box(Modifier.width(118.dp).height(42.dp).clip(circleAwareShape()).background(brush))
+                    Box(Modifier.width(96.dp).height(42.dp).clip(circleAwareShape()).background(brush))
+                    Box(Modifier.width(150.dp).height(42.dp).clip(circleAwareShape()).background(brush))
+                    Box(Modifier.size(36.dp).clip(circleAwareShape()).background(brush))
                 }
             }
         }
@@ -195,10 +195,10 @@ internal fun InfoPanelSkeleton(brush: Brush, coverSize: Dp) {
     Spacer(Modifier.height(24.dp))
     // Action buttons: save(44) + play(56) + shuffle(44) + download(44) — all spaced 12dp
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.size(44.dp).clip(CircleShape).background(brush))   // save/bookmark
-        Box(Modifier.size(56.dp).clip(CircleShape).background(brush))   // play FAB
-        Box(Modifier.size(44.dp).clip(CircleShape).background(brush))   // shuffle
-        Box(Modifier.size(44.dp).clip(CircleShape).background(brush))   // download
+        Box(Modifier.size(44.dp).clip(circleAwareShape()).background(brush))   // save/bookmark
+        Box(Modifier.size(56.dp).clip(circleAwareShape()).background(brush))   // play FAB
+        Box(Modifier.size(44.dp).clip(circleAwareShape()).background(brush))   // shuffle
+        Box(Modifier.size(44.dp).clip(circleAwareShape()).background(brush))   // download
     }
 }
 

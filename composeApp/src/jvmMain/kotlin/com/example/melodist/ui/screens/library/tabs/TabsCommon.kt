@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudDone
@@ -37,6 +36,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.melodist.ui.utils.circleAwareShape
 
 @Composable
 internal fun YtmSectionHeader(title: String, isLoading: Boolean = false) {
@@ -100,7 +100,7 @@ internal fun LibraryGridSkeleton(count: Int = 4, isCircle: Boolean = false) {
         label = "shimmerAlpha"
     )
     val color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha * 0.15f)
-    val shape = if (isCircle) CircleShape else RoundedCornerShape(12.dp)
+    val shape = if (isCircle) circleAwareShape() else RoundedCornerShape(12.dp)
 
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 160.dp),
@@ -137,7 +137,7 @@ internal fun LibraryEmptyState(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Box(
-                modifier = Modifier.size(80.dp).clip(CircleShape)
+                modifier = Modifier.size(80.dp).clip(circleAwareShape())
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center
             ) {
@@ -164,5 +164,3 @@ internal fun LibraryEmptyState(
         }
     }
 }
-
-

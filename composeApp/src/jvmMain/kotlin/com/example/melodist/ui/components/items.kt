@@ -20,7 +20,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -72,6 +71,8 @@ import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.components.context.SongContextMenu
 import com.example.melodist.ui.components.context.CollectionContextMenu
 import com.example.melodist.ui.helpers.contextMenuArea
+import com.example.melodist.ui.utils.circleAwareShape
+import com.example.melodist.ui.utils.isCircleLikeShape
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.thumbnailAspectRatio
 import com.metrolist.innertube.models.AlbumItem
@@ -107,7 +108,7 @@ private fun YTItem.mediaGridPlaceholderType(): PlaceholderType = when (this) {
 }
 
 private fun YTItem.mediaGridShape(): Shape = when (this) {
-    is ArtistItem -> CircleShape
+    is ArtistItem -> circleAwareShape()
     else -> RoundedCornerShape(12.dp)
 }
 
@@ -280,7 +281,7 @@ fun MediaGridItem(
     source: ItemContentSource = ItemContentSource.LOCAL,
     modifier: Modifier = Modifier,
 ) {
-    val isCircle = shape == CircleShape
+    val isCircle = isCircleLikeShape(shape)
     val alignment = if (isCircle) Alignment.CenterHorizontally else Alignment.Start
     val textAlign = if (isCircle) TextAlign.Center else TextAlign.Start
     var isImageHovered by remember { mutableStateOf(false) }
@@ -316,8 +317,7 @@ fun MediaGridItem(
                 Box(
                     modifier = Modifier
                         .clickable(onClick = onClick)
-                        .onPointerEvent(PointerEventType.Enter) { isImageHovered = true }
-                        .onPointerEvent(PointerEventType.Exit) { isImageHovered = false }
+                        .onHover{ isImageHovered = it }
                 ) {
                     MelodistImage(
                         url = thumbnailUrl,
@@ -341,7 +341,7 @@ fun MediaGridItem(
                     )
 
                     Surface(
-                        shape = CircleShape,
+                        shape = circleAwareShape(),
                         color = Color.Black.copy(alpha = 0.50f),
                         modifier = Modifier
                             .align(Alignment.TopStart)
@@ -461,7 +461,7 @@ fun YoutubeListItem(
 ) {
     val playerViewModel = LocalPlayerViewModel.current
     val shape = when (item) {
-        is ArtistItem -> CircleShape
+        is ArtistItem -> circleAwareShape()
         is PlaylistItem -> RoundedCornerShape(8.dp)
         else -> RoundedCornerShape(6.dp)
     }
@@ -529,7 +529,7 @@ fun YoutubeListItem(
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
-                        shape = CircleShape,
+                        shape = circleAwareShape(8.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerHighest,
                         modifier = Modifier.size(16.dp)
                     ) {

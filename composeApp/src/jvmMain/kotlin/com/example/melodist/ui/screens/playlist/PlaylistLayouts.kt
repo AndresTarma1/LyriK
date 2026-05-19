@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -38,6 +37,7 @@ import com.example.melodist.ui.components.dialogs.DownloadConfirmationDialog
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.screens.PlaylistActions
 import com.example.melodist.ui.screens.PlaylistScreenState
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.metrolist.innertube.models.SongItem
@@ -432,7 +432,7 @@ internal fun PlaylistInfoPanel(
                 Box(
                     modifier = Modifier
                         .size(20.dp)
-                        .clip(CircleShape)
+                        .clip(circleAwareShape())
                         .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                     contentAlignment = Alignment.Center
                 ) {
@@ -440,7 +440,7 @@ internal fun PlaylistInfoPanel(
                         url = null,
                         contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
-                        shape = CircleShape,
+                        shape = circleAwareShape(),
                         contentScale = ContentScale.Crop,
                         placeholderType = PlaceholderType.ARTIST,
                         iconSize = 12.dp
@@ -535,7 +535,7 @@ internal fun PlaylistInfoPanel(
 
         FloatingActionButton(
             onClick = { if (!controls.isLoadingForPlay) actions.onPlay() },
-            shape = CircleShape,
+            shape = circleAwareShape(),
             containerColor = MaterialTheme.colorScheme.primary,
             elevation = FloatingActionButtonDefaults.elevation(8.dp, 12.dp),
             modifier = Modifier
@@ -594,7 +594,7 @@ fun PlaylistActionButton(
             containerColor = containerColor,
             contentColor = contentColor
         ),
-        shape = CircleShape // Consistencia total circular
+        shape = circleAwareShape() // Compatible con OpenGL
     ) {
         Crossfade(targetState = isLoading, label = "icon_state") { loading ->
             if (loading) {

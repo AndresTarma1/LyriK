@@ -2,7 +2,6 @@ package com.example.melodist.ui.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -23,6 +22,7 @@ import com.example.melodist.ui.components.context.CollectionContextMenu
 import com.example.melodist.ui.components.context.SongContextMenu
 import com.example.melodist.ui.components.song.DownloadIndicator
 import com.example.melodist.ui.helpers.rememberSongDownloadState
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.metrolist.innertube.models.AlbumItem
@@ -65,7 +65,7 @@ fun SongHomeItem(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(6.dp)
-                        .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                        .background(Color.Black.copy(alpha = 0.55f), circleAwareShape())
                         .padding(4.dp)
                 )
             }
@@ -209,7 +209,7 @@ fun ArtistHomeItem(item: ArtistItem, modifier: Modifier = Modifier, onClick: (YT
     YouTubeGridItem(
         item = item,
         onClick = onClick,
-        imageShape = CircleShape,
+        imageShape = circleAwareShape(),
         alignment = Alignment.CenterHorizontally,
         titleAlign = TextAlign.Center,
         placeholderType = PlaceholderType.ARTIST,
@@ -220,4 +220,3 @@ fun ArtistHomeItem(item: ArtistItem, modifier: Modifier = Modifier, onClick: (YT
         modifier = modifier
     )
 }
-

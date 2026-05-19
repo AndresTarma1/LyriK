@@ -4,7 +4,6 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -35,6 +34,7 @@ import com.example.melodist.navigation.Route
 import com.metrolist.innertube.YouTube
 import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.PlaceholderType
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.viewmodels.AccountState
 import com.example.melodist.viewmodels.AccountViewModel
@@ -214,7 +214,7 @@ private fun LoginSection(
         ) {
             Spacer(Modifier.height(8.dp))
             Box(
-                modifier = Modifier.size(84.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier.size(84.dp).clip(circleAwareShape()).background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(44.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
@@ -335,7 +335,7 @@ private fun HelpStep(number: String, text: String) {
         Box(
             modifier = Modifier
                 .size(22.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
                 .background(MaterialTheme.colorScheme.primary),
             contentAlignment = Alignment.Center
         ) {
@@ -491,7 +491,7 @@ private fun AccountProfileHeader(accountInfo: com.metrolist.innertube.models.Acc
                         url = accountInfo.thumbnailUrl,
                         contentDescription = accountInfo.name,
                         modifier = Modifier.size(64.dp),
-                        shape = CircleShape,
+                        shape = circleAwareShape(),
                         placeholderType = PlaceholderType.ARTIST,
                         isLowRes = true  // ✅ Baja resolución en avatares de lista
                     )
@@ -499,7 +499,7 @@ private fun AccountProfileHeader(accountInfo: com.metrolist.innertube.models.Acc
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .clip(CircleShape)
+                            .clip(circleAwareShape())
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
@@ -821,7 +821,7 @@ private fun CookieExpiredSection(
         ) {
             Spacer(Modifier.height(8.dp))
             Box(
-                modifier = Modifier.size(84.dp).clip(CircleShape).background(MaterialTheme.colorScheme.errorContainer),
+                modifier = Modifier.size(84.dp).clip(circleAwareShape()).background(MaterialTheme.colorScheme.errorContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.LockClock, contentDescription = null, modifier = Modifier.size(44.dp), tint = MaterialTheme.colorScheme.onErrorContainer)

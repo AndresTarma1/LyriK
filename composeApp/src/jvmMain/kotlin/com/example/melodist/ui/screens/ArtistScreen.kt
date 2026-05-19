@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -47,6 +46,7 @@ import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.components.song.DownloadIndicator
 import com.example.melodist.ui.helpers.contextMenuArea
 import com.example.melodist.ui.helpers.rememberSongDownloadState
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.viewmodels.ArtistState
@@ -142,7 +142,7 @@ fun ArtistScreen(
                 .padding(12.dp)
                 .align(Alignment.TopStart)
                 .size(36.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack, "Atrás",
@@ -383,7 +383,7 @@ private fun ArtistBanner(
                         disabledContainerColor = Color.White.copy(alpha = 0.3f),
                         disabledContentColor = Color.White.copy(alpha = 0.5f)
                     ),
-                    shape = CircleShape,
+                    shape = circleAwareShape(),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
                 ) {
                     Icon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(18.dp))
@@ -401,7 +401,7 @@ private fun ArtistBanner(
                         disabledContainerColor = Color.White.copy(alpha = 0.3f),
                         disabledContentColor = Color.White.copy(alpha = 0.5f)
                     ),
-                    shape = CircleShape,
+                    shape = circleAwareShape(),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
                 ) {
                     Icon(Icons.Rounded.Radio, null, modifier = Modifier.size(18.dp))
@@ -424,7 +424,7 @@ private fun ArtistBanner(
                         width = 1.5.dp,
                         color = Color.White.copy(alpha = if (isSaved) 0.6f else 0.85f)
                     ),
-                    shape = CircleShape,
+                    shape = circleAwareShape(),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
                 ) {
                     if (isSaved) {
@@ -438,7 +438,7 @@ private fun ArtistBanner(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
-                        .clip(CircleShape)
+                        .clip(circleAwareShape())
                         .background(Color.White.copy(alpha = 0.12f))
                         .clickable { /* TODO */ }
                         .pointerHoverIcon(PointerIcon.Hand),
@@ -506,7 +506,7 @@ private fun ArtistSectionGridItem(
     YouTubeGridItem(
         item = item,
         onClick = onClick,
-        imageShape = if (isArtist) CircleShape else RoundedCornerShape(10.dp),
+        imageShape = if (isArtist) circleAwareShape() else RoundedCornerShape(10.dp),
         alignment = if (isArtist) Alignment.CenterHorizontally else Alignment.Start,
         titleAlign = if (isArtist) TextAlign.Center else TextAlign.Start,
         placeholderType = when (item) {
@@ -562,7 +562,7 @@ private fun ArtistSectionGridItem(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(6.dp)
-                        .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                        .background(Color.Black.copy(alpha = 0.55f), circleAwareShape())
                         .padding(4.dp)
                 )
             }

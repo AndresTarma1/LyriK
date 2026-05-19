@@ -11,7 +11,8 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.example.melodist.data.AppDirs
 import com.example.melodist.data.account.AccountManager
-import com.metrolist.innertube.YouTube
+import com.example.melodist.data.repository.JvmConfig
+import com.example.melodist.data.repository.JvmConfigRepository
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.di.appModule
 import com.example.melodist.di.dataStoreModule
@@ -19,10 +20,12 @@ import com.example.melodist.navigation.RootComponent
 import com.example.melodist.player.DownloadService
 import com.example.melodist.player.PlayerService
 import com.example.melodist.player.WindowsMediaSession
+import com.example.melodist.utils.AppRestarter
 import com.example.melodist.utils.SyncUtils
 import com.example.melodist.viewmodels.AppViewModel
 import com.example.melodist.viewmodels.DownloadViewModel
 import com.example.melodist.viewmodels.PlayerViewModel
+import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.YouTubeLocale
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -35,6 +38,7 @@ import java.time.LocalDateTime
 import kotlin.system.exitProcess
 import java.io.PrintStream
 import java.io.FileOutputStream
+import java.lang.management.ManagementFactory
 import coil3.compose.setSingletonImageLoaderFactory
 import com.example.melodist.ui.components.CoilSetup
 
@@ -51,6 +55,21 @@ fun main() {
     } catch (e: Throwable) {
         logStartupError("Error al iniciar Koin", e)
         throw e
+    }
+
+    val jvmConfigRepository = try {
+        koinApp.koin.get<JvmConfigRepository>()
+    } catch (e: Throwable) {
+        logStartupError("Error creando JvmConfigRepository", e)
+        throw e
+    }
+
+    runBlocking {
+        val persistedConfig = jvmConfigRepository.config.first()
+        if (shouldRestartWithPersistedJvmArgs(persistedConfig)) {
+            AppRestarter.restartWithJvmArgs(persistedConfig)
+            return@runBlocking
+        }
     }
 
     // ✅ PlayerService se inicializa perezosamente — solo cuando se necesita
@@ -192,5 +211,25 @@ private fun logStartupError(context: String, throwable: Throwable) {
             appendLine("------------------------------------------------------------")
         }
         logFile.appendText(entry)
+    }
+}
+
+private const val jvmConfigAppliedProperty = "melodist.jvmConfigApplied"
+private const val jvmConfigAppliedArg = "-D${jvmConfigAppliedProperty}=true"
+
+private fun shouldRestartWithPersistedJvmArgs(config: JvmConfig): Boolean {
+    if (System.getProperty(jvmConfigAppliedProperty) == "true") return false
+
+    val desiredArgs = AppRestarter.previewJvmArgs(config).filterNot { it == jvmConfigAppliedArg }
+    val runtimeArgs = ManagementFactory.getRuntimeMXBean().inputArguments
+    val normalizedRuntimeArgs = runtimeArgs.map { it.trim() }
+
+    return desiredArgs.any { desired ->
+        val match = if (desired.startsWith("-Xmx", ignoreCase = true) || desired.startsWith("-Xms", ignoreCase = true)) {
+            normalizedRuntimeArgs.any { it.equals(desired, ignoreCase = true) }
+        } else {
+            normalizedRuntimeArgs.contains(desired)
+        }
+        !match
     }
 }

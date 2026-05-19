@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -39,6 +38,7 @@ import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.components.LoadingMoreSongsItem
 import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.PlaceholderType
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.ui.screens.AlbumScreenActions
 import com.example.melodist.ui.screens.AlbumScreenState
 import com.example.melodist.ui.screens.playlist.MultiSongSelectionBar
@@ -555,7 +555,7 @@ internal fun AlbumInfoPanel(
             onClick = { if (!controls.isSaving) onToggleSave() },
             modifier = Modifier
                 .size(44.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .pointerHoverIcon(if (controls.isSaving) PointerIcon.Default else PointerIcon.Hand)
         ) {
@@ -577,7 +577,7 @@ internal fun AlbumInfoPanel(
 
         FloatingActionButton(
             onClick = { if (!controls.isLoadingForPlay) onPlayAll() },
-            shape = CircleShape,
+            shape = circleAwareShape(),
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.size(56.dp)
@@ -598,7 +598,7 @@ internal fun AlbumInfoPanel(
             onClick = { if (!controls.isLoadingForPlay) onShuffle() },
             modifier = Modifier
                 .size(44.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .pointerHoverIcon(PointerIcon.Hand)
         ) {
@@ -615,7 +615,7 @@ internal fun AlbumInfoPanel(
             },
             modifier = Modifier
                 .size(44.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .pointerHoverIcon(PointerIcon.Hand)
         ) {

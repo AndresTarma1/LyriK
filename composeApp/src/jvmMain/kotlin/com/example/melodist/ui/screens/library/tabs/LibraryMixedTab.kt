@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.LibraryMusic
@@ -38,6 +37,7 @@ import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.models.YTItem
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
+import com.example.melodist.ui.utils.circleAwareShape
 
 @Composable
 fun LibraryMixedTab(
@@ -124,7 +124,7 @@ fun LibraryMixedTab(
                         subtitle = "Artista",
                         thumbnailUrl = artist.thumbnail,
                         placeholderType = PlaceholderType.ARTIST,
-                        shape = CircleShape,
+                        shape = circleAwareShape(),
                         source = if (ytm?.artists?.any { it.id == artist.id } == true) ItemContentSource.YOUTUBE else ItemContentSource.LOCAL,
                         onClick = { onNavigate(Route.Artist(artist.id)) },
                     )
@@ -301,4 +301,3 @@ fun LibraryMixedTab(
         )
     }
 }
-

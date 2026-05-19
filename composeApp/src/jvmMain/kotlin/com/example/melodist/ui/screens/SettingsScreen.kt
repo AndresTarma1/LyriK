@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -27,6 +26,7 @@ import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.ui.components.EqualizerPanel
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.screens.shared.openFolder
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.viewmodels.JvmSettingsViewModel
 import com.example.melodist.viewmodels.SettingsViewModel
@@ -604,7 +604,7 @@ private fun AboutCard() {
                 )
             }
 
-            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
+            Surface(shape = circleAwareShape(), color = MaterialTheme.colorScheme.primaryContainer) {
                 Text(
                     text = "v0.1.3",
                     style    = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -673,3 +673,4 @@ private fun ResponsiveSettingsDialog(
 private fun rememberScrollState(): androidx.compose.foundation.ScrollState {
     return androidx.compose.foundation.rememberScrollState()
 }
+

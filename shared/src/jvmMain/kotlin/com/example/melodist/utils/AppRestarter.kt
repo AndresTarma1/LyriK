@@ -7,6 +7,8 @@ import kotlin.system.exitProcess
 
 object AppRestarter {
 
+    private const val appliedMarkerArg = "-Dmelodist.jvmConfigApplied=true"
+
     val requiredJvmArgs = listOf(
         "--add-modules=java.sql",
         "--enable-native-access=ALL-UNNAMED",
@@ -22,7 +24,7 @@ object AppRestarter {
     )
 
     fun previewJvmArgs(config: JvmConfig): List<String> =
-        requiredJvmArgs + gcTuningArgs + config.toJvmArgs()
+        requiredJvmArgs + gcTuningArgs + config.toJvmArgs() + appliedMarkerArg
 
     suspend fun restartWithJvmArgs(config: JvmConfig) {
         withContext(Dispatchers.IO) {

@@ -10,7 +10,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -24,6 +23,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
+import com.example.melodist.ui.utils.circleAwareShape
 
 /**
  * CompositionLocal que provee el valor de traducción del shimmer.
@@ -216,7 +216,7 @@ fun SongSkeleton() {
 
         Box(
             modifier = Modifier.size(24.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
                 .background(brush)
         )
     }
