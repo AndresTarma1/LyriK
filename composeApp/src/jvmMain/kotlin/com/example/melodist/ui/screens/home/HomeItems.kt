@@ -13,7 +13,6 @@ import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.example.melodist.ui.components.CornerQuickPlayConfig
 import com.example.melodist.ui.components.PlaceholderType
@@ -44,7 +43,6 @@ fun SongHomeItem(
     val downloadState by rememberSongDownloadState(item.id, downloadViewModel)
 
     var showMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
 
     YouTubeGridItem(
         item = item,
@@ -55,7 +53,7 @@ fun SongHomeItem(
         placeholderType = PlaceholderType.SONG,
         centerPlayVisible = true,
         contextMenuEnabled = true,
-        onContextMenuAction = { offset -> menuOffset = offset; showMenu = true },
+        onContextMenuAction = { showMenu = true },
         subtitle = item.artists.firstOrNull()?.name.orEmpty(),
         modifier = modifier,
         topStartOverlay = {
@@ -74,8 +72,7 @@ fun SongHomeItem(
             SongContextMenu(
                 expanded = showMenu,
                 onDismiss = { showMenu = false },
-                song = item,
-                offset = menuOffset
+                song = item
             )
         }
     )
@@ -86,7 +83,6 @@ fun SongHomeItem(
 fun AlbumHomeItem(item: AlbumItem, modifier: Modifier = Modifier, onClick: (YTItem) -> Unit) {
     val playerViewModel = LocalPlayerViewModel.current
     var showMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
 
     YouTubeGridItem(
         item = item,
@@ -97,7 +93,7 @@ fun AlbumHomeItem(item: AlbumItem, modifier: Modifier = Modifier, onClick: (YTIt
         placeholderType = PlaceholderType.ALBUM,
         centerPlayVisible = false,
         contextMenuEnabled = true,
-        onContextMenuAction = { offset -> menuOffset = offset; showMenu = true },
+        onContextMenuAction = { showMenu = true },
         quickPlay = CornerQuickPlayConfig(
             size = 28.dp,
             iconSize = 16.dp,
@@ -135,8 +131,7 @@ fun AlbumHomeItem(item: AlbumItem, modifier: Modifier = Modifier, onClick: (YTIt
                         shuffle = true,
                         onEmpty = { onClick(item) }
                     )
-                },
-                offset = menuOffset
+                }
             )
         }
     )
@@ -147,7 +142,6 @@ fun AlbumHomeItem(item: AlbumItem, modifier: Modifier = Modifier, onClick: (YTIt
 fun PlaylistHomeItem(item: PlaylistItem, modifier: Modifier = Modifier, onClick: (YTItem) -> Unit) {
     val playerViewModel = LocalPlayerViewModel.current
     var showMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
 
     YouTubeGridItem(
         item = item,
@@ -158,7 +152,7 @@ fun PlaylistHomeItem(item: PlaylistItem, modifier: Modifier = Modifier, onClick:
         placeholderType = PlaceholderType.PLAYLIST,
         centerPlayVisible = false,
         contextMenuEnabled = true,
-        onContextMenuAction = { offset -> menuOffset = offset; showMenu = true },
+        onContextMenuAction = { showMenu = true },
         quickPlay = CornerQuickPlayConfig(
             size = 42.dp,
             iconSize = 20.dp,
@@ -196,8 +190,7 @@ fun PlaylistHomeItem(item: PlaylistItem, modifier: Modifier = Modifier, onClick:
                         shuffle = true,
                         onEmpty = { onClick(item) }
                     )
-                },
-                offset = menuOffset
+                }
             )
         }
     )

@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
@@ -49,7 +50,7 @@ enum class PlaceholderType {
 @Composable
 fun ShimmerBox(modifier: Modifier = Modifier, shape: Shape = RectangleShape) {
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val alpha by infiniteTransition.animateFloat(
+    val alphaState = infiniteTransition.animateFloat(
         initialValue = 0.15f,
         targetValue = 0.4f,
         animationSpec = infiniteRepeatable(
@@ -60,8 +61,8 @@ fun ShimmerBox(modifier: Modifier = Modifier, shape: Shape = RectangleShape) {
     )
     Box(
         modifier = modifier
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = alpha))
+            .graphicsLayer { alpha = alphaState.value }
+            .background(MaterialTheme.colorScheme.onSurface, shape)
     )
 }
 
@@ -123,6 +124,7 @@ fun MelodistImage(
             contentScale = contentScale,
             alignment = alignment,
             placeholder = ColorPainter(Color.DarkGray),
+            error = ColorPainter(Color.DarkGray)
         )
     }
 }

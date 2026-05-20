@@ -19,6 +19,7 @@
 - Avoid full-screen recomposition for frequent player progress updates. Subscribe narrowly to progress only where progress is drawn.
 - Do not upscale artwork or extract dynamic colors in first-render paths unless the user explicitly needs high-resolution art.
 - Prefer `remember`, `derivedStateOf`, and precomputed ViewModel state for expensive list filters/grouping.
+- Avoid using the parameter-based `graphicsLayer(...)` modifier when dealing with dynamic or animated state values (e.g. scale, rotation, alpha, translation). Instead, use the lambda-based block `graphicsLayer { ... }` (e.g., `graphicsLayer { rotationZ = myRotation }`). The lambda block defers property updates to the draw phase, bypassing composition and layout invalidations on every frame, which prevents performance regressions and massive CPU/GPU/RAM spikes.
 
 ## UI Quality
 - Screens should feel like production music software: dense, calm, responsive, and scan-friendly.

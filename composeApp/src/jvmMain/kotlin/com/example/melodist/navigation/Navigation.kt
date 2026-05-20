@@ -47,6 +47,8 @@ import com.example.melodist.ui.screens.*
 import com.example.melodist.ui.screens.home.HomeScreenRoute
 import com.example.melodist.ui.screens.library.LibraryScreenRoute
 import com.example.melodist.utils.LocalPlayerViewModel
+import kotlinx.coroutines.*
+
 
 
 data class TabInfo(
@@ -71,6 +73,19 @@ private val bottomTabs = listOf(
 fun NavigationDesktop(rootComponent: RootComponent) {
     val childStack by rootComponent.childStack.subscribeAsState()
     val activeConfig = childStack.active.configuration
+
+    // ✅ Optimización proactiva de RAM nativa (DirectX/Skia):
+    // Cuando el usuario cambia de pantalla (ej. sale de LibraryScreen o ArtistScreen), Compose destruye la vista anterior.
+    // Sin embargo, Skia retiene las texturas de las portadas renderizadas en memoria nativa/GPU.
+    // Como el Heap de la JVM de la app es minúsculo (~39 MB), la JVM no siente presión de memoria para hacer GC,
+    // dejando vivos los proxies nativos (CleanableImpl) de Skia.
+    // Este LaunchedEffect asíncrono recolecta esos proxies 600ms después de navegar, liberando cientos de MB nativos al instante.
+    LaunchedEffect(activeConfig) {
+        delay(600)
+        withContext(Dispatchers.Default) {
+            System.gc()
+        }
+    }
 
     val playerViewModel: PlayerViewModel = LocalPlayerViewModel.current
 

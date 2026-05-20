@@ -6,7 +6,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -15,39 +14,36 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.utils.circleAwareShape
 
 /**
- * CompositionLocal que provee el valor de traducción del shimmer.
- * Una sola infiniteTransition se crea en el nivel más alto (ej. la pantalla)
- * y todos los skeleton components la comparten, evitando N animaciones paralelas.
- *
- * Uso:
- *   ProvideShimmerTransition {
- *       ChipRowSkeleton()
- *       SectionSkeleton()
- *       SongSkeleton()
- *   }
+ * CompositionLocal que provee el acceso diferido (lambda) al valor de traducción del shimmer.
+ * Al usar una lambda `(() -> Float)?`, el CompositionLocal provee siempre la misma referencia
+ * de función, evitando invalidar y recomponer todo el árbol cuando el float cambia.
  */
-val LocalShimmerTranslation = staticCompositionLocalOf { 0f }
+val LocalShimmerTranslation = staticCompositionLocalOf<(() -> Float)?> { null }
 
 /**
  * Envuelve contenido skeleton con UNA sola animación shimmer compartida.
  * Coloca este composable en el nivel de la pantalla (HomeScreen, SearchScreen, etc.)
- * para que todos los skeleton hijos compartan la misma animación.
+ * para que todos los skeleton hijos compartan la misma animación sin costo de recomposición.
  */
 @Composable
 fun ProvideShimmerTransition(content: @Composable () -> Unit) {
     val transition = rememberInfiniteTransition(label = "shimmer")
-    val translateAnimation by transition.animateFloat(
+    val translateAnimation = transition.animateFloat(
         initialValue = -1000f,
         targetValue = 1000f,
         animationSpec = infiniteRepeatable(
@@ -56,33 +52,32 @@ fun ProvideShimmerTransition(content: @Composable () -> Unit) {
         ),
         label = "shimmerTranslation"
     )
-    CompositionLocalProvider(LocalShimmerTranslation provides translateAnimation) {
+    
+    // Devolvemos una lambda estable para diferir la lectura del estado a la fase de dibujo (draw phase)
+    val translationProvider = remember(translateAnimation) { { translateAnimation.value } }
+    
+    CompositionLocalProvider(LocalShimmerTranslation provides translationProvider) {
         content()
     }
 }
 
 /**
- * Crea un brush shimmer usando la animación compartida del CompositionLocal.
- * Si no hay ProvideShimmerTransition en el árbol, crea su propia animación
- * como fallback (para previews, etc.)
+ * ✅ Optimizador de Renderizado:
+ * Dibuja un fondo con efecto shimmer animado evaluando la traducción directamente en la fase
+ * de dibujo (`drawBehind`), previniendo recomposiciones masivas a 60 FPS en componentes skeleton.
  */
 @Composable
-fun shimmerBrush(): Brush {
-    val shimmerColors = listOf(
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
-        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-    )
-
-    // Reutilizar la animación compartida si está disponible
-    val translateAnimation = LocalShimmerTranslation.current
-
-    // Si el valor es 0f y no hay Provider activo, crear una animación local como fallback
-    val translate = if (translateAnimation != 0f) {
-        translateAnimation
+fun Modifier.shimmerBackground(
+    shape: Shape = RectangleShape
+): Modifier {
+    val translationProvider = LocalShimmerTranslation.current
+    
+    // Si no hay ProvideShimmerTransition activo en la pantalla, creamos una animación fallback
+    val finalProvider = if (translationProvider != null) {
+        translationProvider
     } else {
         val transition = rememberInfiniteTransition(label = "shimmerFallback")
-        val anim by transition.animateFloat(
+        val anim = transition.animateFloat(
             initialValue = -1000f,
             targetValue = 1000f,
             animationSpec = infiniteRepeatable(
@@ -91,20 +86,30 @@ fun shimmerBrush(): Brush {
             ),
             label = "shimmerFallbackTranslation"
         )
-        anim
+        remember(anim) { { anim.value } }
     }
 
-    return Brush.linearGradient(
-        colors = shimmerColors,
-        start = Offset(translate, translate),
-        end = Offset(translate + 500f, translate + 500f)
+    val shimmerColors = listOf(
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.8f),
+        MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
     )
+
+    return this
+        .clip(shape)
+        .drawBehind {
+            val translate = finalProvider()
+            val brush = Brush.linearGradient(
+                colors = shimmerColors,
+                start = Offset(translate, translate),
+                end = Offset(translate + 500f, translate + 500f)
+            )
+            drawRect(brush)
+        }
 }
 
 @Composable
 fun ChipRowSkeleton() {
-    val brush = shimmerBrush()
-
     LazyRow(
         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
         contentPadding = PaddingValues(horizontal = 24.dp),
@@ -115,8 +120,7 @@ fun ChipRowSkeleton() {
                 modifier = Modifier
                     .width(90.dp)
                     .height(32.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(brush)
+                    .shimmerBackground(RoundedCornerShape(20.dp))
             )
         }
     }
@@ -124,18 +128,15 @@ fun ChipRowSkeleton() {
 
 @Composable
 fun SectionSkeleton() {
-    val brush = shimmerBrush()
     Column(
         modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
     ) {
-        // Title row — matches headlineMedium + padding(horizontal=24, vertical=8)
         Box(
             modifier = Modifier
                 .padding(horizontal = 24.dp, vertical = 8.dp)
                 .width(180.dp)
                 .height(28.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(brush)
+                .shimmerBackground(RoundedCornerShape(4.dp))
         )
 
         val scrollState = rememberLazyListState()
@@ -146,7 +147,6 @@ fun SectionSkeleton() {
             state = scrollState,
         ) {
             items(8) {
-                // Matches MusicItem: width 200dp, padding 8dp, aspectRatio 1f
                 Column(
                     modifier = Modifier
                         .width(200.dp)
@@ -158,26 +158,21 @@ fun SectionSkeleton() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .aspectRatio(1f)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(brush)
+                            .shimmerBackground(RoundedCornerShape(12.dp))
                     )
                     Spacer(modifier = Modifier.height(10.dp))
-                    // Title — bodyLarge Bold
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.8f)
                             .height(18.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(brush)
+                            .shimmerBackground(RoundedCornerShape(4.dp))
                     )
                     Spacer(modifier = Modifier.height(4.dp))
-                    // Artist — bodySmall
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(0.5f)
                             .height(13.dp)
-                            .clip(RoundedCornerShape(4.dp))
-                            .background(brush)
+                            .shimmerBackground(RoundedCornerShape(4.dp))
                     )
                 }
             }
@@ -187,38 +182,38 @@ fun SectionSkeleton() {
 
 @Composable
 fun SongSkeleton() {
-    val brush = shimmerBrush()
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.size(52.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(brush)
+            modifier = Modifier
+                .size(52.dp)
+                .shimmerBackground(RoundedCornerShape(4.dp))
         )
 
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Box(
-                modifier = Modifier.width(180.dp).height(20.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(brush)
+                modifier = Modifier
+                    .width(180.dp)
+                    .height(20.dp)
+                    .shimmerBackground(RoundedCornerShape(4.dp))
             )
             Spacer(modifier = Modifier.height(8.dp))
             Box(
-                modifier = Modifier.width(100.dp).height(14.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(brush)
+                modifier = Modifier
+                    .width(100.dp)
+                    .height(14.dp)
+                    .shimmerBackground(RoundedCornerShape(4.dp))
             )
         }
 
         Box(
-            modifier = Modifier.size(24.dp)
-                .clip(circleAwareShape())
-                .background(brush)
+            modifier = Modifier
+                .size(24.dp)
+                .shimmerBackground(circleAwareShape())
         )
     }
 }
-

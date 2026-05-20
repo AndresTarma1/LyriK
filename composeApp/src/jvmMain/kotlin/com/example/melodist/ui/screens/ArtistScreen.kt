@@ -34,7 +34,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.melodist.navigation.Route
@@ -44,7 +43,6 @@ import com.example.melodist.ui.components.context.SongContextMenu
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.components.song.DownloadIndicator
-import com.example.melodist.ui.helpers.contextMenuArea
 import com.example.melodist.ui.helpers.rememberSongDownloadState
 import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
@@ -487,7 +485,6 @@ private fun ArtistSectionGridItem(
     val isArtist = item is ArtistItem
 
     var showMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
 
     val downloadState by if (item is SongItem)
         rememberSongDownloadState(item.id, downloadViewModel)
@@ -517,7 +514,7 @@ private fun ArtistSectionGridItem(
         },
         centerPlayVisible = item is SongItem,
         contextMenuEnabled = item is SongItem || item is AlbumItem || item is PlaylistItem,
-        onContextMenuAction = { offset -> menuOffset = offset; showMenu = true },
+        onContextMenuAction = { showMenu = true },
         onMoreClick = if (isArtist) ({ onClick(item) }) else null,
         quickPlay = when (item) {
             is AlbumItem -> CornerQuickPlayConfig(
@@ -572,8 +569,7 @@ private fun ArtistSectionGridItem(
                 SongContextMenu(
                     expanded = showMenu,
                     onDismiss = { showMenu = false },
-                    song = item,
-                    offset = menuOffset
+                    song = item
                 )
             } else if (item is AlbumItem || item is PlaylistItem) {
                 CollectionContextMenu(
@@ -617,8 +613,7 @@ private fun ArtistSectionGridItem(
                                 onEmpty = { onClick(item) }
                             )
                         }
-                    },
-                    offset = menuOffset
+                    }
                 )
             }
         }

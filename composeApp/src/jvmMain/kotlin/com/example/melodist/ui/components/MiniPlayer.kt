@@ -484,7 +484,7 @@ fun MiniPlayer(
                             Icon(
                                 Icons.Default.ArrowDropDown,
                                 "Reproducción",
-                                modifier = Modifier.size(32.dp).graphicsLayer(rotationZ = rotation),
+                                modifier = Modifier.size(32.dp).graphicsLayer { rotationZ = rotation },
                                 tint = if (isNowPlayingExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

@@ -17,6 +17,8 @@ object AppRestarter {
         "-XX:+UseCompressedOops",
         "-XX:MaxHeapFreeRatio=30",
         "-XX:MinHeapFreeRatio=10",
+        "-XX:G1PeriodicGCInterval=10000",
+        "-XX:G1PeriodicGCSystemLoadThreshold=0.0",
     )
 
     val gcTuningArgs = listOf(

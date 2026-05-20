@@ -69,9 +69,6 @@ Requisitos previos:
 
 # Ejecutar tests
 .\gradlew test
-
-# Generar instalador MSI (requiere Conveyor)
-conveyor make windows-msi
 ```
 
 ### Rutas de Datos

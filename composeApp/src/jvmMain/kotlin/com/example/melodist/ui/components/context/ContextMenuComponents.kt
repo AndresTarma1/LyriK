@@ -62,7 +62,6 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
@@ -90,7 +89,6 @@ fun CollectionContextMenu(
     onPlay: (() -> Unit)? = null,
     onShuffle: (() -> Unit)? = null,
     onRemoveFromLibrary: (() -> Unit)? = null,
-    offset: DpOffset = DpOffset.Zero,
 ) {
 
     if (!expanded) return
@@ -175,7 +173,6 @@ fun SongContextMenu(
     onRemoveFromPlaylist: (() -> Unit)? = null,
     isLocalPlaylist: Boolean = false,
     showQueueActions: Boolean = true,
-    offset: DpOffset = DpOffset.Zero
 ) {
     if (!expanded) return
 

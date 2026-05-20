@@ -262,7 +262,7 @@ fun LibraryMixedTab(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(items = items, key = { it.key }) { entry ->
-                ReorderableItem(reorderableLazyGridState, key = entry){
+                ReorderableItem(reorderableLazyGridState, key = entry.key){
                     if (entry.item != null) {
                         MediaGridItem(
                             item = entry.item,

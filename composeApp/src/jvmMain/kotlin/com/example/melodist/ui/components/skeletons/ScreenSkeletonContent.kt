@@ -10,49 +10,44 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
+import androidx.compose.ui.draw.clip
 import com.example.melodist.ui.utils.circleAwareShape
 
 @Composable
 internal fun AlbumScreenSkeletonContent() {
-    val brush = shimmerBrush()
-
     Row(modifier = Modifier.fillMaxSize().padding(start = 48.dp, end = 24.dp)) {
         Column(
             modifier = Modifier.width(320.dp).padding(top = 24.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ) { InfoPanelSkeleton(brush, coverSize = 240.dp) }
+        ) { InfoPanelSkeleton(coverSize = 240.dp) }
         Spacer(Modifier.width(32.dp))
         Column(modifier = Modifier.weight(1f).padding(top = 24.dp, end = 12.dp)) {
-            SongListSkeleton(brush, count = 8)
+            SongListSkeleton(count = 8)
         }
     }
 }
 
 @Composable
 internal fun PlaylistScreenSkeletonContent() {
-    val brush = shimmerBrush()
-
     Row(modifier = Modifier.fillMaxSize().padding(start = 48.dp, end = 24.dp)) {
         Column(
             modifier = Modifier.width(320.dp).padding(top = 24.dp, bottom = 24.dp),
             horizontalAlignment = Alignment.CenterHorizontally
-        ) { InfoPanelSkeleton(brush, coverSize = 240.dp) }
+        ) { InfoPanelSkeleton(coverSize = 240.dp) }
         Spacer(Modifier.width(32.dp))
         Column(modifier = Modifier.weight(1f).padding(top = 24.dp, end = 12.dp)) {
-            PlaylistSongListSkeleton(brush, count = 8)
+            PlaylistSongListSkeleton(count = 8)
         }
     }
 }
 
 @Composable
 internal fun ArtistScreenSkeletonContent() {
-    val brush = shimmerBrush()
     val surface = MaterialTheme.colorScheme.surface
 
     Column(
@@ -66,7 +61,7 @@ internal fun ArtistScreenSkeletonContent() {
                 .height(520.dp)
                 .background(MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.28f))
         ) {
-            Box(Modifier.fillMaxSize().background(brush))
+            Box(Modifier.fillMaxSize().shimmerBackground())
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -101,19 +96,19 @@ internal fun ArtistScreenSkeletonContent() {
                     .fillMaxWidth()
                     .padding(horizontal = 40.dp, vertical = 32.dp)
             ) {
-                Box(Modifier.width(320.dp).height(54.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+                Box(Modifier.width(320.dp).height(54.dp).shimmerBackground(RoundedCornerShape(4.dp)))
                 Spacer(Modifier.height(10.dp))
-                Box(Modifier.width(180.dp).height(18.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+                Box(Modifier.width(180.dp).height(18.dp).shimmerBackground(RoundedCornerShape(4.dp)))
                 Spacer(Modifier.height(14.dp))
-                Box(Modifier.fillMaxWidth(0.48f).height(15.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+                Box(Modifier.fillMaxWidth(0.48f).height(15.dp).shimmerBackground(RoundedCornerShape(4.dp)))
                 Spacer(Modifier.height(6.dp))
-                Box(Modifier.fillMaxWidth(0.34f).height(15.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+                Box(Modifier.fillMaxWidth(0.34f).height(15.dp).shimmerBackground(RoundedCornerShape(4.dp)))
                 Spacer(Modifier.height(22.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Box(Modifier.width(118.dp).height(42.dp).clip(circleAwareShape()).background(brush))
-                    Box(Modifier.width(96.dp).height(42.dp).clip(circleAwareShape()).background(brush))
-                    Box(Modifier.width(150.dp).height(42.dp).clip(circleAwareShape()).background(brush))
-                    Box(Modifier.size(36.dp).clip(circleAwareShape()).background(brush))
+                    Box(Modifier.width(118.dp).height(42.dp).shimmerBackground(circleAwareShape()))
+                    Box(Modifier.width(96.dp).height(42.dp).shimmerBackground(circleAwareShape()))
+                    Box(Modifier.width(150.dp).height(42.dp).shimmerBackground(circleAwareShape()))
+                    Box(Modifier.size(36.dp).shimmerBackground(circleAwareShape()))
                 }
             }
         }
@@ -125,7 +120,7 @@ internal fun ArtistScreenSkeletonContent() {
             verticalArrangement = Arrangement.spacedBy(28.dp)
         ) {
             repeat(3) {
-                ArtistSectionSkeleton(brush)
+                ArtistSectionSkeleton()
             }
         }
         Spacer(Modifier.height(24.dp))
@@ -133,79 +128,65 @@ internal fun ArtistScreenSkeletonContent() {
 }
 
 @Composable
-internal fun SkeletonSongRow(brush: Brush) {
+internal fun SkeletonSongRow() {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Index / PlayArrow box — 36dp wide (matches Box(modifier=Modifier.width(36.dp)))
-        Box(Modifier.width(36.dp).height(36.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+        // Index / PlayArrow box — 36dp wide
+        Box(Modifier.width(36.dp).height(36.dp).shimmerBackground(RoundedCornerShape(4.dp)))
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {
-            // title — bodyLarge SemiBold
-            Box(Modifier.fillMaxWidth(0.55f).height(18.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+            Box(Modifier.fillMaxWidth(0.55f).height(18.dp).shimmerBackground(RoundedCornerShape(4.dp)))
             Spacer(Modifier.height(5.dp))
-            // artist — bodySmall
-            Box(Modifier.fillMaxWidth(0.3f).height(13.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+            Box(Modifier.fillMaxWidth(0.3f).height(13.dp).shimmerBackground(RoundedCornerShape(4.dp)))
         }
         Spacer(Modifier.width(12.dp))
-        // duration text
-        Box(Modifier.width(36.dp).height(16.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+        Box(Modifier.width(36.dp).height(16.dp).shimmerBackground(RoundedCornerShape(4.dp)))
     }
 }
 
 @Composable
-internal fun PlaylistSkeletonSongRow(brush: Brush) {
-    // Matches PlaylistSongItem: index(36dp) + thumbnail(44dp) + col(title+artist) + duration
+internal fun PlaylistSkeletonSongRow() {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Thumbnail — 44x44, RoundedCornerShape(6)
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(6.dp)).background(brush))
+        Box(Modifier.size(44.dp).shimmerBackground(RoundedCornerShape(6.dp)))
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
-            // title — bodyLarge SemiBold
-            Box(Modifier.fillMaxWidth(0.55f).height(18.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+            Box(Modifier.fillMaxWidth(0.55f).height(18.dp).shimmerBackground(RoundedCornerShape(4.dp)))
             Spacer(Modifier.height(5.dp))
-            // artist — bodySmall
-            Box(Modifier.fillMaxWidth(0.35f).height(13.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+            Box(Modifier.fillMaxWidth(0.35f).height(13.dp).shimmerBackground(RoundedCornerShape(4.dp)))
         }
         Spacer(Modifier.width(12.dp))
-        // duration text
-        Box(Modifier.width(36.dp).height(16.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+        Box(Modifier.width(36.dp).height(16.dp).shimmerBackground(RoundedCornerShape(4.dp)))
     }
 }
 
 @Composable
-internal fun InfoPanelSkeleton(brush: Brush, coverSize: Dp) {
-
+internal fun InfoPanelSkeleton(coverSize: Dp) {
     Spacer(Modifier.height(20.dp))
-    // Cover — Card with shadow + RoundedCornerShape(8dp)
-    Box(Modifier.size(coverSize).clip(RoundedCornerShape(8.dp)).background(brush))
+    Box(Modifier.size(coverSize).shimmerBackground(RoundedCornerShape(8.dp)))
     Spacer(Modifier.height(24.dp))
-    // Title — headlineMedium (up to 2 lines), first line wider
-    Box(Modifier.width(200.dp).height(28.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+    Box(Modifier.width(200.dp).height(28.dp).shimmerBackground(RoundedCornerShape(4.dp)))
     Spacer(Modifier.height(6.dp))
-    // Subtitle — "Álbum • year" (bodyMedium)
-    Box(Modifier.width(120.dp).height(16.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+    Box(Modifier.width(120.dp).height(16.dp).shimmerBackground(RoundedCornerShape(4.dp)))
     Spacer(Modifier.height(3.dp))
-    // Song count — bodySmall
-    Box(Modifier.width(150.dp).height(13.dp).clip(RoundedCornerShape(4.dp)).background(brush))
+    Box(Modifier.width(150.dp).height(13.dp).shimmerBackground(RoundedCornerShape(4.dp)))
     Spacer(Modifier.height(24.dp))
-    // Action buttons: save(44) + play(56) + shuffle(44) + download(44) — all spaced 12dp
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.size(44.dp).clip(circleAwareShape()).background(brush))   // save/bookmark
-        Box(Modifier.size(56.dp).clip(circleAwareShape()).background(brush))   // play FAB
-        Box(Modifier.size(44.dp).clip(circleAwareShape()).background(brush))   // shuffle
-        Box(Modifier.size(44.dp).clip(circleAwareShape()).background(brush))   // download
+        Box(Modifier.size(44.dp).shimmerBackground(circleAwareShape()))
+        Box(Modifier.size(56.dp).shimmerBackground(circleAwareShape()))
+        Box(Modifier.size(44.dp).shimmerBackground(circleAwareShape()))
+        Box(Modifier.size(44.dp).shimmerBackground(circleAwareShape()))
     }
 }
 
 @Composable
-internal fun SongListSkeleton(brush: Brush, count: Int) {
+internal fun SongListSkeleton(count: Int) {
     repeat(count) { i ->
-        SkeletonSongRow(brush)
+        SkeletonSongRow()
         if (i < count - 1) {
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.08f),
@@ -216,32 +197,28 @@ internal fun SongListSkeleton(brush: Brush, count: Int) {
 }
 
 @Composable
-internal fun PlaylistSongListSkeleton(brush: Brush, count: Int) {
-    // Uses PlaylistSkeletonSongRow that includes the song thumbnail
+internal fun PlaylistSongListSkeleton(count: Int) {
     repeat(count) { i ->
-        PlaylistSkeletonSongRow(brush)
+        PlaylistSkeletonSongRow()
         if (i < count - 1) {
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.08f),
-                modifier = Modifier.padding(start = 104.dp)  // 12 + 36 + 8 + 44 + 4 = start after thumbnail
+                modifier = Modifier.padding(start = 104.dp)
             )
         }
     }
 }
 
 @Composable
-internal fun ArtistSectionSkeleton(brush: Brush) {
+internal fun ArtistSectionSkeleton() {
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Section title — titleLarge
         Box(
             Modifier
                 .fillMaxWidth(0.3f)
                 .height(22.dp)
-                .clip(RoundedCornerShape(4.dp))
-                .background(brush)
+                .shimmerBackground(RoundedCornerShape(4.dp))
         )
         Spacer(Modifier.height(12.dp))
-        // Cards row — matches ArtistSectionRow HorizontalScrollableRow
         val rowState = androidx.compose.foundation.lazy.rememberLazyListState()
         HorizontalScrollableRow(
             modifier = Modifier.fillMaxWidth(),
@@ -250,7 +227,6 @@ internal fun ArtistSectionSkeleton(brush: Brush) {
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(5) {
-                // Matches ArtistSectionCard: Column(width 150dp, padding 8dp) { image(134dp) + title + subtitle }
                 Column(
                     modifier = Modifier
                         .width(150.dp)
@@ -258,18 +234,16 @@ internal fun ArtistSectionSkeleton(brush: Brush) {
                         .padding(8.dp),
                     horizontalAlignment = Alignment.Start
                 ) {
-                    Box(Modifier.size(134.dp).clip(RoundedCornerShape(8.dp)).background(brush))
+                    Box(Modifier.size(134.dp).shimmerBackground(RoundedCornerShape(8.dp)))
                     Spacer(Modifier.height(8.dp))
-                    // Title — bodyMedium SemiBold
                     Box(
                         Modifier.fillMaxWidth(0.85f).height(14.dp)
-                            .clip(RoundedCornerShape(4.dp)).background(brush)
+                            .shimmerBackground(RoundedCornerShape(4.dp))
                     )
                     Spacer(Modifier.height(4.dp))
-                    // Subtitle — bodySmall
                     Box(
                         Modifier.fillMaxWidth(0.55f).height(12.dp)
-                            .clip(RoundedCornerShape(4.dp)).background(brush)
+                            .shimmerBackground(RoundedCornerShape(4.dp))
                     )
                 }
             }

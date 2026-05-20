@@ -48,7 +48,6 @@ import androidx.compose.ui.Alignment.Horizontal
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
@@ -57,15 +56,11 @@ import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.components.context.SongContextMenu
@@ -123,7 +118,7 @@ fun YouTubeGridItem(
     placeholderType: PlaceholderType,
     centerPlayVisible: Boolean,
     contextMenuEnabled: Boolean,
-    onContextMenuAction: (DpOffset) -> Unit = {},
+    onContextMenuAction: () -> Unit = {},
     onMoreClick: (() -> Unit)? = null,
     quickPlay: CornerQuickPlayConfig? = null,
     subtitle: String,
@@ -168,6 +163,7 @@ fun YouTubeGridItem(
                     iconSize = if (isArtist) 56.dp else 40.dp,
                     contentScale = ContentScale.Crop,
                     alignment = if (isArtist) Alignment.TopCenter else Alignment.Center,
+                    isLowRes = true,
                 )
 
                 Box(
@@ -286,7 +282,6 @@ fun MediaGridItem(
     val textAlign = if (isCircle) TextAlign.Center else TextAlign.Start
     var isImageHovered by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
     val showImageActions = placeholderType == PlaceholderType.ALBUM || placeholderType == PlaceholderType.PLAYLIST
     val overlayAlpha = if (isImageHovered && showImageActions) 0.32f else 0f
 
@@ -309,8 +304,7 @@ fun MediaGridItem(
                     .pointerHoverIcon(PointerIcon.Hand),
                 enabled = showImageActions,
                 onHoverChange = { isImageHovered = it },
-                onMenuAction = { offset ->
-                    menuOffset = offset
+                onMenuAction = {
                     showMenu = true
                 }
             ) { menuButtonModifier, openMenuFromButton ->
@@ -328,6 +322,7 @@ fun MediaGridItem(
                         iconSize = 40.dp,
                         contentScale = ContentScale.Crop,
                         alignment = if (isCircle) Alignment.TopCenter else Alignment.Center,
+                        isLowRes = true,
                     )
 
                     Box(
@@ -399,7 +394,6 @@ fun MediaGridItem(
                 onPlay = onPlay,
                 onShuffle = onShuffle,
                 onRemoveFromLibrary = if (isRemovable) onRemove else null,
-                offset = menuOffset
             )
             Spacer(Modifier.height(10.dp))
             Text(
@@ -472,12 +466,8 @@ fun YoutubeListItem(
     }
 
     var showMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
     var isHovered by remember { mutableStateOf(false) }
-    var buttonPosition by remember { mutableStateOf(Offset.Zero) }
-    var rootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
-    val density = LocalDensity.current
     val sourceIcon = if (source == ItemContentSource.LOCAL) Icons.Default.PhoneAndroid else Icons.Default.CloudDone
     val isCollectionItem = item is AlbumItem || item is PlaylistItem
 
@@ -486,15 +476,13 @@ fun YoutubeListItem(
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
             .clip(RoundedCornerShape(8.dp))
-            .onGloballyPositioned { rootCoordinates = it }
             .background(if (isHovered) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) else Color.Transparent)
             .clickable { onItemClick(item) }
             .pointerHoverIcon(PointerIcon.Hand)
             .contextMenuArea(
                 enabled = item is SongItem || isCollectionItem,
                 onHoverChange = { isHovered = it },
-                onMenuAction = { offset ->
-                    menuOffset = offset
+                onMenuAction = {
                     showMenu = true
                 }
             )
@@ -568,16 +556,9 @@ fun YoutubeListItem(
                 if (item is SongItem || isCollectionItem) {
                     IconButton(
                         onClick = {
-                            menuOffset = with(density) {
-                                DpOffset(buttonPosition.x.toDp(), buttonPosition.y.toDp())
-                            }
                             showMenu = true
                         },
-                        modifier = Modifier.onGloballyPositioned { buttonCords ->
-                            rootCoordinates.let { root ->
-                                buttonPosition = root?.localPositionOf(buttonCords, Offset.Zero) ?: Offset.Zero
-                            }
-                        }
+                        modifier = Modifier
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
@@ -593,8 +574,7 @@ fun YoutubeListItem(
             SongContextMenu(
                 expanded = showMenu,
                 onDismiss = { showMenu = false },
-                song = item,
-                offset = menuOffset
+                song = item
             )
         } else if (item is AlbumItem || item is PlaylistItem) {
             CollectionContextMenu(
@@ -646,8 +626,7 @@ fun YoutubeListItem(
                             )
                         }
                     }
-                },
-                offset = menuOffset
+                }
             )
         }
     }
