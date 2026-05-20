@@ -21,6 +21,8 @@ val melodistJvmArgs = listOf(
     "-XX:+UseCompressedOops",
     "-XX:MaxHeapFreeRatio=30",
     "-XX:MinHeapFreeRatio=10",
+    "-Dskiko.renderApi=ANGLE",
+    "-Dskiko.gpu.resourceCacheLimit=67108864", // 64MB para la cache de recursos GPU de Skiko
 )
 
 val melodistDevJvmArgs = melodistJvmArgs

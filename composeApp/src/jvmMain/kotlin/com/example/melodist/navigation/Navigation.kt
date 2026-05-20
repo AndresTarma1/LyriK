@@ -80,12 +80,12 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     // Como el Heap de la JVM de la app es minúsculo (~39 MB), la JVM no siente presión de memoria para hacer GC,
     // dejando vivos los proxies nativos (CleanableImpl) de Skia.
     // Este LaunchedEffect asíncrono recolecta esos proxies 600ms después de navegar, liberando cientos de MB nativos al instante.
-    LaunchedEffect(activeConfig) {
-        delay(600)
-        withContext(Dispatchers.Default) {
-            System.gc()
-        }
-    }
+//    LaunchedEffect(activeConfig) {
+//        delay(600)
+//        withContext(Dispatchers.Default) {
+//            System.gc()
+//        }
+//    }
 
     val playerViewModel: PlayerViewModel = LocalPlayerViewModel.current
 

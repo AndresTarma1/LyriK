@@ -353,6 +353,8 @@ class PlayerViewModel(
             val result = withContext(Dispatchers.IO) {
                 YouTube.next(endpoint).getOrNull()
             }
+
+            print(result)
             if (result != null && result.items.isNotEmpty()) {
                 val songs = result.items.map { it.toMediaMetadata() }
                 val startIdx = result.currentIndex ?: 0

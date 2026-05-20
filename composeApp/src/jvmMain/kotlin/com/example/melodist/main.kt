@@ -64,13 +64,13 @@ fun main() {
         throw e
     }
 
-    runBlocking {
-        val persistedConfig = jvmConfigRepository.config.first()
-        if (shouldRestartWithPersistedJvmArgs(persistedConfig)) {
-            AppRestarter.restartWithJvmArgs(persistedConfig)
-            return@runBlocking
-        }
-    }
+//    runBlocking {
+//        val persistedConfig = jvmConfigRepository.config.first()
+//        if (shouldRestartWithPersistedJvmArgs(persistedConfig)) {
+//            AppRestarter.restartWithJvmArgs(persistedConfig)
+//            return@runBlocking
+//        }
+//    }
 
     // ✅ PlayerService se inicializa perezosamente — solo cuando se necesita
     val playerViewModel = try {
