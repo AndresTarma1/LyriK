@@ -154,28 +154,20 @@ fun LibraryScreenRoute(
                 )
             },
             onQuickPlayPlaylist = { playlistId, endpoint, title, onFallback ->
-                viewModel.resolvePlaylistSongsForPlayback(
+                playerViewModel.playPlaylistFromId(
                     playlistId = playlistId,
-                    onResolved = { songs ->
-                        playerViewModel.playPlaylist(
-                            songs = songs, startIndex = 0,
-                            playlistId = playlistId, title = title,
-                        )
-                    },
-                    onFallback = onFallback,
+                    endpoint = endpoint,
+                    title = title,
+                    onEmpty = onFallback,
                 )
             },
             onQuickShufflePlaylist = { playlistId, endpoint, title, onFallback ->
-                viewModel.resolvePlaylistSongsForPlayback(
+                playerViewModel.playPlaylistFromId(
                     playlistId = playlistId,
-                    onResolved = { songs ->
-                        playerViewModel.playPlaylist(
-                            songs = songs, startIndex = 0,
-                            playlistId = playlistId, title = title,
-                        )
-                        playerViewModel.toggleShuffle()
-                    },
-                    onFallback = onFallback,
+                    endpoint = endpoint,
+                    title = title,
+                    shuffle = true,
+                    onEmpty = onFallback,
                 )
             },
             onRefreshYtm = viewModel::refreshYtmLibrary,

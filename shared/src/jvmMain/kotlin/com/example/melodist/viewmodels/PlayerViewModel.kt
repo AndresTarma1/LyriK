@@ -245,15 +245,21 @@ class PlayerViewModel(
         shuffle: Boolean = false,
         onEmpty: (() -> Unit)? = null
     ) {
-        // Siempre obtener canciones via browse API (sin recomendaciones/automix)
         viewModelScope.launch {
-            val songs = apiService.getPlaylist(playlistId).getOrNull()?.songs.orEmpty()
-            if (songs.isNotEmpty()) {
-                playPlaylist(songs, startIndex, playlistId, title)
-                if (shuffle) toggleShuffle()
-            } else {
+            val page = YouTube.playlist(playlistId).getOrNull()
+            if (page == null || page.songs.isEmpty()) {
                 onEmpty?.invoke()
+                return@launch
             }
+
+            val queue = YouTubePlaylistQueue(
+                playlistId = playlistId,
+                playlistTitle = title,
+                initialSongs = page.songs,
+                initialContinuation = page.songsContinuation?.takeIf { it.isNotBlank() },
+                startIndex = startIndex,
+            )
+            playPlaylistWithQueue(queue, shuffle)
         }
     }
 
@@ -320,6 +326,7 @@ class PlayerViewModel(
             )
             if (shuffle) PlayerQueueCoordinator.toggleShuffle(base) else base
         }
+        checkAndFetchMoreSongs(_uiState.value, _uiState.value.currentIndex)
         _uiState.value.currentSong?.let(::resolveAndPlay)
     }
 
@@ -626,6 +633,7 @@ class PlayerViewModel(
                 queueSession = state.queueSession.copy(currentIndex = index)
             )
         }
+        checkAndFetchMoreSongs(_uiState.value, index)
         resolveAndPlay(song)
     }
 

@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.logging.Logger
+import kotlin.time.Duration.Companion.milliseconds
 
 class PlayerService {
 
@@ -153,8 +154,6 @@ class PlayerService {
         tickJob = scope.launch {
             while (isActive) {
                 try {
-                    // ✅ Optimización: solo consultar posición/duración cuando hay reproducción activa.
-                    // Esto evita llamadas innecesarias a mpv_get_property cuando la app está en pausa o idle.
                     val shouldPoll = _playbackState.value == PlaybackState.PLAYING ||
                             _playbackState.value == PlaybackState.LOADING
 
@@ -165,22 +164,18 @@ class PlayerService {
                         val pos = mpvPlayer.getCurrentPosition()
                         _position.value = pos
 
-//                        statsTickCounter++
-//                        if (statsTickCounter >= 120) {
-//                            statsTickCounter = 0
-//                            mpvPlayer.logMemoryStats()
-//                        }
-
-                        val endThresholdMs = 1000L
+                        val endThresholdMs = 200L
                         // Detecta si mpv reseteó time-pos a 0 después de que la canción terminó
                         val posReset = prevPlayingPos > endThresholdMs && pos <= 100 &&
                                 _playbackState.value == PlaybackState.PLAYING
 
                         val looksEnded =
                             !endNotified &&
-                            dur > endThresholdMs &&
-                            (pos >= (dur - endThresholdMs) || posReset) &&
-                            _playbackState.value != PlaybackState.LOADING
+                            _playbackState.value != PlaybackState.LOADING &&
+                            (
+                                (dur > endThresholdMs && pos >= (dur - endThresholdMs)) ||
+                                posReset
+                            )
 
                         // Guarda la posición para detectar reseteo en la próxima iteración
                         if (pos > 0 && _playbackState.value == PlaybackState.PLAYING) {
@@ -190,7 +185,7 @@ class PlayerService {
                         if (looksEnded) {
                             endNotified = true
                             _playbackState.value = PlaybackState.ENDED
-                            delay(500)
+                            delay(500.milliseconds)
                             continue
                         }
 
@@ -207,10 +202,9 @@ class PlayerService {
                 } catch (e: Throwable) {
                     // silent catch for background ticker
                 }
-                // ✅ Intervalo adaptativo: 250ms durante reproducción (suave), 1000ms en idle (ahorro CPU)
                 val pollInterval = if (_playbackState.value == PlaybackState.PLAYING ||
                     _playbackState.value == PlaybackState.LOADING) 250L else 1000L
-                delay(pollInterval)
+                delay(pollInterval.milliseconds)
             }
         }
     }

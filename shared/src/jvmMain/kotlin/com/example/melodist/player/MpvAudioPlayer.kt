@@ -40,7 +40,6 @@ class MpvAudioPlayer {
                 MpvLib.INSTANCE.mpv_set_property_string(it, "cache-size", "32768")          // 32 MiB
                 MpvLib.INSTANCE.mpv_set_property_string(it, "demuxer-max-bytes", "10485760") // 10 MiB
                 MpvLib.INSTANCE.mpv_set_property_string(it, "demuxer-max-back-bytes", "2097152") // 2 MiB
-                MpvLib.INSTANCE.mpv_set_property_string(it, "audio-buffer", "1")             // 1 segundo
                 MpvLib.INSTANCE.mpv_set_property_string(it, "cache-pause-initial", "no")
             }
         } catch (e: Exception) {
@@ -124,12 +123,12 @@ class MpvAudioPlayer {
 
     fun getDuration(): Long {
         val durStr = getMpvPropertyString("duration") ?: "0"
-        return (durStr.toDoubleOrNull() ?: 0.0).toLong() * 1000L
+        return ((durStr.toDoubleOrNull() ?: 0.0) * 1000).toLong()
     }
 
     fun getCurrentPosition(): Long {
         val posStr = getMpvPropertyString("time-pos") ?: "0"
-        return (posStr.toDoubleOrNull() ?: 0.0).toLong() * 1000L
+        return ((posStr.toDoubleOrNull() ?: 0.0) * 1000).toLong()
     }
 
     fun logMemoryStats() {
