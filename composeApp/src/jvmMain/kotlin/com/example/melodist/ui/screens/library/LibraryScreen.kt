@@ -128,70 +128,55 @@ fun LibraryScreenRoute(
             onRemoveArtist = viewModel::removeArtist,
             onRemovePlaylist = viewModel::removePlaylist,
             onQuickPlayAlbum = { browseId, playlistId, title, onFallback ->
-                if (playlistId != null) {
-                    playerViewModel.playEndpoint(WatchEndpoint(playlistId = playlistId))
-                } else {
-                    viewModel.resolveAlbumSongsForPlayback(
-                        browseId = browseId,
-                        onResolved = { songs ->
-                            playerViewModel.playAlbum(
-                                songs = songs, startIndex = 0,
-                                browseId = browseId, title = title,
-                            )
-                        },
-                        onFallback = onFallback,
-                    )
-                }
+                // Siempre obtener canciones directas (sin recomendaciones/automix)
+                viewModel.resolveAlbumSongsForPlayback(
+                    browseId = browseId,
+                    onResolved = { songs ->
+                        playerViewModel.playAlbum(
+                            songs = songs, startIndex = 0,
+                            browseId = browseId, title = title,
+                        )
+                    },
+                    onFallback = onFallback,
+                )
             },
             onQuickShuffleAlbum = { browseId, playlistId, title, onFallback ->
-                if (playlistId != null) {
-                    playerViewModel.playEndpoint(WatchEndpoint(playlistId = playlistId), shuffle = true)
-                } else {
-                    viewModel.resolveAlbumSongsForPlayback(
-                        browseId = browseId,
-                        onResolved = { songs ->
-                            playerViewModel.playAlbum(
-                                songs = songs, startIndex = 0,
-                                browseId = browseId, title = title,
-                            )
-                            playerViewModel.toggleShuffle()
-                        },
-                        onFallback = onFallback,
-                    )
-                }
+                viewModel.resolveAlbumSongsForPlayback(
+                    browseId = browseId,
+                    onResolved = { songs ->
+                        playerViewModel.playAlbum(
+                            songs = songs, startIndex = 0,
+                            browseId = browseId, title = title,
+                        )
+                        playerViewModel.toggleShuffle()
+                    },
+                    onFallback = onFallback,
+                )
             },
             onQuickPlayPlaylist = { playlistId, endpoint, title, onFallback ->
-                if (endpoint != null) {
-                    playerViewModel.playEndpoint(endpoint)
-                } else {
-                    viewModel.resolvePlaylistSongsForPlayback(
-                        playlistId = playlistId,
-                        onResolved = { songs ->
-                            playerViewModel.playPlaylist(
-                                songs = songs, startIndex = 0,
-                                playlistId = playlistId, title = title,
-                            )
-                        },
-                        onFallback = onFallback,
-                    )
-                }
+                viewModel.resolvePlaylistSongsForPlayback(
+                    playlistId = playlistId,
+                    onResolved = { songs ->
+                        playerViewModel.playPlaylist(
+                            songs = songs, startIndex = 0,
+                            playlistId = playlistId, title = title,
+                        )
+                    },
+                    onFallback = onFallback,
+                )
             },
             onQuickShufflePlaylist = { playlistId, endpoint, title, onFallback ->
-                if (endpoint != null) {
-                    playerViewModel.playEndpoint(endpoint, shuffle = true)
-                } else {
-                    viewModel.resolvePlaylistSongsForPlayback(
-                        playlistId = playlistId,
-                        onResolved = { songs ->
-                            playerViewModel.playPlaylist(
-                                songs = songs, startIndex = 0,
-                                playlistId = playlistId, title = title,
-                            )
-                            playerViewModel.toggleShuffle()
-                        },
-                        onFallback = onFallback,
-                    )
-                }
+                viewModel.resolvePlaylistSongsForPlayback(
+                    playlistId = playlistId,
+                    onResolved = { songs ->
+                        playerViewModel.playPlaylist(
+                            songs = songs, startIndex = 0,
+                            playlistId = playlistId, title = title,
+                        )
+                        playerViewModel.toggleShuffle()
+                    },
+                    onFallback = onFallback,
+                )
             },
             onRefreshYtm = viewModel::refreshYtmLibrary,
             onCreatePlaylist = viewModel::createLocalPlaylist,

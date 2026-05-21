@@ -53,6 +53,7 @@ data class PlaylistActions(
     val onShuffle: () -> Unit,
     val onLoadMore: () -> Unit,
     val onDownloadPlaylist: () -> Unit,
+    val onPlaySong: (Int) -> Unit,
     val onRemoveSongFromPlaylist: ((String) -> Unit)? = null,
     val isLocalPlaylist: Boolean = false
 )
@@ -82,6 +83,7 @@ fun PlaylistScreenRoute(
             onPlay = { viewModel.playAllSongs(shuffle = false) },
             onShuffle = { viewModel.playAllSongs(shuffle = true) },
             onDownloadPlaylist = { viewModel.downloadPlaylist() },
+            onPlaySong = { index -> viewModel.playSongFromPlaylist(index) },
             onRemoveSongFromPlaylist = if (successState?.playlistPage?.playlist?.id?.startsWith("LOCAL_") == true) {
                 { songId -> viewModel.removeSongFromPlaylist(songId) }
             } else null,

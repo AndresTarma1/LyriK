@@ -39,7 +39,6 @@ import com.example.melodist.ui.screens.PlaylistActions
 import com.example.melodist.ui.screens.PlaylistScreenState
 import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
-import com.example.melodist.utils.LocalPlayerViewModel
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.pages.PlaylistPage
 
@@ -49,7 +48,6 @@ internal fun PlaylistLayout(
     state: PlaylistScreenState,
     actions: PlaylistActions
 ) {
-    val playerViewModel = LocalPlayerViewModel.current
     val downloadViewModel = LocalDownloadViewModel.current
 
     val songIds = remember(state.songs) { state.songs.map { it.id } }
@@ -103,13 +101,7 @@ internal fun PlaylistLayout(
                     selectedSongIds = if (selected) selectedSongIds + id else selectedSongIds - id
                 },
                 onClearSelection = { selectedSongIds = emptySet() },
-                onSongPlay = { index ->
-                    playerViewModel.playPlaylist(
-                        state.songs, index,
-                        playlistPage.playlist.id,
-                        playlistPage.playlist.title
-                    )
-                }
+                onSongPlay = { index -> actions.onPlaySong(index) }
             )
         } else {
             PlaylistWideLayout(
@@ -126,13 +118,7 @@ internal fun PlaylistLayout(
                     selectedSongIds = if (selected) selectedSongIds + id else selectedSongIds - id
                 },
                 onClearSelection = { selectedSongIds = emptySet() },
-                onSongPlay = { index ->
-                    playerViewModel.playPlaylist(
-                        state.songs, index,
-                        playlistPage.playlist.id,
-                        playlistPage.playlist.title
-                    )
-                }
+                onSongPlay = { index -> actions.onPlaySong(index) }
             )
         }
     }
@@ -159,7 +145,6 @@ internal fun PlaylistWideLayout(
             .padding(start = 48.dp, end = 48.dp, top = 32.dp, bottom = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(40.dp)
     ) {
-        // Panel lateral fijo con scroll propio
         Column(
             modifier = Modifier
                 .width(280.dp)

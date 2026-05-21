@@ -74,19 +74,6 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val childStack by rootComponent.childStack.subscribeAsState()
     val activeConfig = childStack.active.configuration
 
-    // ✅ Optimización proactiva de RAM nativa (DirectX/Skia):
-    // Cuando el usuario cambia de pantalla (ej. sale de LibraryScreen o ArtistScreen), Compose destruye la vista anterior.
-    // Sin embargo, Skia retiene las texturas de las portadas renderizadas en memoria nativa/GPU.
-    // Como el Heap de la JVM de la app es minúsculo (~39 MB), la JVM no siente presión de memoria para hacer GC,
-    // dejando vivos los proxies nativos (CleanableImpl) de Skia.
-    // Este LaunchedEffect asíncrono recolecta esos proxies 600ms después de navegar, liberando cientos de MB nativos al instante.
-//    LaunchedEffect(activeConfig) {
-//        delay(600)
-//        withContext(Dispatchers.Default) {
-//            System.gc()
-//        }
-//    }
-
     val playerViewModel: PlayerViewModel = LocalPlayerViewModel.current
 
     val playerState by playerViewModel.uiState.collectAsState()
@@ -95,11 +82,10 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     var isQueueVisible by remember { mutableStateOf(false) }
     val textInputService = LocalTextInputService.current
 
-    // Estado para el ancho de la cola. Empieza en 420.dp
-    var queueWidth by remember { mutableStateOf(420.dp) }
+    var queueWidth = 420.dp
     val animatedWidth by animateDpAsState(queueWidth)
 
-    // Fondo global (el "océano" sobre el que flotan las islas)
+
     Surface(
         modifier = Modifier
             .fillMaxSize()
@@ -181,14 +167,11 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                         .padding(end = 16.dp, bottom = bottomPadding) // Margen exterior seguro
                 ) {
 
-                    // Fila Superior: Pantalla Principal + Cola Lateral
                     Row(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
                     ) {
-
-                        // ️ CONTENIDO PRINCIPAL
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -207,21 +190,12 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                 )
                             }
 
-                            // NowPlaying como Overlay con animación de abajo hacia arriba
                             androidx.compose.animation.AnimatedVisibility(
                                 visible = isNowPlayingExpanded && currentSong != null,
                                 enter = slideInVertically(
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    ),
                                     initialOffsetY = { it }
                                 ) + fadeIn(),
                                 exit = slideOutVertically(
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    ),
                                     targetOffsetY = { it }
                                 ) + fadeOut()
                             ) {
@@ -239,22 +213,19 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                             }
                         }
 
-                        androidx.compose.animation.AnimatedVisibility(
+                        AnimatedVisibility(
                             visible = isQueueVisible,
                             enter = slideInHorizontally(
-                                animationSpec = spring(dampingRatio = 0.85f),
-                                initialOffsetX = { it } // Entra desde la derecha
+                                initialOffsetX = { it }
                             ) + fadeIn(),
                             exit = slideOutHorizontally(
-                                animationSpec = spring(dampingRatio = 0.85f),
-                                targetOffsetX = { it } // Sale hacia la derecha
+                                targetOffsetX = { it }
                             ) + fadeOut()
                         ) {
                             Row(modifier = Modifier.fillMaxHeight()) {
-                                Spacer(Modifier.width(12.dp)) // Espacio entre contenido principal y cola
+                                Spacer(Modifier.width(12.dp))
 
                                 PlaybackQueuePanel(
-
                                     state = playerState,
                                     onDismiss = { isQueueVisible = false },
                                     modifier = Modifier
@@ -272,14 +243,12 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                 }
             }
             val currentSong = playerState.currentSong
-            androidx.compose.animation.AnimatedVisibility(
+            AnimatedVisibility(
                 visible = currentSong != null,
                 enter = slideInVertically(
-                    animationSpec = spring(dampingRatio = 0.8f),
                     initialOffsetY = { it }
                 ) + fadeIn(),
                 exit = slideOutVertically(
-                    animationSpec = spring(dampingRatio = 0.8f),
                     targetOffsetY = { it }
                 ) + fadeOut()
             ) {

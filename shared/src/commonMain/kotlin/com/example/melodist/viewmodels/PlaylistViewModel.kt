@@ -4,11 +4,12 @@ import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.PlaylistRepository
 import com.example.melodist.data.repository.SongRepository
+import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.PlaylistItem
-import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.pages.PlaylistPage
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -257,59 +258,33 @@ class PlaylistViewModel(
     fun playAllSongs(shuffle: Boolean = false) {
         val state = _uiState.value as? PlaylistState.Success ?: return
         if (state.isLoadingForPlay) return
-
-        val playEndpoint = if (shuffle) {
-            state.playlistPage.playlist.shuffleEndpoint ?: state.playlistPage.playlist.playEndpoint
-        } else {
-            state.playlistPage.playlist.playEndpoint
-        }
-
-        val isLocal = _currentPlaylistId.value?.startsWith("LOCAL_") == true || _currentPlaylistId.value == "LOCAL_DOWNLOADS"
-
-        if (playEndpoint != null && !isLocal) {
-            playerCoordinator.playFromEndpoint(
-                endpoint = playEndpoint,
-                shuffle = shuffle,
-                fallback = { loadAndPlayAll(shuffle, state) }
-            )
-            return
-        }
-
-        val playlistId = state.playlistPage.playlist.id
-        if (playlistId.isNotEmpty() && !isLocal) {
-            playerCoordinator.playFromEndpoint(
-                endpoint = WatchEndpoint(playlistId = playlistId),
-                shuffle = shuffle,
-                fallback = { loadAndPlayAll(shuffle, state) }
-            )
-            return
-        }
-
+        // Siempre reproducir la lista finita de canciones (sin recomendaciones/automix)
         loadAndPlayAll(shuffle, state)
     }
 
     private fun loadAndPlayAll(shuffle: Boolean, state: PlaylistState.Success) {
         viewModelScope.launch {
-            val allSongs = if (_continuation.value != null) {
-                log.info("Cargando todas las páginas antes de reproducir...")
-                updateSuccess { copy(isLoadingForPlay = true) }
-                try {
-                    fetchAllRemainingPages()
-                } finally {
-                    updateSuccess { copy(isLoadingForPlay = false) }
-                }
-            } else {
-                _songs.value
-            }
-
-            if (allSongs.isEmpty()) return@launch
-            val finalList = if (shuffle) allSongs.shuffled() else allSongs
-            playerCoordinator.playPlaylist(
-                songs = finalList,
-                startIndex = 0,
+            val queue = YouTubePlaylistQueue(
                 playlistId = state.playlistPage.playlist.id,
-                title = state.playlistPage.playlist.title,
+                playlistTitle = state.playlistPage.playlist.title,
+                initialSongs = _songs.value,
+                initialContinuation = _continuation.value,
             )
+            playerCoordinator.playPlaylistWithQueue(queue, shuffle)
+        }
+    }
+
+    fun playSongFromPlaylist(index: Int, shuffle: Boolean = false) {
+        val state = _uiState.value as? PlaylistState.Success ?: return
+        viewModelScope.launch {
+            val queue = YouTubePlaylistQueue(
+                playlistId = state.playlistPage.playlist.id,
+                playlistTitle = state.playlistPage.playlist.title,
+                initialSongs = _songs.value,
+                initialContinuation = _continuation.value,
+                startIndex = index,
+            )
+            playerCoordinator.playPlaylistWithQueue(queue, shuffle)
         }
     }
 

@@ -16,9 +16,11 @@ import com.example.melodist.player.PlaybackState
 import com.example.melodist.player.PlayerService
 import com.example.melodist.player.WindowsMediaSession
 import com.example.melodist.utils.withMissingMetadataResolved
+import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
+import com.sun.jna.platform.unix.aix.Perfstat
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.logging.Logger
@@ -223,10 +225,7 @@ class PlayerViewModel(
         shuffle: Boolean = false,
         onEmpty: (() -> Unit)? = null
     ) {
-        if (playlistId != null) {
-            playEndpoint(WatchEndpoint(playlistId = playlistId), shuffle = shuffle)
-            return
-        }
+        // Siempre obtener canciones via browse API (sin recomendaciones/automix)
         viewModelScope.launch {
             val songs = apiService.getAlbum(browseId).getOrNull()?.songs.orEmpty()
             if (songs.isNotEmpty()) {
@@ -246,10 +245,7 @@ class PlayerViewModel(
         shuffle: Boolean = false,
         onEmpty: (() -> Unit)? = null
     ) {
-        if (endpoint != null) {
-            playEndpoint(endpoint, shuffle = shuffle)
-            return
-        }
+        // Siempre obtener canciones via browse API (sin recomendaciones/automix)
         viewModelScope.launch {
             val songs = apiService.getPlaylist(playlistId).getOrNull()?.songs.orEmpty()
             if (songs.isNotEmpty()) {
@@ -305,6 +301,28 @@ class PlayerViewModel(
         session.currentSong()?.let(::resolveAndPlay)
     }
 
+    fun playPlaylistWithQueue(queue: YouTubePlaylistQueue, shuffle: Boolean = false) {
+        if (queue.initialSongs.isEmpty()) return
+        val source = QueueSource.Playlist(queue.playlistId, queue.playlistTitle)
+        val metadata = queue.initialSongs.map { it.toMediaMetadata() }
+        val session = PlayerQueueCoordinator.collectionSession(source, metadata, queue.startIndex)
+            .copy(playlistQueue = queue)
+
+        _uiState.update { current ->
+            val base = current.copy(
+                currentSong = session.currentSong(),
+                queue = session.queueItems(),
+                currentIndex = session.currentIndex,
+                queueSource = source,
+                error = null,
+                isShuffled = false,
+                queueSession = session
+            )
+            if (shuffle) PlayerQueueCoordinator.toggleShuffle(base) else base
+        }
+        _uiState.value.currentSong?.let(::resolveAndPlay)
+    }
+
     @JvmName("playCustomFromSongItems")
     fun playCustom(songs: List<SongItem>, startIndex: Int = 0) =
         playCustom(songs.map { it.toMediaMetadata() }, startIndex)
@@ -354,7 +372,6 @@ class PlayerViewModel(
                 YouTube.next(endpoint).getOrNull()
             }
 
-            print(result)
             if (result != null && result.items.isNotEmpty()) {
                 val songs = result.items.map { it.toMediaMetadata() }
                 val startIdx = result.currentIndex ?: 0
@@ -384,6 +401,36 @@ class PlayerViewModel(
 
     private fun checkAndFetchMoreSongs(state: PlayerUiState, nextIndex: Int) {
         val session = state.queueSession
+
+        if (session.playlistQueue != null && session.playlistQueue.hasNextPage() && nextIndex >= session.order.size - 3) {
+            fetchMoreJob?.cancel()
+            fetchMoreJob = viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val newSongs = session.playlistQueue.loadNextPage()
+                    if (newSongs.isNotEmpty()) {
+                        val newMetadata = newSongs.map { it.toMediaMetadata() }
+                        _uiState.update { currentState ->
+                            val currentSession = currentState.queueSession
+                            val updatedItems = currentSession.items + newMetadata
+                            val newOrder = currentSession.order + newMetadata.indices.map { currentSession.items.size + it }
+                            val updatedSession = currentSession.copy(
+                                items = updatedItems,
+                                order = newOrder,
+                                playlistQueue = session.playlistQueue,
+                            )
+                            currentState.copy(
+                                queueSession = updatedSession,
+                                queue = updatedSession.queueItems()
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    log.warning("Error fetching more playlist songs: ${e.message}")
+                }
+            }
+            return
+        }
+
         if (session.continuation != null && session.endpoint != null && nextIndex >= session.order.size - 3) {
             // Prevent multiple parallel fetches
             val currentContinuation = session.continuation
