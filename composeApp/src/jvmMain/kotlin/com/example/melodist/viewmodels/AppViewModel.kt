@@ -52,7 +52,7 @@ class AppViewModel : ViewModel() {
 
     private suspend fun fetchLatestVersion(): GithubRelease? {
         val json = HttpClient().use { client ->
-            client.get("https://api.github.com/repos/AndresTarma1/Melodist/releases/latest").bodyAsText()
+            client.get("https://api.github.com/repos/AndresTarma1/LyriK/releases/latest").bodyAsText()
         }
         return Json { ignoreUnknownKeys = true }
             .decodeFromString<GithubRelease>(json)

@@ -21,7 +21,6 @@ val melodistJvmArgs = listOf(
     "-XX:+UseCompressedOops",
     "-XX:MaxHeapFreeRatio=30",
     "-XX:MinHeapFreeRatio=10",
-    "-Dskiko.renderApi=ANGLE",
     "-Dskiko.gpu.resourceCacheLimit=67108864", // 64MB para la cache de recursos GPU de Skiko
 )
 
@@ -118,15 +117,15 @@ compose.desktop {
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
-            packageName = "Melodist"
+            packageName = "LyriK"
             packageVersion = "0.1.3"
 
             windows {
                 msiPackageVersion = "0.1.3"
-                packageName = "Melodist"
+                packageName = "LyriK"
                 iconFile.set(project.file("icons/music.ico"))
                 menu = true
-                menuGroup = "Melodist"
+                menuGroup = "LyriK"
                 shortcut = true
                 dirChooser = false
                 perUserInstall = true

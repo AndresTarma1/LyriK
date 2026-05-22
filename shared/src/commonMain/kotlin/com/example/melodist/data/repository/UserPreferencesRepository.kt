@@ -30,6 +30,7 @@ enum class ThemePalette(val label: String, val primary: Long, val secondary: Lon
     TEAL("Teal", 0xFF00695C, 0xFF00897B),
     AMBAR("Ámbar", 0xFFFF8F00, 0xFFFFA000),
     INDIGO("Índigo", 0xFF283593, 0xFF3949AB),
+    YTMUSIC("YouTube Music", 0xFFFF0033, 0xFFB00020)
 }
 
 class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {

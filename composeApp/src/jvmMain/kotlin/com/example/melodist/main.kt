@@ -20,7 +20,6 @@ import com.example.melodist.navigation.RootComponent
 import com.example.melodist.player.DownloadService
 import com.example.melodist.player.PlayerService
 import com.example.melodist.player.WindowsMediaSession
-import com.example.melodist.utils.AppRestarter
 import com.example.melodist.utils.SyncUtils
 import com.example.melodist.viewmodels.AppViewModel
 import com.example.melodist.viewmodels.DownloadViewModel
@@ -38,7 +37,6 @@ import java.time.LocalDateTime
 import kotlin.system.exitProcess
 import java.io.PrintStream
 import java.io.FileOutputStream
-import java.lang.management.ManagementFactory
 import coil3.compose.setSingletonImageLoaderFactory
 import com.example.melodist.ui.components.CoilSetup
 
@@ -64,18 +62,13 @@ fun main() {
         throw e
     }
 
-//    runBlocking {
-//        val persistedConfig = jvmConfigRepository.config.first()
-//        if (shouldRestartWithPersistedJvmArgs(persistedConfig)) {
-//            AppRestarter.restartWithJvmArgs(persistedConfig)
-//            return@runBlocking
-//        }
-//    }
+    runBlocking {
+        val persistedConfig = jvmConfigRepository.config.first()
+        applyJvmConfigSystemProperties(persistedConfig)
+    }
 
-    // ✅ PlayerService se inicializa perezosamente — solo cuando se necesita
     val playerViewModel = try {
         koinApp.koin.get<PlayerViewModel>().also {
-            // Inicializa MPV y el tick loop de forma diferida
             it.initialize()
         }
     } catch (e: Throwable) {
@@ -95,7 +88,6 @@ fun main() {
         throw e
     }
 
-    // ✅ WindowsMediaSession se inicializa solo si hay preferencia de media keys
     koinApp.koin.get<WindowsMediaSession>().apply {
         initialize()
         setCallbacks(
@@ -214,22 +206,23 @@ private fun logStartupError(context: String, throwable: Throwable) {
     }
 }
 
-private const val jvmConfigAppliedProperty = "melodist.jvmConfigApplied"
-private const val jvmConfigAppliedArg = "-D${jvmConfigAppliedProperty}=true"
-
-private fun shouldRestartWithPersistedJvmArgs(config: JvmConfig): Boolean {
-    if (System.getProperty(jvmConfigAppliedProperty) == "true") return false
-
-    val desiredArgs = AppRestarter.previewJvmArgs(config).filterNot { it == jvmConfigAppliedArg }
-    val runtimeArgs = ManagementFactory.getRuntimeMXBean().inputArguments
-    val normalizedRuntimeArgs = runtimeArgs.map { it.trim() }
-
-    return desiredArgs.any { desired ->
-        val match = if (desired.startsWith("-Xmx", ignoreCase = true) || desired.startsWith("-Xms", ignoreCase = true)) {
-            normalizedRuntimeArgs.any { it.equals(desired, ignoreCase = true) }
-        } else {
-            normalizedRuntimeArgs.contains(desired)
-        }
-        !match
+private fun applyJvmConfigSystemProperties(config: JvmConfig) {
+    val customRenderApiRequested =
+        System.getenv("SKIKO_RENDER_API") != null ||
+            System.getProperty("skiko.renderApi") != null
+    if (!customRenderApiRequested) {
+        System.setProperty("skiko.renderApi", config.renderApi.name)
     }
+
+    config.toJvmArgs()
+        .filter { it.startsWith("-D") && it.contains("=") }
+        .forEach { arg ->
+            val keyValue = arg.removePrefix("-D")
+            val separatorIndex = keyValue.indexOf('=')
+            if (separatorIndex > 0) {
+                val key = keyValue.substring(0, separatorIndex)
+                val value = keyValue.substring(separatorIndex + 1)
+                System.setProperty(key, value)
+            }
+        }
 }

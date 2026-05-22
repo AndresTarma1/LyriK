@@ -25,9 +25,14 @@ enum class RenderApi(
     ),
     SOFTWARE(
         label = "Software",
-        description = "Renderiza por CPU. En tus pruebas consumio menos memoria nativa y evito errores visuales.",
+        description = "Renderiza por CPU. En pruebas consume menos memoria nativa y evito errores visuales a cambio de consumo de CPU.",
         jvmArg = "-Dskiko.renderApi=SOFTWARE",
     ),
+    ANGLE(
+        label = "ANGLE",
+        description = "Renderer que traduce llamadas OpenGL a DirectX. Puede ser útil en equipos con drivers OpenGL problemáticos, pero no es oficialmente soportado en Skia.",
+        jvmArg = "-Dskiko.renderApi=ANGLE",
+    )
 }
 
 data class JvmConfig(
@@ -155,6 +160,12 @@ class JvmConfigRepository(private val dataStore: DataStore<Preferences>) {
             prefs[Keys.ZGC] = config.useZGC
             prefs[Keys.GC_LOGGING] = config.gcLogging
             prefs[Keys.RENDER_API] = config.renderApi.name
+        }
+    }
+
+    suspend fun updateRenderApi(renderApi: RenderApi) {
+        dataStore.edit { prefs ->
+            prefs[Keys.RENDER_API] = renderApi.name
         }
     }
 

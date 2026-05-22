@@ -1,4 +1,4 @@
-# Melodist Engineering Rules
+# LyriK Engineering Rules
 
 ## Architecture
 - Follow Clean Architecture boundaries: UI renders state and sends user intents; ViewModels coordinate use cases; repositories/services own data, network, database, player, and download work.
@@ -47,7 +47,7 @@
 - **shared/** — Common business logic, SQLDelight DB, repositories, ViewModels
 - **innertube/** — YouTube Music API wrapper (NewPipe + custom parsing)
 - **Audio engine** — mpv via `MpvLib.kt` (WASAPI, Windows-only)
-- **Data paths** — `%LOCALAPPDATA%\Melodist\` (DB, DataStore, cache, downloads)
+- **Data paths** — `%LOCALAPPDATA%\Tarma\LyriK\` (DB, DataStore, cache, downloads)
 
 ## Key Files
 - `composeApp/src/jvmMain/kotlin/com/example/melodist/navigation/Navigation.kt` — Desktop layout, keyboard shortcuts, queue/now-playing panels

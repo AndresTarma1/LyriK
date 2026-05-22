@@ -80,34 +80,14 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val progressState by playerViewModel.progressState.collectAsState()
     var isNowPlayingExpanded by remember { mutableStateOf(false) }
     var isQueueVisible by remember { mutableStateOf(false) }
-    val textInputService = LocalTextInputService.current
 
-    var queueWidth = 420.dp
+    val queueWidth = 420.dp
     val animatedWidth by animateDpAsState(queueWidth)
-
 
     Surface(
         modifier = Modifier
-            .fillMaxSize()
-            .onPreviewKeyEvent {
-                if (it.type == KeyEventType.KeyDown) {
-                    if (textInputService != null) return@onPreviewKeyEvent false
-                    when (it.key) {
-                        Key.Spacebar -> {
-                            playerViewModel.togglePlayPause()
-                            true
-                        }
-                        Key.M -> {
-                            playerViewModel.toggleMute()
-                            true
-                        }
-                        else -> false
-                    }
-                } else {
-                    false
-                }
-            },
-        color = MaterialTheme.colorScheme.surface,
+            .fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(modifier = Modifier.weight(1f).fillMaxWidth()) {

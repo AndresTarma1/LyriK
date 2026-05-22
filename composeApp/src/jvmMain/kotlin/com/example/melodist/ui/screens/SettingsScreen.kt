@@ -19,6 +19,7 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.melodist.data.AppDirs
 import com.example.melodist.data.repository.AudioQuality
 import com.example.melodist.data.repository.ThemeMode
@@ -180,9 +181,9 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     )
                     RowDivider()
                     ModalRow(
-                        label = "Configuración avanzada de JVM",
-                        icon = Icons.Rounded.Memory,
-                        value = "Memoria, GC, reinicio",
+                        label = "Renderizado (Skiko)",
+                        icon = Icons.Rounded.AutoFixHigh,
+                        value = "Render API (requiere reinicio)",
                         onClick = { showJvmSettingsDialog = true }
                     )
                 }
@@ -623,7 +624,7 @@ private fun ResponsiveSettingsDialog(
     title: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss, ) {
         BoxWithConstraints {
             val maxWidth = maxWidth
             val maxHeight = maxHeight

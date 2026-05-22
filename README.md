@@ -1,4 +1,4 @@
-# Melodist
+# Melodist ---> LyriK
 
 > **Versión actual:** v0.1.3 (Beta) · Desarrollado con Compose Multiplatform
 
@@ -37,7 +37,7 @@ Reproductor de música de escritorio con streaming desde YouTube Music, motor de
 El proyecto sigue Clean Architecture con tres módulos principales:
 
 ```
-Melodist/
+LyriK/
 ├── composeApp/     # UI Desktop, pantallas, navegación, componentes compartidos
 ├── shared/         # Lógica de negocio, ViewModels, repositorios, base de datos
 ├── innertube/      # Cliente para la API de YouTube Music (NewPipe + parsing custom)
@@ -73,15 +73,15 @@ Requisitos previos:
 
 ### Rutas de Datos
 
-La aplicación almacena sus datos en `%LOCALAPPDATA%\Melodist\`:
+La aplicación almacena sus datos en `%LOCALAPPDATA%\Tarma\LyriK\`:
 
 | Contenido | Ruta |
 |-----------|------|
-| Base de datos | `%LOCALAPPDATA%\Melodist\melodist.db` |
-| Configuración | `%LOCALAPPDATA%\Melodist\data\` |
-| Caché de canciones | `%LOCALAPPDATA%\Melodist\cache\songs\` |
-| Descargas | `%LOCALAPPDATA%\Melodist\downloads\` |
-| Logs | `%LOCALAPPDATA%\Melodist\logs\` |
+| Base de datos | `%LOCALAPPDATA%\Tarma\LyriK\melodist.db` |
+| Configuración | `%LOCALAPPDATA%\Tarma\LyriK\data\` |
+| Caché de canciones | `%LOCALAPPDATA%\Tarma\LyriK\cache\songs\` |
+| Descargas | `%LOCALAPPDATA%\Tarma\LyriK\downloads\` |
+| Logs | `%LOCALAPPDATA%\Tarma\LyriK\logs\` |
 
 ---
 

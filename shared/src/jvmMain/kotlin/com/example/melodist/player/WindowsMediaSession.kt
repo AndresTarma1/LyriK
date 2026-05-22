@@ -7,7 +7,7 @@ import java.util.logging.Logger
 
 /**
  * Envoltorio ligero sobre `dev.toastbits:mediasession` para exponer una API sencilla a
- * `PlayerViewModel` y permitir que Windows reconozca a Melodist como reproductor multimedia.
+ * `PlayerViewModel` y permitir que Windows reconozca a LyriK como reproductor multimedia.
  */
 class WindowsMediaSession {
 
@@ -55,8 +55,8 @@ class WindowsMediaSession {
             }
             attachCallbacks(it)
 
-            it.setIdentity("Melodist.MusicPlayer")
-            it.setDesktopEntry("melodist")
+            it.setIdentity("LyriK.MusicPlayer")
+            it.setDesktopEntry("lyrik")
             it.setSupportedUriSchemes(listOf("file", "http", "https"))
             it.setSupportedMimeTypes(listOf("audio/mpeg", "audio/x-m4a", "audio/ogg", "audio/webm"))
             it.setEnabled(false)
@@ -74,13 +74,13 @@ class WindowsMediaSession {
     fun updateMetadata(title: String, artist: String, album: String, thumbnailUrl: String? = null) {
         val s = session ?: return
 
-        if (title.isNotBlank() && title != "Melodist") {
+        if (title.isNotBlank() && title != "LyriK") {
             s.setEnabled(true)
         }
 
         session?.setMetadata(
             MediaSessionMetadata(
-                title = title.ifBlank { "Melodist" },
+                title = title.ifBlank { "LyriK" },
                 artist = artist.ifBlank { "Artista desconocido" },
                 album = album,
                 art_url = thumbnailUrl
@@ -104,7 +104,7 @@ class WindowsMediaSession {
     }
 
     fun resetToIdle() {
-        updateMetadata(title = "Melodist", artist = "", album = "", thumbnailUrl = null)
+        updateMetadata(title = "LyriK", artist = "", album = "", thumbnailUrl = null)
         setPlaybackStatus(isPlaying = false, isPaused = false)
         updateMetadata(title = "", artist = "", album = "")
         session?.setEnabled(false) // Oculta el panel de Windows por completo

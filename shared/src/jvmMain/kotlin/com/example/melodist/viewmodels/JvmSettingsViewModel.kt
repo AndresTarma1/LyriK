@@ -132,6 +132,11 @@ class JvmSettingsViewModel(
         return true
     }
 
+    suspend fun saveRenderApi(): Boolean {
+        jvmConfigRepository.updateRenderApi(_uiState.value.renderApi)
+        return true
+    }
+
     fun resetToDefaults() {
         _uiState.update {
             it.copy(

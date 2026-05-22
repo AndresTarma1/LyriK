@@ -69,10 +69,13 @@ import com.kdroid.composetray.tray.api.Tray
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import melodist.composeapp.generated.resources.Res
-import melodist.composeapp.generated.resources.music
+import lyrik.composeapp.generated.resources.Music_note_circle
+import lyrik.composeapp.generated.resources.Music_note_prov
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.music
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.jewel.foundation.theme.JewelTheme
+import org.jetbrains.jewel.foundation.util.myLogger
 import org.jetbrains.jewel.intui.standalone.theme.IntUiTheme
 import org.jetbrains.jewel.intui.standalone.theme.darkThemeDefinition
 import org.jetbrains.jewel.intui.standalone.theme.lightThemeDefinition
@@ -197,8 +200,8 @@ fun ApplicationScope.App(
                     onCloseRequest = { if (minimizeToTray) isVisible = false else handleExit() },
                     state = windowState,
                     visible = isVisible,
-                    title = "Melodist",
-                    icon = painterResource(Res.drawable.music),
+                    title = "LyriK",
+                    icon = painterResource(Res.drawable.Music_note_circle),
                 ) {
                     updateInfo?.let { info ->
                         AlertDialog(
@@ -206,7 +209,7 @@ fun ApplicationScope.App(
                             title = { Text("Actualización disponible") },
                             text = {
                                 Text(
-                                    "Hay una nueva versión de Melodist disponible.\n\n" +
+                                    "Hay una nueva versión de LyriK disponible.\n\n" +
                                             "Versión actual: ${info.currentVersion}\n" +
                                             "Nueva versión: ${info.latestVersion}\n\n" +
                                             "¿Deseas actualizar ahora?"
@@ -218,7 +221,7 @@ fun ApplicationScope.App(
                                     kotlinx.coroutines.runBlocking {
                                         try {
                                             java.awt.Desktop.getDesktop().browse(
-                                                java.net.URI(info.downloadUrl ?: "https://github.com/AndresTarma1/Melodist/releases/latest")
+                                                java.net.URI(info.downloadUrl ?: "https://github.com/AndresTarma1/LyriK/releases/latest")
                                             )
                                         } catch (_: Exception) {}
                                     }
@@ -279,8 +282,8 @@ private fun ApplicationScope.TrayCustom(
     handleExit: () -> Unit
 ) {
     Tray(
-        icon = Res.drawable.music,
-        tooltip = trayState.currentSong?.title ?: "Melodist",
+        icon = Res.drawable.Music_note_circle,
+        tooltip = trayState.currentSong?.title ?: "LyriK",
         primaryAction = { onToggleVisibility() },
     ) {
         Item(
@@ -301,7 +304,7 @@ private fun ApplicationScope.TrayCustom(
         Divider()
         Item(
             icon = Icons.Filled.OpenInFull,
-            label = "Abrir Melodist",
+            label = "Abrir LyriK",
             onClick = { onShow() }
         )
         Divider()
@@ -324,7 +327,7 @@ private fun TitleBarScope.MelodistTitleBar(
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Text(
-            text = "Melodist",
+            text = "LyriK",
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
         )
@@ -332,10 +335,6 @@ private fun TitleBarScope.MelodistTitleBar(
 
     AnimatedContent(
         targetState = currentSong,
-        transitionSpec = {
-            (fadeIn() + slideInVertically { it / 2 })
-                .togetherWith(fadeOut() + slideOutVertically { -it / 2 })
-        },
         modifier = Modifier.align(Alignment.CenterHorizontally),
     ) { song ->
         if (song != null) {
