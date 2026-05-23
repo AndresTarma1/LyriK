@@ -11,7 +11,8 @@ import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.example.melodist.data.AppDirs
 import com.example.melodist.data.account.AccountManager
-import com.metrolist.innertube.YouTube
+import com.example.melodist.data.repository.JvmConfig
+import com.example.melodist.data.repository.JvmConfigRepository
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.di.appModule
 import com.example.melodist.di.dataStoreModule
@@ -23,6 +24,7 @@ import com.example.melodist.utils.SyncUtils
 import com.example.melodist.viewmodels.AppViewModel
 import com.example.melodist.viewmodels.DownloadViewModel
 import com.example.melodist.viewmodels.PlayerViewModel
+import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.YouTubeLocale
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -35,6 +37,8 @@ import java.time.LocalDateTime
 import kotlin.system.exitProcess
 import java.io.PrintStream
 import java.io.FileOutputStream
+import coil3.compose.setSingletonImageLoaderFactory
+import com.example.melodist.ui.components.CoilSetup
 
 fun main() {
 
@@ -51,10 +55,20 @@ fun main() {
         throw e
     }
 
-    // ✅ PlayerService se inicializa perezosamente — solo cuando se necesita
+    val jvmConfigRepository = try {
+        koinApp.koin.get<JvmConfigRepository>()
+    } catch (e: Throwable) {
+        logStartupError("Error creando JvmConfigRepository", e)
+        throw e
+    }
+
+    runBlocking {
+        val persistedConfig = jvmConfigRepository.config.first()
+        applyJvmConfigSystemProperties(persistedConfig)
+    }
+
     val playerViewModel = try {
         koinApp.koin.get<PlayerViewModel>().also {
-            // Inicializa MPV y el tick loop de forma diferida
             it.initialize()
         }
     } catch (e: Throwable) {
@@ -74,7 +88,6 @@ fun main() {
         throw e
     }
 
-    // ✅ WindowsMediaSession se inicializa solo si hay preferencia de media keys
     koinApp.koin.get<WindowsMediaSession>().apply {
         initialize()
         setCallbacks(
@@ -107,6 +120,10 @@ fun main() {
 
 
     application {
+        setSingletonImageLoaderFactory { context ->
+            CoilSetup.createImageLoader(context)
+        }
+        System.setProperty("compose.swing.render.on.graphics", "true")
         val windowState = rememberWindowState(
             placement = if (initialMaximized) WindowPlacement.Maximized else WindowPlacement.Floating,
             width = initialWidth.dp,
@@ -187,4 +204,25 @@ private fun logStartupError(context: String, throwable: Throwable) {
         }
         logFile.appendText(entry)
     }
+}
+
+private fun applyJvmConfigSystemProperties(config: JvmConfig) {
+    val customRenderApiRequested =
+        System.getenv("SKIKO_RENDER_API") != null ||
+            System.getProperty("skiko.renderApi") != null
+    if (!customRenderApiRequested) {
+        System.setProperty("skiko.renderApi", config.renderApi.name)
+    }
+
+    config.toJvmArgs()
+        .filter { it.startsWith("-D") && it.contains("=") }
+        .forEach { arg ->
+            val keyValue = arg.removePrefix("-D")
+            val separatorIndex = keyValue.indexOf('=')
+            if (separatorIndex > 0) {
+                val key = keyValue.substring(0, separatorIndex)
+                val value = keyValue.substring(separatorIndex + 1)
+                System.setProperty(key, value)
+            }
+        }
 }

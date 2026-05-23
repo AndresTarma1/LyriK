@@ -1,4 +1,4 @@
-# Melodist Engineering Rules
+# LyriK Engineering Rules
 
 ## Architecture
 - Follow Clean Architecture boundaries: UI renders state and sends user intents; ViewModels coordinate use cases; repositories/services own data, network, database, player, and download work.
@@ -19,6 +19,7 @@
 - Avoid full-screen recomposition for frequent player progress updates. Subscribe narrowly to progress only where progress is drawn.
 - Do not upscale artwork or extract dynamic colors in first-render paths unless the user explicitly needs high-resolution art.
 - Prefer `remember`, `derivedStateOf`, and precomputed ViewModel state for expensive list filters/grouping.
+- Avoid using the parameter-based `graphicsLayer(...)` modifier when dealing with dynamic or animated state values (e.g. scale, rotation, alpha, translation). Instead, use the lambda-based block `graphicsLayer { ... }` (e.g., `graphicsLayer { rotationZ = myRotation }`). The lambda block defers property updates to the draw phase, bypassing composition and layout invalidations on every frame, which prevents performance regressions and massive CPU/GPU/RAM spikes.
 
 ## UI Quality
 - Screens should feel like production music software: dense, calm, responsive, and scan-friendly.
@@ -46,7 +47,7 @@
 - **shared/** — Common business logic, SQLDelight DB, repositories, ViewModels
 - **innertube/** — YouTube Music API wrapper (NewPipe + custom parsing)
 - **Audio engine** — mpv via `MpvLib.kt` (WASAPI, Windows-only)
-- **Data paths** — `%LOCALAPPDATA%\Melodist\` (DB, DataStore, cache, downloads)
+- **Data paths** — `%LOCALAPPDATA%\Tarma\LyriK\` (DB, DataStore, cache, downloads)
 
 ## Key Files
 - `composeApp/src/jvmMain/kotlin/com/example/melodist/navigation/Navigation.kt` — Desktop layout, keyboard shortcuts, queue/now-playing panels

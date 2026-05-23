@@ -4,7 +4,6 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -20,16 +19,23 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import com.example.melodist.data.AppDirs
+import com.example.melodist.data.repository.AppLocale
 import com.example.melodist.data.repository.AudioQuality
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.ui.components.EqualizerPanel
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
+import com.example.melodist.ui.screens.shared.displayName
 import com.example.melodist.ui.screens.shared.openFolder
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.viewmodels.JvmSettingsViewModel
 import com.example.melodist.viewmodels.SettingsViewModel
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +50,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     var showThemeDialog by remember { mutableStateOf(false) }
     var showPaletteDialog by remember { mutableStateOf(false) }
     var showEqualizerDialog by remember { mutableStateOf(false) }
+    var showLanguageDialog by remember { mutableStateOf(false) }
     var showJvmSettingsDialog by remember { mutableStateOf(false) }
     val jvmSettingsViewModel: JvmSettingsViewModel = koinInject()
 
@@ -56,6 +63,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val imagesEnabled  by viewModel.imagesEnabled.collectAsState()
     val minimizeToTray by viewModel.minimizeToTray.collectAsState()
     val equalizerBands by viewModel.equalizerBands.collectAsState()
+    val currentLocale  by viewModel.locale.collectAsState()
     val cacheSizeText  by downloadViewModel.cacheSizeText.collectAsState()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -70,53 +78,53 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
             ) {
                 Column(modifier = Modifier.padding(bottom = 16.dp)) {
                     Text(
-                        text = "Configuración",
+                        text = stringResource(Res.string.settings_title),
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = "Personaliza tu experiencia",
+                        text = stringResource(Res.string.settings_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                SectionLabel("Audio", Icons.Rounded.GraphicEq)
+                SectionLabel(stringResource(Res.string.section_audio), Icons.Rounded.GraphicEq)
                 SettingsCard {
                     ModalRow(
-                        label = "Calidad de streaming",
+                        label = stringResource(Res.string.streaming_quality),
                         icon = Icons.Rounded.Tune,
-                        value = audioQuality.label,
+                        value = audioQuality.displayName(),
                         onClick = { showAudioQualityDialog = true }
                     )
                     RowDivider()
                     ModalRow(
-                        label = "Ecualizador",
+                        label = stringResource(Res.string.equalizer),
                         icon = Icons.Rounded.GraphicEq,
-                        value = "10 bandas",
+                        value = stringResource(Res.string.ten_bands),
                         onClick = { showEqualizerDialog = true }
                     )
                 }
 
                 Spacer(Modifier.height(8.dp))
-                SectionLabel("Apariencia", Icons.Rounded.Palette)
+                SectionLabel(stringResource(Res.string.section_appearance), Icons.Rounded.Palette)
                 SettingsCard {
                     ModalRow(
-                        label = "Tema",
+                        label = stringResource(Res.string.theme),
                         icon = Icons.Rounded.DarkMode,
-                        value = themeMode.label,
+                        value = themeMode.displayName(),
                         onClick = { showThemeDialog = true }
                     )
                     RowDivider()
                     ModalRow(
-                        label = "Paleta de colores",
+                        label = stringResource(Res.string.color_palette),
                         icon = Icons.Rounded.Palette,
-                        value = themePalette.label,
+                        value = themePalette.displayName(),
                         onClick = { showPaletteDialog = true }
                     )
                     RowDivider()
                     ToggleRow(
-                        label = "Colores dinámicos desde la carátula",
+                        label = stringResource(Res.string.dynamic_colors),
                         icon = Icons.Rounded.ColorLens,
                         checked = dynamicColor,
                         onCheckedChange = { viewModel.setDynamicColorFromArtwork(it) }
@@ -124,17 +132,17 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 }
 
                 Spacer(Modifier.height(8.dp))
-                SectionLabel("Reproductor", Icons.Rounded.PlayCircle)
+                SectionLabel(stringResource(Res.string.section_player), Icons.Rounded.PlayCircle)
                 SettingsCard {
                     ToggleRow(
-                        label = "Carátulas en alta resolución",
+                        label = stringResource(Res.string.high_res_artwork),
                         icon = Icons.Rounded.HighQuality,
                         checked = highResCover,
                         onCheckedChange = { viewModel.setHighResCoverArt(it) }
                     )
                     RowDivider()
                     ToggleRow(
-                        label = "Mostrar imágenes",
+                        label = stringResource(Res.string.show_images),
                         icon = Icons.Rounded.Image,
                         checked = imagesEnabled,
                         onCheckedChange = { viewModel.setImagesEnabled(it) }
@@ -142,48 +150,55 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 }
 
                 Spacer(Modifier.height(8.dp))
-                SectionLabel("Sistema", Icons.Rounded.DesktopWindows)
+                SectionLabel(stringResource(Res.string.section_system), Icons.Rounded.DesktopWindows)
                 SettingsCard {
+                    ModalRow(
+                        label = stringResource(Res.string.language),
+                        icon = Icons.Rounded.Language,
+                        value = currentLocale.displayName(),
+                        onClick = { showLanguageDialog = true }
+                    )
+                    RowDivider()
                     ToggleRow(
-                        label = "Minimizar a la bandeja del sistema",
+                        label = stringResource(Res.string.minimize_to_tray),
                         icon = Icons.Rounded.NotificationsActive,
                         checked = minimizeToTray,
                         onCheckedChange = { viewModel.setMinimizeToTray(it) }
                     )
                     RowDivider()
                     ToggleRow(
-                        label = "Caché de imágenes en disco",
+                        label = stringResource(Res.string.cache_images),
                         icon = Icons.Rounded.Image,
                         checked = cacheImages,
                         onCheckedChange = { viewModel.setCacheImages(it) }
                     )
                     RowDivider()
                     InfoRow(
-                        label = "Caché de descargas",
+                        label = stringResource(Res.string.download_cache),
                         icon = Icons.Rounded.FolderOpen,
                         value = cacheSizeText
                     )
                     RowDivider()
                     ActionRow(
-                        label = "Abrir carpeta de datos",
+                        label = stringResource(Res.string.open_data_folder),
                         icon = Icons.Rounded.FolderOpen,
-                        btnLabel = "Abrir",
+                        btnLabel = stringResource(Res.string.btn_open),
                         onClick = { openFolder(AppDirs.dataRoot) }
                     )
                     RowDivider()
                     ActionRow(
-                        label = "Limpiar caché de descargas",
+                        label = stringResource(Res.string.clear_download_cache),
                         icon = Icons.Rounded.DeleteSweep,
-                        btnLabel = "Limpiar",
+                        btnLabel = stringResource(Res.string.btn_clear),
                         isDestructive = true,
                         onClick = { showClearDownloadsDialog = true }
                     )
                     RowDivider()
                     ModalRow(
-                        label = "Configuración avanzada de JVM",
-                        icon = Icons.Rounded.Memory,
-                        value = "Memoria, GC, reinicio",
-                        onClick = {}
+                        label = stringResource(Res.string.skiko_rendering),
+                        icon = Icons.Rounded.AutoFixHigh,
+                        value = stringResource(Res.string.render_api_restart),
+                        onClick = { showJvmSettingsDialog = true }
                     )
                 }
 
@@ -205,15 +220,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     if (showClearDownloadsDialog) {
         AlertDialog(
             onDismissRequest = { showClearDownloadsDialog = false },
-            title = { Text("Limpiar caché de descargas") },
-            text = { Text("Se eliminarán todas las descargas guardadas en caché. Esta acción no se puede deshacer.") },
+            title = { Text(stringResource(Res.string.clear_downloads_title)) },
+            text = { Text(stringResource(Res.string.clear_downloads_message)) },
             confirmButton = {
                 TextButton(onClick = { downloadViewModel.clearCache(); showClearDownloadsDialog = false }) {
-                    Text("Limpiar")
+                    Text(stringResource(Res.string.btn_clear))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearDownloadsDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { showClearDownloadsDialog = false }) { Text(stringResource(Res.string.cancel)) }
             }
         )
     }
@@ -222,7 +237,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         ResponsiveSettingsDialog(
             onDismiss = { showAudioQualityDialog = false },
             icon = Icons.Rounded.Tune,
-            title = "Calidad de streaming",
+            title = stringResource(Res.string.audio_quality_title),
         ) {
             AudioQuality.entries.forEach { quality ->
                 val isSelected = quality == audioQuality
@@ -242,7 +257,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         onClick = { viewModel.setAudioQuality(quality); showAudioQualityDialog = false }
                     )
                     Column {
-                        Text(quality.label, style = MaterialTheme.typography.bodyLarge)
+                        Text(quality.displayName(), style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
@@ -253,7 +268,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         ResponsiveSettingsDialog(
             onDismiss = { showThemeDialog = false },
             icon = Icons.Rounded.DarkMode,
-            title = "Tema",
+            title = stringResource(Res.string.theme_title),
         ) {
             ThemeMode.entries.forEach { mode ->
                 val isSelected = mode == themeMode
@@ -273,7 +288,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         onClick = { viewModel.setThemeMode(mode); showThemeDialog = false }
                     )
                     Column {
-                        Text(mode.label, style = MaterialTheme.typography.bodyLarge)
+                        Text(mode.displayName(), style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
@@ -284,7 +299,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         ResponsiveSettingsDialog(
             onDismiss = { showPaletteDialog = false },
             icon = Icons.Rounded.Palette,
-            title = "Paleta de colores",
+            title = stringResource(Res.string.palette_title),
         ) {
             ThemePalette.entries.forEach { palette ->
                 val isSelected = palette == themePalette
@@ -310,7 +325,38 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                             .background(Color(palette.primary))
                     )
                     Column {
-                        Text(palette.label, style = MaterialTheme.typography.bodyLarge)
+                        Text(palette.displayName(), style = MaterialTheme.typography.bodyLarge)
+                    }
+                }
+            }
+        }
+    }
+
+    if (showLanguageDialog) {
+        ResponsiveSettingsDialog(
+            onDismiss = { showLanguageDialog = false },
+            icon = Icons.Rounded.Language,
+            title = stringResource(Res.string.language),
+        ) {
+            AppLocale.entries.forEach { locale ->
+                val isSelected = locale == currentLocale
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { viewModel.setLocale(locale); showLanguageDialog = false }
+                        .pointerHoverIcon(PointerIcon.Hand)
+                        .background(if (isSelected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else Color.Transparent)
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    RadioButton(
+                        selected = isSelected,
+                        onClick = { viewModel.setLocale(locale); showLanguageDialog = false }
+                    )
+                    Column {
+                        Text(locale.displayName(), style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }
@@ -321,7 +367,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         ResponsiveSettingsDialog(
             onDismiss = { showEqualizerDialog = false },
             icon = Icons.Rounded.GraphicEq,
-            title = "Ecualizador de 10 bandas",
+            title = stringResource(Res.string.equalizer_title),
         ) {
             EqualizerPanel(
                 bands = equalizerBands,
@@ -593,20 +639,20 @@ private fun AboutCard() {
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Melodist",
+                    text = stringResource(Res.string.about_title),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Reproductor de música de escritorio",
+                    text = stringResource(Res.string.about_subtitle),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Surface(shape = CircleShape, color = MaterialTheme.colorScheme.primaryContainer) {
+            Surface(shape = circleAwareShape(), color = MaterialTheme.colorScheme.primaryContainer) {
                 Text(
-                    text = "v0.1.2",
+                    text = stringResource(Res.string.version_prefix) + "0.1.3",
                     style    = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color    = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
@@ -623,7 +669,7 @@ private fun ResponsiveSettingsDialog(
     title: String,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss, ) {
         BoxWithConstraints {
             val maxWidth = maxWidth
             val maxHeight = maxHeight
@@ -651,7 +697,7 @@ private fun ResponsiveSettingsDialog(
                             Text(title, style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold))
                         }
                         IconButton(onClick = onDismiss) {
-                            Icon(Icons.Rounded.Close, "Cerrar")
+                            Icon(Icons.Rounded.Close, stringResource(Res.string.close_label))
                         }
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
@@ -673,3 +719,4 @@ private fun ResponsiveSettingsDialog(
 private fun rememberScrollState(): androidx.compose.foundation.ScrollState {
     return androidx.compose.foundation.rememberScrollState()
 }
+

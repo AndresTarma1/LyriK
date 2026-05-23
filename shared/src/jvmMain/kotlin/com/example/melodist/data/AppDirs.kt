@@ -13,7 +13,7 @@ object AppDirs {
 
     val dataRoot: File by lazy { File(AppPaths.dataRoot) }
 
-    // Mantener config dentro de la misma raiz para concentrar todo en .melodist
+    // Mantener config dentro de la misma raiz para concentrar todo en LyriK
     val configRoot: File get() = File(AppPaths.configRoot)
 
     // Subdirectorios

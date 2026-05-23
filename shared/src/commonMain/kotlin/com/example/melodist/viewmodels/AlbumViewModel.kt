@@ -1,12 +1,10 @@
 package com.example.melodist.viewmodels
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.AlbumRepository
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
-import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.pages.AlbumPage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -34,7 +32,7 @@ class AlbumViewModel(
     private val apiService: ApiService,
     private val repository: AlbumRepository,
     private val playerCoordinator: PlayerCoordinator,
-) : ViewModel() {
+) : MelodistViewModel() {
 
     private val log = Logger.getLogger("AlbumViewModel")
 
@@ -166,17 +164,7 @@ class AlbumViewModel(
     fun playAllSongs(shuffle: Boolean = false) {
         val state = _uiState.value as? AlbumState.Success ?: return
         if (state.isLoadingForPlay) return
-
-        val playlistId = state.albumPage.album.playlistId
-        if (playlistId.isNotEmpty()) {
-            playerCoordinator.playFromEndpoint(
-                endpoint = WatchEndpoint(playlistId = playlistId),
-                shuffle = shuffle,
-                fallback = { loadAndPlayAll(shuffle, state) }
-            )
-            return
-        }
-
+        // Siempre reproducir la lista finita de canciones del álbum (sin recomendaciones/automix)
         loadAndPlayAll(shuffle, state)
     }
 

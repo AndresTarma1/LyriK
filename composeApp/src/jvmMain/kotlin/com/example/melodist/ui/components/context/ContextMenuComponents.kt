@@ -62,7 +62,6 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupProperties
@@ -77,6 +76,9 @@ import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.metrolist.innertube.models.SongItem
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 @OptIn(ExperimentalComposeUiApi::class)
@@ -90,7 +92,6 @@ fun CollectionContextMenu(
     onPlay: (() -> Unit)? = null,
     onShuffle: (() -> Unit)? = null,
     onRemoveFromLibrary: (() -> Unit)? = null,
-    offset: DpOffset = DpOffset.Zero,
 ) {
 
     if (!expanded) return
@@ -120,14 +121,14 @@ fun CollectionContextMenu(
                     )
 
                     StyledMenuItem(
-                        text = "Abrir ${if (isPlaylist) "playlist" else "album"}",
+                        text = stringResource(if (isPlaylist) Res.string.context_open_playlist else Res.string.context_open_album),
                         icon = Icons.AutoMirrored.Filled.OpenInNew,
                         onClick = onOpen
                     )
 
                     onPlay?.let {
                         StyledMenuItem(
-                            text = "Reproducir",
+                            text = stringResource(Res.string.context_play),
                             icon = Icons.Default.PlayArrow,
                             iconTint = MaterialTheme.colorScheme.primary,
                             onClick = it
@@ -136,7 +137,7 @@ fun CollectionContextMenu(
 
                     onShuffle?.let {
                         StyledMenuItem(
-                            text = "Reproducir en aleatorio",
+                            text = stringResource(Res.string.context_shuffle),
                             icon = Icons.Default.Shuffle,
                             iconTint = MaterialTheme.colorScheme.primary,
                             onClick = it
@@ -149,7 +150,7 @@ fun CollectionContextMenu(
                             color = MaterialTheme.colorScheme.outlineVariant
                         )
                         StyledMenuItem(
-                            text = "Eliminar de biblioteca",
+                            text = stringResource(Res.string.context_remove_library),
                             icon = Icons.Default.Delete,
                             iconTint = MaterialTheme.colorScheme.error,
                             onClick = it
@@ -175,7 +176,6 @@ fun SongContextMenu(
     onRemoveFromPlaylist: (() -> Unit)? = null,
     isLocalPlaylist: Boolean = false,
     showQueueActions: Boolean = true,
-    offset: DpOffset = DpOffset.Zero
 ) {
     if (!expanded) return
 
@@ -202,7 +202,7 @@ fun SongContextMenu(
         ) {
             Column(modifier = Modifier.padding(vertical = 6.dp)) {
                 ContextMenuItem(
-                    text = "Iniciar Radio",
+                    text = stringResource(Res.string.context_start_radio),
                     icon = Icons.Default.Radio,
                     onClick = {
                         playerViewModel.playSingle(song)
@@ -211,18 +211,18 @@ fun SongContextMenu(
 
                 val (label, icon, color) = when (downloadState) {
                     is DownloadState.Completed -> Triple(
-                        "Eliminar descarga",
+                        stringResource(Res.string.context_remove_download),
                         Icons.Default.DeleteOutline,
                         MaterialTheme.colorScheme.error
                     )
 
                     is DownloadState.Downloading, is DownloadState.Queued -> Triple(
-                        "Cancelar descarga",
+                        stringResource(Res.string.context_cancel_download),
                         Icons.Default.Cancel,
                         MaterialTheme.colorScheme.error
                     )
 
-                    else -> Triple("Descargar", Icons.Default.Download, MaterialTheme.colorScheme.primary)
+                    else -> Triple(stringResource(Res.string.context_download), Icons.Default.Download, MaterialTheme.colorScheme.primary)
                 }
 
                 ContextMenuItem(label, icon, color) {
@@ -239,11 +239,11 @@ fun SongContextMenu(
                         Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                     )
-                    ContextMenuItem("Reproducir a continuación", Icons.AutoMirrored.Filled.PlaylistAdd) {
+                    ContextMenuItem(stringResource(Res.string.context_play_next), Icons.AutoMirrored.Filled.PlaylistAdd) {
                         playerViewModel.playNextResolved(song)
                         onDismiss()
                     }
-                    ContextMenuItem("Añadir a la cola", Icons.AutoMirrored.Filled.QueueMusic) {
+                    ContextMenuItem(stringResource(Res.string.context_add_queue), Icons.AutoMirrored.Filled.QueueMusic) {
                         playerViewModel.addToQueueResolved(song)
                         onDismiss()
                     }
@@ -254,7 +254,7 @@ fun SongContextMenu(
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                 )
 
-                ContextMenuItem("Añadir a playlist...", Icons.Default.AddCircleOutline) {
+                ContextMenuItem(stringResource(Res.string.context_add_playlist), Icons.Default.AddCircleOutline) {
                     showPlaylistDialog = true
                     // No hacemos onDismiss aquí para que no parpadee al abrir el dialog
                 }
@@ -273,7 +273,7 @@ fun SongContextMenu(
 
                     if (isLocalPlaylist && onRemoveFromPlaylist != null) {
                         ContextMenuItem(
-                            "Quitar de esta playlist",
+                            stringResource(Res.string.context_remove_playlist),
                             Icons.Default.RemoveCircleOutline,
                             MaterialTheme.colorScheme.error
                         ) {

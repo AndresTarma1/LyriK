@@ -7,6 +7,27 @@ import kotlin.system.exitProcess
 
 object AppRestarter {
 
+    private const val appliedMarkerArg = "-Dmelodist.jvmConfigApplied=true"
+
+    val requiredJvmArgs = listOf(
+        "--add-modules=java.sql",
+        "--enable-native-access=ALL-UNNAMED",
+        "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
+        "-XX:+UseStringDeduplication",
+        "-XX:+UseCompressedOops",
+        "-XX:MaxHeapFreeRatio=30",
+        "-XX:MinHeapFreeRatio=10",
+        "-XX:G1PeriodicGCInterval=10000",
+        "-XX:G1PeriodicGCSystemLoadThreshold=0.0",
+    )
+
+    val gcTuningArgs = listOf(
+        "-XX:MaxGCPauseMillis=80",
+    )
+
+    fun previewJvmArgs(config: JvmConfig): List<String> =
+        requiredJvmArgs + gcTuningArgs + config.toJvmArgs() + appliedMarkerArg
+
     suspend fun restartWithJvmArgs(config: JvmConfig) {
         withContext(Dispatchers.IO) {
             try {
@@ -18,7 +39,7 @@ object AppRestarter {
 
                 val command = mutableListOf<String>()
                 command.add(javaBin)
-                command.addAll(config.toJvmArgs())
+                command.addAll(previewJvmArgs(config))
                 command.add("-cp")
                 command.add(classpath)
                 command.add(mainClass)

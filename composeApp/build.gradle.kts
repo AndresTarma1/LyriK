@@ -9,10 +9,34 @@ plugins {
 
 }
 
+val melodistJvmArgs = listOf(
+    "--add-modules=java.sql",
+    "--enable-native-access=ALL-UNNAMED",
+    "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
+    "-XX:+UseG1GC",
+    "-Xmx512m",
+    "-Xms64m",
+    "-XX:MaxGCPauseMillis=80",
+    "-XX:+UseStringDeduplication",
+    "-XX:+UseCompressedOops",
+    "-XX:MaxHeapFreeRatio=30",
+    "-XX:MinHeapFreeRatio=10",
+    "-Dskiko.gpu.resourceCacheLimit=67108864", // 64MB para la cache de recursos GPU de Skiko
+)
+
+val melodistDevJvmArgs = melodistJvmArgs
+
+tasks.withType<JavaExec>().configureEach {
+    if (name.contains("run", ignoreCase = true)) {
+        jvmArgs(*melodistDevJvmArgs.toTypedArray())
+    }
+}
+
 kotlin {
     jvm()
 
     jvmToolchain(21) // Esto fuerza a Gradle a buscar/descargar un JDK completo (v21)
+
 
     sourceSets {
         commonMain.dependencies {
@@ -89,46 +113,29 @@ compose.desktop {
     application {
         mainClass = "com.example.melodist.MainKt"
 
-        jvmArgs(
-            "--add-modules=java.sql",
-            "--enable-native-access=ALL-UNNAMED",
-            "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
-            "-XX:+UseG1GC",
-            "-Xmx256m",
-            "-Xms128m",
-            "-Dskiko.renderApi=DIRECT3D",
-            "-XX:MaxGCPauseMillis=80",
-            "-XX:+UseStringDeduplication",
-            "-XX:+UseCompressedOops",
-            "-XX:MaxHeapFreeRatio=30",
-            "-XX:MinHeapFreeRatio=10"
-        )
+        jvmArgs(*melodistJvmArgs.toTypedArray())
 
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
-            packageName = "Melodist"
-            packageVersion = "0.1.2"
+            packageName = "LyriK"
+            packageVersion = "0.1.3"
 
             windows {
-                msiPackageVersion = "0.1.2"
-                packageName = "Melodist"
+                msiPackageVersion = "0.1.3"
+                packageName = "LyriK"
                 iconFile.set(project.file("icons/music.ico"))
                 menu = true
-                menuGroup = "Melodist"
+                menuGroup = "LyriK"
                 shortcut = true
-                dirChooser = true
+                dirChooser = false
                 perUserInstall = true
                 upgradeUuid = "4A2F8B6C-1D3E-4F5A-B7C8-9D0E1F2A3B4C"
             }
             vendor = "Tarma"
             description = "Reproductor de música de escritorio"
 
-            // Módulos específicos para evitar el peso excesivo de includeAllModules
             includeAllModules = true
 
-            // Compose Desktop copia el contenido de windows/ (o common/) de este dir
-            // a $APPDIR/resources/ durante el packaging.
-            // La carpeta mpv-resources/windows/ debe contener libmpv-2.dll
             appResourcesRootDir.set(project.layout.projectDirectory.dir("../mpv-resources"))
         }
     }

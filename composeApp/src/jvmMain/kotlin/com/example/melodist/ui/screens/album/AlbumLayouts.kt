@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
@@ -39,6 +38,7 @@ import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.components.LoadingMoreSongsItem
 import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.PlaceholderType
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.ui.screens.AlbumScreenActions
 import com.example.melodist.ui.screens.AlbumScreenState
 import com.example.melodist.ui.screens.playlist.MultiSongSelectionBar
@@ -125,6 +125,7 @@ internal fun AlbumScreenLayout(
                 onPlayAll = actions.onPlayAll,
                 onShuffle = actions.onShuffle,
                 showDeleteDialog = { showDeleteDialog = true },
+                onNavigate = actions.onNavigate,
             )
         } else {
             AlbumWideLayout(
@@ -158,6 +159,7 @@ internal fun AlbumScreenLayout(
                 onPlayAll = actions.onPlayAll,
                 onShuffle = actions.onShuffle,
                 showDeleteDialog = { showDeleteDialog = true },
+                onNavigate = actions.onNavigate,
             )
         }
     }
@@ -184,9 +186,9 @@ internal fun AlbumWideLayout(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     showDeleteDialog: () -> Unit,
+    onNavigate: (Route) -> Unit,
 ) {
     Row(modifier = Modifier.fillMaxSize().padding(start = 48.dp, end = 24.dp, top = 16.dp)) {
-        // Panel lateral fijo con scroll propio
         Column(
             modifier = Modifier
                 .width(320.dp)
@@ -207,6 +209,7 @@ internal fun AlbumWideLayout(
                 onPlayAll = onPlayAll,
                 onShuffle = onShuffle,
                 showDeleteDialog = showDeleteDialog,
+                onNavigate = onNavigate,
             )
         }
 
@@ -250,6 +253,7 @@ internal fun AlbumCompactLayout(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     showDeleteDialog: () -> Unit,
+    onNavigate: (Route) -> Unit,
 ) {
     Box {
         val lazyColumnState = rememberLazyListState()
@@ -312,6 +316,7 @@ internal fun AlbumCompactLayout(
                         onPlayAll = onPlayAll,
                         onShuffle = onShuffle,
                         showDeleteDialog = showDeleteDialog,
+                        onNavigate = onNavigate,
                     )
                     Spacer(Modifier.height(12.dp))
                 }
@@ -455,6 +460,7 @@ internal fun AlbumInfoPanel(
     onPlayAll: () -> Unit,
     onShuffle: () -> Unit,
     showDeleteDialog: () -> Unit,
+    onNavigate: (Route) -> Unit,
 ) {
     val downloadViewModel = LocalDownloadViewModel.current
 
@@ -467,42 +473,25 @@ internal fun AlbumInfoPanel(
         downloadViewModel.isFullyDownloadedFlow(songIds)
     }.collectAsState(initial = false)
 
+    val firstArtist = albumPage.album.artists?.firstOrNull()
+
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
-            .clickable { albumPage.album.artists?.firstOrNull()?.id?.let { /* navegar a artista */ } }
-            .pointerHoverIcon(PointerIcon.Hand)
-    ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                contentAlignment = Alignment.Center
-            ) {
-                MelodistImage(
-                    url = null,
-                    contentDescription = null,
-                    modifier = Modifier.fillMaxSize(),
-                    shape = CircleShape,
-                    placeholderType = PlaceholderType.ARTIST,
-                    iconSize = 14.dp
-                )
+            .clickable(enabled = firstArtist?.id != null) {
+                firstArtist?.id?.let { onNavigate(Route.Artist(it)) }
             }
-            Spacer(Modifier.width(8.dp))
-            Text(
-                albumPage.album.artists?.firstOrNull()?.name ?: "Artista",
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold,
-                color = onSurfaceColor
-            )
-        }
+            .pointerHoverIcon(if (firstArtist?.id != null) PointerIcon.Hand else PointerIcon.Default)
+    ) {
+        Text(
+            text = "Autor • ${firstArtist?.name ?: "Artista"}",
+            style = MaterialTheme.typography.labelLarge,
+            fontWeight = FontWeight.SemiBold,
+            color = onSurfaceColor,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+        )
     }
 
     Spacer(Modifier.height(20.dp))
@@ -518,7 +507,6 @@ internal fun AlbumInfoPanel(
             placeholderType = PlaceholderType.ALBUM,
             contentScale = ContentScale.Crop,
             iconSize = coverSize * 0.33f,
-            isLowRes = false
         )
     }
 
@@ -567,7 +555,7 @@ internal fun AlbumInfoPanel(
             onClick = { if (!controls.isSaving) onToggleSave() },
             modifier = Modifier
                 .size(44.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .pointerHoverIcon(if (controls.isSaving) PointerIcon.Default else PointerIcon.Hand)
         ) {
@@ -589,7 +577,7 @@ internal fun AlbumInfoPanel(
 
         FloatingActionButton(
             onClick = { if (!controls.isLoadingForPlay) onPlayAll() },
-            shape = CircleShape,
+            shape = circleAwareShape(),
             containerColor = MaterialTheme.colorScheme.primary,
             contentColor = MaterialTheme.colorScheme.onPrimary,
             modifier = Modifier.size(56.dp)
@@ -610,7 +598,7 @@ internal fun AlbumInfoPanel(
             onClick = { if (!controls.isLoadingForPlay) onShuffle() },
             modifier = Modifier
                 .size(44.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .pointerHoverIcon(PointerIcon.Hand)
         ) {
@@ -627,7 +615,7 @@ internal fun AlbumInfoPanel(
             },
             modifier = Modifier
                 .size(44.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .pointerHoverIcon(PointerIcon.Hand)
         ) {

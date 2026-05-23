@@ -12,6 +12,17 @@ class MpvAudioPlayer {
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+    private var openUriJob: Job? = null
+
+    /** Helper: llama a mpv_get_property_string y libera la memoria nativa con mpv_free. */
+    private fun getMpvPropertyString(name: String): String? {
+        val ptr = handle?.let { MpvLib.INSTANCE.mpv_get_property_string(it, name) } ?: return null
+        return try {
+            ptr.getString(0L)
+        } finally {
+            MpvLib.INSTANCE.mpv_free(ptr)
+        }
+    }
 
     fun init() {
         if (handle != null) return
@@ -24,6 +35,12 @@ class MpvAudioPlayer {
                 MpvLib.INSTANCE.mpv_set_property_string(it, "ao", "wasapi") // Forzar salida nativa de Windows
 
                 MpvLib.INSTANCE.mpv_initialize(it)
+
+                // Límites de memoria para evitar que mpv cachee streams agresivamente
+                MpvLib.INSTANCE.mpv_set_property_string(it, "cache-size", "32768")          // 32 MiB
+                MpvLib.INSTANCE.mpv_set_property_string(it, "demuxer-max-bytes", "10485760") // 10 MiB
+                MpvLib.INSTANCE.mpv_set_property_string(it, "demuxer-max-back-bytes", "2097152") // 2 MiB
+                MpvLib.INSTANCE.mpv_set_property_string(it, "cache-pause-initial", "no")
             }
         } catch (e: Exception) {
             log.severe("MpvAudioPlayer init failed: ${e.message}")
@@ -31,10 +48,9 @@ class MpvAudioPlayer {
         }
     }
     fun openUri(uri: String) {
-        // ✅ init() ya es llamado por PlayerService.init() al inicio.
-        // Evita llamadas redundantes aquí.
         handle?.let { h ->
-            scope.launch {
+            openUriJob?.cancel()
+            openUriJob = scope.launch {
                 MpvLib.INSTANCE.mpv_command(h, arrayOf("loadfile", uri, "replace", null))
 
                 MpvLib.INSTANCE.mpv_set_property_string(h, "pause", "no")
@@ -73,8 +89,7 @@ class MpvAudioPlayer {
 
     var volume: Float
         get() {
-            val volStr = handle?.let { MpvLib.INSTANCE.mpv_get_property_string(it, "volume") } ?: "100"
-            return volStr.toFloatOrNull() ?: 100f
+            return getMpvPropertyString("volume")?.toFloatOrNull() ?: 100f
         }
         set(value) {
             handle?.let {
@@ -107,16 +122,29 @@ class MpvAudioPlayer {
     }
 
     fun getDuration(): Long {
-        val durStr = handle?.let { MpvLib.INSTANCE.mpv_get_property_string(it, "duration") } ?: "0"
-        return (durStr.toDoubleOrNull() ?: 0.0).toLong() * 1000L
+        val durStr = getMpvPropertyString("duration") ?: "0"
+        return ((durStr.toDoubleOrNull() ?: 0.0) * 1000).toLong()
     }
 
     fun getCurrentPosition(): Long {
-        val posStr = handle?.let { MpvLib.INSTANCE.mpv_get_property_string(it, "time-pos") } ?: "0"
-        return (posStr.toDoubleOrNull() ?: 0.0).toLong() * 1000L
+        val posStr = getMpvPropertyString("time-pos") ?: "0"
+        return ((posStr.toDoubleOrNull() ?: 0.0) * 1000).toLong()
+    }
+
+    fun logMemoryStats() {
+        val cacheState = getMpvPropertyString("demuxer-cache-state")
+        val audioOut = getMpvPropertyString("audio-out-params")
+        val filterStats = getMpvPropertyString("filter-stats")
+        val af = getMpvPropertyString("af")
+        log.info("=== mpv memory ===")
+        log.info("  demuxer-cache: $cacheState")
+        log.info("  audio-out: $audioOut")
+        log.info("  filter-stats: $filterStats")
+        log.info("  af: $af")
     }
 
     fun dispose() {
+        openUriJob?.cancel()
         handle?.let {
             MpvLib.INSTANCE.mpv_terminate_destroy(it)
             handle = null

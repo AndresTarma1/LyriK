@@ -46,6 +46,9 @@ import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.pages.ChartsPage
 import com.metrolist.innertube.pages.HomePage
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.ui.component.HorizontalScrollbar
 
 @Composable
@@ -110,7 +113,7 @@ fun HomeScreen(
         ) {
             Icon(
                 imageVector = Icons.Default.Refresh,
-                contentDescription = "Actualizar"
+                contentDescription = stringResource(Res.string.refresh)
             )
         }
     }
@@ -349,7 +352,7 @@ private fun QuickPicksSection(
 
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "Reproducido recientemente",
+            text = stringResource(Res.string.recently_played),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Black,
             modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
@@ -411,7 +414,7 @@ fun HomeScreenError(message: String, onRetry: () -> Unit) {
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = "Oops! Algo salió mal",
+            text = stringResource(Res.string.home_error),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
         )
@@ -420,7 +423,7 @@ fun HomeScreenError(message: String, onRetry: () -> Unit) {
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onRetry) { Text("Reintentar") }
+        Button(onClick = onRetry) { Text(stringResource(Res.string.home_retry)) }
     }
 }
 

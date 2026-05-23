@@ -1,6 +1,5 @@
 package com.example.melodist.viewmodels
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.pages.BrowseResult
@@ -15,7 +14,7 @@ sealed class YouTubeBrowseState {
     data class Error(val message: String) : YouTubeBrowseState()
 }
 
-class YouTubeBrowseViewModel : ViewModel() {
+class YouTubeBrowseViewModel : MelodistViewModel() {
 
     private val _uiState = MutableStateFlow<YouTubeBrowseState>(YouTubeBrowseState.Loading)
     val uiState: StateFlow<YouTubeBrowseState> = _uiState.asStateFlow()

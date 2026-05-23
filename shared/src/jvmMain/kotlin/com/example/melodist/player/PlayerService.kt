@@ -5,11 +5,13 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.logging.Logger
+import kotlin.time.Duration.Companion.milliseconds
 
 class PlayerService {
 
     private val log = Logger.getLogger("PlayerService")
     private val mpvPlayer = MpvAudioPlayer()
+    private val isMpvDisabled = false
 
     private val _playbackState = MutableStateFlow(PlaybackState.IDLE)
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -36,20 +38,34 @@ class PlayerService {
     @Volatile
     private var endNotified = false
 
+    private var prevPlayingPos = 0L
+    private var statsTickCounter = 0
+
     fun init() {
         if (initAttempted) return
         initAttempted = true
+        if (isMpvDisabled) {
+            log.warning("mpv disabled via -Dmelodist.disableMpv=true")
+            return
+        }
         mpvPlayer.init()
         startPositionTicker()
     }
 
     fun play(url: String) {
         init()
+        if (isMpvDisabled) {
+            _playbackState.value = PlaybackState.ERROR
+            _position.value = 0L
+            _duration.value = 0L
+            return
+        }
         scope.launch {
             try {
                 _playbackState.value = PlaybackState.LOADING
                 isTransitioning = false
                 endNotified = false
+                prevPlayingPos = 0L
                 _position.value = 0L
                 _duration.value = 0L
                 mpvPlayer.openUri(url)
@@ -63,6 +79,7 @@ class PlayerService {
         isTransitioning = false
         endNotified = false
         _playbackState.value = PlaybackState.PAUSED
+        if (isMpvDisabled) return
         mpvPlayer.pause()
     }
 
@@ -70,6 +87,7 @@ class PlayerService {
         isTransitioning = false
         endNotified = false
         _playbackState.value = PlaybackState.PLAYING
+        if (isMpvDisabled) return
         mpvPlayer.play()
     }
 
@@ -80,19 +98,23 @@ class PlayerService {
     fun stop() {
         isTransitioning = false
         endNotified = false
+        prevPlayingPos = 0L
         _playbackState.value = PlaybackState.IDLE
         _position.value = 0L
         _duration.value = 0L
+        if (isMpvDisabled) return
         mpvPlayer.stop()
     }
 
     fun seekTo(millis: Long) {
+        if (isMpvDisabled) return
         val dur = _duration.value
         if (dur > 0) {
             val endThresholdMs = 1000L
             if (millis < dur - endThresholdMs) {
                 endNotified = false
             }
+            prevPlayingPos = 0L
             mpvPlayer.seekTo(millis.toFloat() / dur.toFloat())
         }
     }
@@ -100,6 +122,7 @@ class PlayerService {
     fun setVolume(value: Int) {
         _volume.value = value
         _previousVolume = value
+        if (isMpvDisabled) return
         mpvPlayer.volume = value.toFloat() / 100f
     }
 
@@ -113,22 +136,24 @@ class PlayerService {
     }
 
     fun setEqualizer(bands: List<Float>) {
+        if (isMpvDisabled) return
         // Send values to mpv
         mpvPlayer.setEqualizer(bands)
     }
 
     fun release() {
         tickJob?.cancel()
-        mpvPlayer.dispose()
+        if (!isMpvDisabled) {
+            mpvPlayer.dispose()
+        }
         scope.cancel()
     }
 
     private fun startPositionTicker() {
+        if (isMpvDisabled) return
         tickJob = scope.launch {
             while (isActive) {
                 try {
-                    // ✅ Optimización: solo consultar posición/duración cuando hay reproducción activa.
-                    // Esto evita llamadas innecesarias a mpv_get_property cuando la app está en pausa o idle.
                     val shouldPoll = _playbackState.value == PlaybackState.PLAYING ||
                             _playbackState.value == PlaybackState.LOADING
 
@@ -139,17 +164,28 @@ class PlayerService {
                         val pos = mpvPlayer.getCurrentPosition()
                         _position.value = pos
 
-                        val endThresholdMs = 1000L
+                        val endThresholdMs = 200L
+                        // Detecta si mpv reseteó time-pos a 0 después de que la canción terminó
+                        val posReset = prevPlayingPos > endThresholdMs && pos <= 100 &&
+                                _playbackState.value == PlaybackState.PLAYING
+
                         val looksEnded =
                             !endNotified &&
-                            dur > endThresholdMs &&
-                            pos >= (dur - endThresholdMs) &&
-                            _playbackState.value != PlaybackState.LOADING
+                            _playbackState.value != PlaybackState.LOADING &&
+                            (
+                                (dur > endThresholdMs && pos >= (dur - endThresholdMs)) ||
+                                posReset
+                            )
+
+                        // Guarda la posición para detectar reseteo en la próxima iteración
+                        if (pos > 0 && _playbackState.value == PlaybackState.PLAYING) {
+                            prevPlayingPos = pos
+                        }
 
                         if (looksEnded) {
                             endNotified = true
                             _playbackState.value = PlaybackState.ENDED
-                            delay(500)
+                            delay(500.milliseconds)
                             continue
                         }
 
@@ -166,18 +202,20 @@ class PlayerService {
                 } catch (e: Throwable) {
                     // silent catch for background ticker
                 }
-                // ✅ Intervalo adaptativo: 250ms durante reproducción (suave), 1000ms en idle (ahorro CPU)
                 val pollInterval = if (_playbackState.value == PlaybackState.PLAYING ||
                     _playbackState.value == PlaybackState.LOADING) 250L else 1000L
-                delay(pollInterval)
+                delay(pollInterval.milliseconds)
             }
         }
     }
 
     fun stopAudioOnly() {
         isTransitioning = true
+        endNotified = false
+        prevPlayingPos = 0L
         _position.value = 0L
         _duration.value = 0L
+        if (isMpvDisabled) return
         scope.launch {
             try {
                 mpvPlayer.pause()

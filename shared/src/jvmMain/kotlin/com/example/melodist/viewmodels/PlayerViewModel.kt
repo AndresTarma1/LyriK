@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.db.DatabaseDao
+import com.example.melodist.db.entities.AlbumEntity
+import com.example.melodist.db.entities.ArtistEntity
 import com.example.melodist.models.MediaMetadata
 import com.example.melodist.models.toMediaMetadata
 import com.example.melodist.player.AgeRestrictedException
@@ -14,15 +16,18 @@ import com.example.melodist.player.PlaybackState
 import com.example.melodist.player.PlayerService
 import com.example.melodist.player.WindowsMediaSession
 import com.example.melodist.utils.withMissingMetadataResolved
+import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
+import com.sun.jna.platform.unix.aix.Perfstat
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.logging.Logger
 import kotlin.jvm.JvmName
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -55,6 +60,8 @@ class PlayerViewModel(
     val progressState: StateFlow<PlayerProgressState> = _progressState.asStateFlow()
 
     private var resolveJob: Job? = null
+    private var fetchMoreJob: Job? = null
+    private var playRequestId = 0L
 
     /**
      * ✅ Inicialización diferida de PlayerService y MediaSession.
@@ -175,6 +182,12 @@ class PlayerViewModel(
                 databaseDao.insertSong(song.toSongEntity().localToggleLike())
                 song.artists.forEachIndexed { i, artist ->
                     artist.id?.let { id ->
+                        val artistEntity = ArtistEntity(
+                            id = id,
+                            name = artist.name,
+                            lastUpdateTime = java.time.LocalDateTime.now()
+                        )
+                        databaseDao.insertArtist(artistEntity)
                         databaseDao.insertSongArtistMap(song.id, id, i)
                     }
                 }
@@ -212,10 +225,7 @@ class PlayerViewModel(
         shuffle: Boolean = false,
         onEmpty: (() -> Unit)? = null
     ) {
-        if (playlistId != null) {
-            playEndpoint(WatchEndpoint(playlistId = playlistId), shuffle = shuffle)
-            return
-        }
+        // Siempre obtener canciones via browse API (sin recomendaciones/automix)
         viewModelScope.launch {
             val songs = apiService.getAlbum(browseId).getOrNull()?.songs.orEmpty()
             if (songs.isNotEmpty()) {
@@ -235,18 +245,21 @@ class PlayerViewModel(
         shuffle: Boolean = false,
         onEmpty: (() -> Unit)? = null
     ) {
-        if (endpoint != null) {
-            playEndpoint(endpoint, shuffle = shuffle)
-            return
-        }
         viewModelScope.launch {
-            val songs = apiService.getPlaylist(playlistId).getOrNull()?.songs.orEmpty()
-            if (songs.isNotEmpty()) {
-                playPlaylist(songs, startIndex, playlistId, title)
-                if (shuffle) toggleShuffle()
-            } else {
+            val page = YouTube.playlist(playlistId).getOrNull()
+            if (page == null || page.songs.isEmpty()) {
                 onEmpty?.invoke()
+                return@launch
             }
+
+            val queue = YouTubePlaylistQueue(
+                playlistId = playlistId,
+                playlistTitle = title,
+                initialSongs = page.songs,
+                initialContinuation = page.songsContinuation?.takeIf { it.isNotBlank() },
+                startIndex = startIndex,
+            )
+            playPlaylistWithQueue(queue, shuffle)
         }
     }
 
@@ -292,6 +305,29 @@ class PlayerViewModel(
             )
         }
         session.currentSong()?.let(::resolveAndPlay)
+    }
+
+    fun playPlaylistWithQueue(queue: YouTubePlaylistQueue, shuffle: Boolean = false) {
+        if (queue.initialSongs.isEmpty()) return
+        val source = QueueSource.Playlist(queue.playlistId, queue.playlistTitle)
+        val metadata = queue.initialSongs.map { it.toMediaMetadata() }
+        val session = PlayerQueueCoordinator.collectionSession(source, metadata, queue.startIndex)
+            .copy(playlistQueue = queue)
+
+        _uiState.update { current ->
+            val base = current.copy(
+                currentSong = session.currentSong(),
+                queue = session.queueItems(),
+                currentIndex = session.currentIndex,
+                queueSource = source,
+                error = null,
+                isShuffled = false,
+                queueSession = session
+            )
+            if (shuffle) PlayerQueueCoordinator.toggleShuffle(base) else base
+        }
+        checkAndFetchMoreSongs(_uiState.value, _uiState.value.currentIndex)
+        _uiState.value.currentSong?.let(::resolveAndPlay)
     }
 
     @JvmName("playCustomFromSongItems")
@@ -342,6 +378,7 @@ class PlayerViewModel(
             val result = withContext(Dispatchers.IO) {
                 YouTube.next(endpoint).getOrNull()
             }
+
             if (result != null && result.items.isNotEmpty()) {
                 val songs = result.items.map { it.toMediaMetadata() }
                 val startIdx = result.currentIndex ?: 0
@@ -371,28 +408,59 @@ class PlayerViewModel(
 
     private fun checkAndFetchMoreSongs(state: PlayerUiState, nextIndex: Int) {
         val session = state.queueSession
+
+        if (session.playlistQueue != null && session.playlistQueue.hasNextPage() && nextIndex >= session.order.size - 3) {
+            fetchMoreJob?.cancel()
+            fetchMoreJob = viewModelScope.launch(Dispatchers.IO) {
+                try {
+                    val newSongs = session.playlistQueue.loadNextPage()
+                    if (newSongs.isNotEmpty()) {
+                        val newMetadata = newSongs.map { it.toMediaMetadata() }
+                        _uiState.update { currentState ->
+                            val currentSession = currentState.queueSession
+                            val updatedItems = currentSession.items + newMetadata
+                            val newOrder = currentSession.order + newMetadata.indices.map { currentSession.items.size + it }
+                            val updatedSession = currentSession.copy(
+                                items = updatedItems,
+                                order = newOrder,
+                                playlistQueue = session.playlistQueue,
+                            )
+                            currentState.copy(
+                                queueSession = updatedSession,
+                                queue = updatedSession.queueItems()
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    log.warning("Error fetching more playlist songs: ${e.message}")
+                }
+            }
+            return
+        }
+
         if (session.continuation != null && session.endpoint != null && nextIndex >= session.order.size - 3) {
             // Prevent multiple parallel fetches
             val currentContinuation = session.continuation
             _uiState.update { it.copy(queueSession = it.queueSession.copy(continuation = null)) }
 
-            viewModelScope.launch(Dispatchers.IO) {
+            fetchMoreJob?.cancel()
+            fetchMoreJob = viewModelScope.launch(Dispatchers.IO) {
                 try {
                     val result = YouTube.next(session.endpoint, currentContinuation).getOrNull()
                     if (result != null && result.items.isNotEmpty()) {
                         val newSongs = result.items.map { it.toMediaMetadata() }
-                        
+
                         _uiState.update { currentState ->
                             val currentSession = currentState.queueSession
                             val updatedItems = currentSession.items + newSongs
                             val newOrder = currentSession.order + newSongs.indices.map { currentSession.items.size + it }
-                            
+
                             val updatedSession = currentSession.copy(
                                 items = updatedItems,
                                 order = newOrder,
                                 continuation = result.continuation
                             )
-                            
+
                             currentState.copy(
                                 queueSession = updatedSession,
                                 queue = updatedSession.queueItems()
@@ -467,6 +535,7 @@ class PlayerViewModel(
 
     fun stop() {
         resolveJob?.cancel()
+        playRequestId += 1
         playerService.stop()
         _progressState.value = PlayerProgressState()
         _uiState.update {
@@ -564,13 +633,16 @@ class PlayerViewModel(
                 queueSession = state.queueSession.copy(currentIndex = index)
             )
         }
+        checkAndFetchMoreSongs(_uiState.value, index)
         resolveAndPlay(song)
     }
 
     private fun resolveAndPlay(song: MediaMetadata) {
         resolveJob?.cancel()
+        playRequestId += 1
+        val requestId = playRequestId
 
-        _progressState.update { it.copy( positionMs = 0, durationMs = song.duration.toLong() * 1000) }
+        _progressState.update { it.copy(positionMs = 0, durationMs = song.duration.toLong() * 1000) }
 
         resolveJob = viewModelScope.launch {
             _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
@@ -580,18 +652,24 @@ class PlayerViewModel(
                 val cachedFile = withContext(Dispatchers.IO) {
                     DownloadService.getCachedFile(song.id)
                 }
+                if (requestId != playRequestId) return@launch
+
                 if (cachedFile != null) {
                     playerService.play(cachedFile.absolutePath)
                 } else {
                     val streamUrl = withContext(Dispatchers.IO) {
                         streamResolver.resolveAudioStream(song.id)
                     }.streamUrl
+                    if (requestId != playRequestId) return@launch
+
                     if (streamUrl.isNotEmpty()) {
                         playerService.play(streamUrl)
-                    } else {
+                    } else if (requestId == playRequestId) {
                         _uiState.update { it.copy(error = "No se pudo obtener el audio para \"${song.title}\"") }
                     }
                 }
+                if (requestId != playRequestId) return@launch
+
                 // Guardar canción en caché y registrar reproducción
                 withContext(Dispatchers.IO) {
                     cacheSongMetadata(song)
@@ -601,10 +679,12 @@ class PlayerViewModel(
                         playTime = 0L,
                     )
                 }
-            } catch (e: AgeRestrictedException) {
-                _uiState.update { it.copy(playbackState = PlaybackState.ERROR, error = e.message) }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                _uiState.update { it.copy(error = e.message) }
+                if (requestId == playRequestId) {
+                    _uiState.update { it.copy(error = e.message) }
+                }
             }
         }
     }
@@ -618,6 +698,12 @@ class PlayerViewModel(
         if (currentArtists.isEmpty() && song.artists.isNotEmpty()) {
             song.artists.forEachIndexed { i, artist ->
                 artist.id?.let { id ->
+                    val artistEntity = ArtistEntity(
+                        id = id,
+                        name = artist.name,
+                        lastUpdateTime = java.time.LocalDateTime.now()
+                    )
+                    databaseDao.insertArtist(artistEntity)
                     databaseDao.insertSongArtistMap(song.id, id, i)
                 }
             }
@@ -685,6 +771,7 @@ class PlayerViewModel(
 
     override fun onCleared() {
         resolveJob?.cancel()
+        playRequestId += 1
         resolveJob = null
         playerService.stopAudioOnly()
         super.onCleared()

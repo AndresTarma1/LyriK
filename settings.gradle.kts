@@ -1,4 +1,4 @@
-rootProject.name = "melodist"
+rootProject.name = "lyrik"
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {

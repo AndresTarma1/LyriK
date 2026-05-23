@@ -1,10 +1,13 @@
 package com.example.melodist.ui.screens
 
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -35,6 +38,7 @@ import com.example.melodist.navigation.Route
 import com.metrolist.innertube.YouTube
 import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.PlaceholderType
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.viewmodels.AccountState
 import com.example.melodist.viewmodels.AccountViewModel
@@ -127,7 +131,7 @@ fun AccountScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Cuenta",
+                        stringResource(Res.string.account_title),
                         fontWeight = FontWeight.Black,
                         style = MaterialTheme.typography.displaySmall.copy(fontSize = 32.sp)
                     )
@@ -140,7 +144,7 @@ fun AccountScreen(
                         ) {
                             Icon(
                                 Icons.AutoMirrored.Filled.Logout,
-                                contentDescription = "Cerrar sesión",
+                                contentDescription = stringResource(Res.string.logout),
                                 tint = MaterialTheme.colorScheme.error
                             )
                         }
@@ -214,14 +218,14 @@ private fun LoginSection(
         ) {
             Spacer(Modifier.height(8.dp))
             Box(
-                modifier = Modifier.size(84.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier.size(84.dp).clip(circleAwareShape()).background(MaterialTheme.colorScheme.primaryContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(44.dp), tint = MaterialTheme.colorScheme.onPrimaryContainer)
             }
-            Text("Iniciar sesión", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.login_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
-                "Conecta tu cuenta de YouTube Music pegando el token de Metrolist",
+                stringResource(Res.string.login_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -236,22 +240,22 @@ private fun LoginSection(
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Default.Info, null, modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(8.dp))
-                        Text("Para conectarte necesitas Metrolist", fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall)
+                        Text(stringResource(Res.string.need_metrolist), fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleSmall)
                     }
 
-                    HelpStep("1", "Descarga Metrolist (metrolist.cc)")
-                    HelpStep("2", "Ábrelo e inicia sesión con tu cuenta de Google en YouTube Music")
-                    HelpStep("3", "Ve a Ajustes → Copiar token de YouTube Music")
-                    HelpStep("4", "Pega el token en el campo de abajo y presiona Iniciar sesión")
+                    HelpStep("1", stringResource(Res.string.step1))
+                    HelpStep("2", stringResource(Res.string.step2))
+                    HelpStep("3", stringResource(Res.string.step3))
+                    HelpStep("4", stringResource(Res.string.step4))
 
                     Spacer(Modifier.height(4.dp))
-                    Text("Ejemplo del token:", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(Res.string.token_example), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Surface(
                         shape = RoundedCornerShape(10.dp),
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f)
                     ) {
                         Text(
-                            "***INNERTUBE COOKIE*** =SAPISID=...;\\n***VISITOR DATA*** =Cgtv...\\n***DATASYNC ID*** =115...",
+                            stringResource(Res.string.token_example_value),
                             style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
                             fontFamily = FontFamily.Monospace,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -265,21 +269,21 @@ private fun LoginSection(
                 value = cookieInput,
                 onValueChange = onCookieInputChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Cookie de YouTube Music") },
-                placeholder = { Text("HSID=...; SSID=...; APISID=...", style = MaterialTheme.typography.bodySmall) },
+                label = { Text(stringResource(Res.string.cookie_label)) },
+                placeholder = { Text(stringResource(Res.string.cookie_placeholder), style = MaterialTheme.typography.bodySmall) },
                 visualTransformation = if (showCookie) VisualTransformation.None else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password, imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(onDone = { if (cookieInput.isNotBlank()) onLogin() }),
                 trailingIcon = {
                     IconButton(onClick = { showCookie = !showCookie }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
-                        Icon(if (showCookie) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = if (showCookie) "Ocultar" else "Mostrar")
+                        Icon(if (showCookie) Icons.Default.VisibilityOff else Icons.Default.Visibility, contentDescription = if (showCookie) stringResource(Res.string.hide_label) else stringResource(Res.string.show_label))
                     }
                 },
                 shape = RoundedCornerShape(14.dp),
                 minLines = 2,
                 maxLines = 3,
                 supportingText = {
-                    Text("${cookieInput.length} caracteres", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(Res.string.characters, cookieInput.length), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             )
 
@@ -290,7 +294,7 @@ private fun LoginSection(
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Advertencias", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onErrorContainer)
+                        Text(stringResource(Res.string.warnings_title), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onErrorContainer)
                         cookieWarnings.take(3).forEach { warning ->
                             Text("• $warning", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
                         }
@@ -309,7 +313,7 @@ private fun LoginSection(
             ) {
                 Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Iniciar sesión", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(Res.string.login_title), fontWeight = FontWeight.SemiBold)
             }
 
             Card(
@@ -319,16 +323,9 @@ private fun LoginSection(
             ) {
                 Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        "La cookie se guarda localmente en este dispositivo y solo se usa para comunicarse con YouTube Music.",
+                        stringResource(Res.string.privacy_notice),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        com.example.melodist.data.AppDirs.cookieFile.absolutePath,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }
@@ -342,7 +339,7 @@ private fun HelpStep(number: String, text: String) {
         Box(
             modifier = Modifier
                 .size(22.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
                 .background(MaterialTheme.colorScheme.primary),
             contentAlignment = Alignment.Center
         ) {
@@ -376,7 +373,7 @@ private fun LoadingSection() {
                 strokeWidth = 3.dp
             )
             Text(
-                "Verificando cuenta...",
+                stringResource(Res.string.verifying_account),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -407,7 +404,7 @@ private fun ErrorSection(message: String, onRetry: () -> Unit, onReset: () -> Un
                     tint = MaterialTheme.colorScheme.error
                 )
                 Text(
-                    "No se pudo cargar la cuenta",
+                    stringResource(Res.string.could_not_load_account),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.SemiBold,
                     textAlign = TextAlign.Center
@@ -425,7 +422,7 @@ private fun ErrorSection(message: String, onRetry: () -> Unit, onReset: () -> Un
                     ) {
                         Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Volver al login")
+                        Text(stringResource(Res.string.back_to_login))
                     }
                     Button(
                         onClick = onRetry,
@@ -433,7 +430,7 @@ private fun ErrorSection(message: String, onRetry: () -> Unit, onReset: () -> Un
                     ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Reintentar")
+                        Text(stringResource(Res.string.retry))
                     }
                 }
             }
@@ -474,12 +471,8 @@ private fun LoggedInSection(
 
 @Composable
 private fun AccountProfileHeader(accountInfo: com.metrolist.innertube.models.AccountInfo) {
-    val cookiePath = remember {
-        com.example.melodist.data.AppDirs.cookieFile.absolutePath
-    }
-    val cookieSize = remember {
-        try { com.example.melodist.data.AppDirs.cookieFile.length() } catch (_: Exception) { 0L }
-    }
+    val cookiePath = ""
+    val cookieSize = 0L
 
     Card(
         modifier = Modifier
@@ -502,7 +495,7 @@ private fun AccountProfileHeader(accountInfo: com.metrolist.innertube.models.Acc
                         url = accountInfo.thumbnailUrl,
                         contentDescription = accountInfo.name,
                         modifier = Modifier.size(64.dp),
-                        shape = CircleShape,
+                        shape = circleAwareShape(),
                         placeholderType = PlaceholderType.ARTIST,
                         isLowRes = true  // ✅ Baja resolución en avatares de lista
                     )
@@ -510,7 +503,7 @@ private fun AccountProfileHeader(accountInfo: com.metrolist.innertube.models.Acc
                     Box(
                         modifier = Modifier
                             .size(64.dp)
-                            .clip(CircleShape)
+                            .clip(circleAwareShape())
                             .background(MaterialTheme.colorScheme.primaryContainer),
                         contentAlignment = Alignment.Center
                     ) {
@@ -556,7 +549,7 @@ private fun AccountProfileHeader(accountInfo: com.metrolist.innertube.models.Acc
                 // Badge de sesión activa
                 AssistChip(
                     onClick = {},
-                    label = { Text("Conectado", style = MaterialTheme.typography.labelSmall) },
+                    label = { Text(stringResource(Res.string.connected), style = MaterialTheme.typography.labelSmall) },
                     leadingIcon = {
                         Icon(
                             Icons.Default.CheckCircle,
@@ -622,7 +615,7 @@ private fun PlaylistsSection(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                "Tus Playlists",
+                stringResource(Res.string.your_playlists),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold
             )
@@ -639,7 +632,7 @@ private fun PlaylistsSection(
                 } else {
                     Icon(
                         Icons.Default.Refresh,
-                        contentDescription = "Refrescar",
+                        contentDescription = stringResource(Res.string.cd_refresh),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -674,7 +667,7 @@ private fun PlaylistsSection(
                             tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                         )
                         Text(
-                            "No se encontraron playlists",
+                            stringResource(Res.string.no_playlists_found),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -832,14 +825,14 @@ private fun CookieExpiredSection(
         ) {
             Spacer(Modifier.height(8.dp))
             Box(
-                modifier = Modifier.size(84.dp).clip(CircleShape).background(MaterialTheme.colorScheme.errorContainer),
+                modifier = Modifier.size(84.dp).clip(circleAwareShape()).background(MaterialTheme.colorScheme.errorContainer),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.LockClock, contentDescription = null, modifier = Modifier.size(44.dp), tint = MaterialTheme.colorScheme.onErrorContainer)
             }
-            Text("Sesión expirada", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.session_expired_title), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
             Text(
-                "Tu cookie expiró. Puedes pegar una nueva o volver al login.",
+                stringResource(Res.string.session_expired_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -851,8 +844,8 @@ private fun CookieExpiredSection(
                 shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Renueva la cookie", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                    Text("Abre music.youtube.com, inicia sesión y copia el header 'cookie' de una petición de red.", style = MaterialTheme.typography.bodySmall)
+                    Text(stringResource(Res.string.renew_cookie), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(Res.string.renew_cookie_desc), style = MaterialTheme.typography.bodySmall)
                 }
             }
 
@@ -860,8 +853,8 @@ private fun CookieExpiredSection(
                 value = cookieInput,
                 onValueChange = onCookieInputChange,
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Nueva cookie de YouTube Music") },
-                placeholder = { Text("HSID=...; SSID=...; SAPISID=...", style = MaterialTheme.typography.bodySmall) },
+                label = { Text(stringResource(Res.string.new_cookie_label)) },
+                placeholder = { Text(stringResource(Res.string.cookie_placeholder), style = MaterialTheme.typography.bodySmall) },
                 visualTransformation = if (showCookie) VisualTransformation.None else PasswordVisualTransformation(),
                 trailingIcon = {
                     IconButton(onClick = { showCookie = !showCookie }, modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
@@ -872,7 +865,7 @@ private fun CookieExpiredSection(
                 minLines = 2,
                 maxLines = 3,
                 supportingText = {
-                    Text("${cookieInput.length} caracteres", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(stringResource(Res.string.characters, cookieInput.length), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             )
 
@@ -883,7 +876,7 @@ private fun CookieExpiredSection(
                     shape = RoundedCornerShape(14.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Advertencias", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onErrorContainer)
+                        Text(stringResource(Res.string.warnings_title), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onErrorContainer)
                         cookieWarnings.take(3).forEach { warning ->
                             Text("• $warning", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer)
                         }
@@ -899,9 +892,9 @@ private fun CookieExpiredSection(
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(20.dp))
                 Spacer(Modifier.width(8.dp))
-                Text("Renovar sesión", fontWeight = FontWeight.SemiBold)
+                Text(stringResource(Res.string.renew_session), fontWeight = FontWeight.SemiBold)
             }
-
+ 
             OutlinedButton(
                 onClick = onLogout,
                 modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand),
@@ -911,7 +904,7 @@ private fun CookieExpiredSection(
             ) {
                 Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Cerrar sesión")
+                Text(stringResource(Res.string.logout))
             }
         }
     }

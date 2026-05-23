@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -49,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.melodist.navigation.Route
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
+import com.example.melodist.ui.screens.shared.displayName
 import com.example.melodist.ui.screens.library.tabs.AlbumsTab
 import com.example.melodist.ui.screens.library.tabs.ArtistsTab
 import com.example.melodist.ui.screens.library.tabs.LibraryMixedTab
@@ -64,6 +67,9 @@ import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.WatchEndpoint
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 data class LibraryScreenState(
     val selectedTab: LibraryTab? = null,
@@ -128,70 +134,47 @@ fun LibraryScreenRoute(
             onRemoveArtist = viewModel::removeArtist,
             onRemovePlaylist = viewModel::removePlaylist,
             onQuickPlayAlbum = { browseId, playlistId, title, onFallback ->
-                if (playlistId != null) {
-                    playerViewModel.playEndpoint(WatchEndpoint(playlistId = playlistId))
-                } else {
-                    viewModel.resolveAlbumSongsForPlayback(
-                        browseId = browseId,
-                        onResolved = { songs ->
-                            playerViewModel.playAlbum(
-                                songs = songs, startIndex = 0,
-                                browseId = browseId, title = title,
-                            )
-                        },
-                        onFallback = onFallback,
-                    )
-                }
+                // Siempre obtener canciones directas (sin recomendaciones/automix)
+                viewModel.resolveAlbumSongsForPlayback(
+                    browseId = browseId,
+                    onResolved = { songs ->
+                        playerViewModel.playAlbum(
+                            songs = songs, startIndex = 0,
+                            browseId = browseId, title = title,
+                        )
+                    },
+                    onFallback = onFallback,
+                )
             },
             onQuickShuffleAlbum = { browseId, playlistId, title, onFallback ->
-                if (playlistId != null) {
-                    playerViewModel.playEndpoint(WatchEndpoint(playlistId = playlistId), shuffle = true)
-                } else {
-                    viewModel.resolveAlbumSongsForPlayback(
-                        browseId = browseId,
-                        onResolved = { songs ->
-                            playerViewModel.playAlbum(
-                                songs = songs, startIndex = 0,
-                                browseId = browseId, title = title,
-                            )
-                            playerViewModel.toggleShuffle()
-                        },
-                        onFallback = onFallback,
-                    )
-                }
+                viewModel.resolveAlbumSongsForPlayback(
+                    browseId = browseId,
+                    onResolved = { songs ->
+                        playerViewModel.playAlbum(
+                            songs = songs, startIndex = 0,
+                            browseId = browseId, title = title,
+                        )
+                        playerViewModel.toggleShuffle()
+                    },
+                    onFallback = onFallback,
+                )
             },
             onQuickPlayPlaylist = { playlistId, endpoint, title, onFallback ->
-                if (endpoint != null) {
-                    playerViewModel.playEndpoint(endpoint)
-                } else {
-                    viewModel.resolvePlaylistSongsForPlayback(
-                        playlistId = playlistId,
-                        onResolved = { songs ->
-                            playerViewModel.playPlaylist(
-                                songs = songs, startIndex = 0,
-                                playlistId = playlistId, title = title,
-                            )
-                        },
-                        onFallback = onFallback,
-                    )
-                }
+                playerViewModel.playPlaylistFromId(
+                    playlistId = playlistId,
+                    endpoint = endpoint,
+                    title = title,
+                    onEmpty = onFallback,
+                )
             },
             onQuickShufflePlaylist = { playlistId, endpoint, title, onFallback ->
-                if (endpoint != null) {
-                    playerViewModel.playEndpoint(endpoint, shuffle = true)
-                } else {
-                    viewModel.resolvePlaylistSongsForPlayback(
-                        playlistId = playlistId,
-                        onResolved = { songs ->
-                            playerViewModel.playPlaylist(
-                                songs = songs, startIndex = 0,
-                                playlistId = playlistId, title = title,
-                            )
-                            playerViewModel.toggleShuffle()
-                        },
-                        onFallback = onFallback,
-                    )
-                }
+                playerViewModel.playPlaylistFromId(
+                    playlistId = playlistId,
+                    endpoint = endpoint,
+                    title = title,
+                    shuffle = true,
+                    onEmpty = onFallback,
+                )
             },
             onRefreshYtm = viewModel::refreshYtmLibrary,
             onCreatePlaylist = viewModel::createLocalPlaylist,
@@ -227,7 +210,7 @@ fun LibraryScreen(
             TopAppBar(
                 title = {
                     Text(
-                        "Biblioteca",
+                        stringResource(Res.string.library_title),
                         fontWeight = FontWeight.Black,
                         style = MaterialTheme.typography.displaySmall.copy(fontSize = 32.sp),
                     )
@@ -241,8 +224,8 @@ fun LibraryScreen(
                             modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                         ) {
                             Icon(
-                                Icons.Default.Sort,
-                                contentDescription = "Ordenar",
+                                Icons.AutoMirrored.Filled.Sort,
+                                contentDescription = stringResource(Res.string.sort_label),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
@@ -252,8 +235,8 @@ fun LibraryScreen(
                             onDismissRequest = { showSortMenu = false }
                         ) {
                             LibrarySortOrder.entries.forEach { order ->
-                                androidx.compose.material3.DropdownMenuItem(
-                                    text = { Text(order.label) },
+                                DropdownMenuItem(
+                                    text = { Text(order.displayName()) },
                                     onClick = {
                                         actions.onSortOrderChange(order)
                                         showSortMenu = false
@@ -274,7 +257,7 @@ fun LibraryScreen(
                     ) {
                         Icon(
                             Icons.AutoMirrored.Filled.PlaylistAdd,
-                            contentDescription = "Crear playlist local",
+                            contentDescription = stringResource(Res.string.cd_create_playlist),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -288,7 +271,7 @@ fun LibraryScreen(
                             } else {
                                 Icon(
                                     Icons.Default.Refresh,
-                                    contentDescription = "Refrescar biblioteca de YTM",
+                                    contentDescription = stringResource(Res.string.refresh_ytm),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             }
@@ -321,7 +304,7 @@ fun LibraryScreen(
                     ) {
                         Icon(
                             Icons.Default.FilterList,
-                            contentDescription = "Filtro YTM",
+                            contentDescription = stringResource(Res.string.cd_filter),
                             tint = if (state.selectedYtmFilter != null) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -331,16 +314,16 @@ fun LibraryScreen(
                         expanded = showFilterMenu,
                         onDismissRequest = { showFilterMenu = false }
                     ) {
-                        androidx.compose.material3.DropdownMenuItem(
-                            text = { Text("Biblioteca", fontWeight = if (state.selectedYtmFilter == null) FontWeight.Bold else FontWeight.Normal) },
+                        DropdownMenuItem(
+                            text = { Text(stringResource(Res.string.filter_library), fontWeight = if (state.selectedYtmFilter == null) FontWeight.Bold else FontWeight.Normal) },
                             onClick = { actions.onYtmFilterChange(null); showFilterMenu = false },
                             leadingIcon = {
                                 if (state.selectedYtmFilter == null) Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
                             }
                         )
                         YtmLibraryFilter.entries.forEach { filter ->
-                            androidx.compose.material3.DropdownMenuItem(
-                                text = { Text(filter.label, fontWeight = if (state.selectedYtmFilter == filter) FontWeight.Bold else FontWeight.Normal) },
+                            DropdownMenuItem(
+                                text = { Text(filter.displayName(), fontWeight = if (state.selectedYtmFilter == filter) FontWeight.Bold else FontWeight.Normal) },
                                 onClick = { actions.onYtmFilterChange(filter); showFilterMenu = false },
                                 leadingIcon = {
                                     if (state.selectedYtmFilter == filter) Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
@@ -398,13 +381,13 @@ fun LibraryScreen(
     if (showCreatePlaylistDialog) {
         AlertDialog(
             onDismissRequest = { showCreatePlaylistDialog = false },
-            title = { Text("Crear playlist local") },
+            title = { Text(stringResource(Res.string.create_playlist_dialog)) },
             text = {
                 OutlinedTextField(
                     value = newPlaylistName,
                     onValueChange = { newPlaylistName = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Nombre") },
+                    label = { Text(stringResource(Res.string.playlist_name_label)) },
                     singleLine = true,
                 )
             },
@@ -418,10 +401,10 @@ fun LibraryScreen(
                             showCreatePlaylistDialog = false
                         }
                     },
-                ) { Text("Crear") }
+                ) { Text(stringResource(Res.string.btn_create)) }
             },
             dismissButton = {
-                TextButton(onClick = { showCreatePlaylistDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { showCreatePlaylistDialog = false }) { Text(stringResource(Res.string.cancel)) }
             },
         )
     }
@@ -434,9 +417,9 @@ private fun LibraryTabRow(
     modifier: Modifier = Modifier,
 ) {
     val tabs = listOf(
-        LibraryTab.ALBUMS to "Álbumes",
-        LibraryTab.ARTISTS to "Artistas",
-        LibraryTab.PLAYLISTS to "Playlists",
+        LibraryTab.ALBUMS to stringResource(Res.string.tab_albums),
+        LibraryTab.ARTISTS to stringResource(Res.string.tab_artists),
+        LibraryTab.PLAYLISTS to stringResource(Res.string.tab_playlists),
     )
 
     HorizontalScrollableRow(

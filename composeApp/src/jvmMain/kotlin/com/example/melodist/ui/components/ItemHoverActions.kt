@@ -16,16 +16,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.onPointerEvent
-import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.melodist.ui.helpers.contextMenuArea
@@ -35,28 +30,20 @@ fun BoxForContainerContextMenuItem(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onHoverChange: ((Boolean) -> Unit)? = null,
-    onMenuAction: (DpOffset) -> Unit,
+    onMenuAction: () -> Unit,
     content: @Composable BoxScope.(menuButtonModifier: Modifier, openMenuFromButton: () -> Unit) -> Unit
 ) {
-    var buttonPosition by remember { mutableStateOf(Offset.Zero) }
-    var rootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
-    val density = LocalDensity.current
-
     Box(
         modifier = modifier
-            .onGloballyPositioned { rootCoordinates = it }
             .contextMenuArea(
                 enabled = enabled,
                 onHoverChange = { hovered -> onHoverChange?.invoke(hovered) },
                 onMenuAction = onMenuAction
             )
     ) {
-        val menuButtonModifier = Modifier.onGloballyPositioned { buttonCoordinates ->
-            val root = rootCoordinates
-            buttonPosition = root?.localPositionOf(buttonCoordinates, Offset.Zero) ?: Offset.Zero
-        }
+        val menuButtonModifier = Modifier
         val openMenuFromButton = {
-            onMenuAction(with(density) { DpOffset(buttonPosition.x.toDp(), buttonPosition.y.toDp()) })
+            onMenuAction()
         }
 
         content(menuButtonModifier, openMenuFromButton)

@@ -22,7 +22,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Explicit
 import androidx.compose.material.icons.filled.MoreVert
@@ -255,7 +254,6 @@ internal fun SongListItem(
 
     var isHovered by remember { mutableStateOf(false) }
     var showContextMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
 
     Box(modifier = modifier) {
         BoxForContainerContextMenuItem(
@@ -263,8 +261,7 @@ internal fun SongListItem(
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp)),
             onHoverChange = { isHovered = it },
-            onMenuAction = { offset ->
-                menuOffset = offset
+            onMenuAction = {
                 showContextMenu = true
             }
         ) { menuButtonModifier, openMenuFromButton ->
@@ -335,7 +332,7 @@ internal fun SongListItem(
                                         shape = RoundedCornerShape(ThumbnailCornerRadius),
                                         placeholderType = PlaceholderType.SONG,
                                         iconSize = 24.dp,
-                                        isLowRes = true  // ✅ Baja resolución en listas
+                                        isLowRes = true
                                     )
                                     Box(
                                         modifier = Modifier
@@ -412,8 +409,8 @@ internal fun SongListItem(
             isLocalPlaylist = isLocalPlaylist,
             onRemoveFromPlaylist = { onRemoveFromPlaylist?.invoke(song.id) },
             onDismiss = { showContextMenu = false },
-            song = song,
-            offset = menuOffset
+            song = song
         )
     }
 }
+

@@ -35,6 +35,9 @@ import com.example.melodist.viewmodels.PlaylistViewModel
 import com.metrolist.innertube.models.SongItem
 import com.example.melodist.ui.components.artwork.ArtworkColors
 import com.example.melodist.ui.components.artwork.rememberArtworkColors
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 data class PlaylistScreenState(
     val songs: List<SongItem> = emptyList(),
@@ -53,6 +56,7 @@ data class PlaylistActions(
     val onShuffle: () -> Unit,
     val onLoadMore: () -> Unit,
     val onDownloadPlaylist: () -> Unit,
+    val onPlaySong: (Int) -> Unit,
     val onRemoveSongFromPlaylist: ((String) -> Unit)? = null,
     val isLocalPlaylist: Boolean = false
 )
@@ -82,6 +86,7 @@ fun PlaylistScreenRoute(
             onPlay = { viewModel.playAllSongs(shuffle = false) },
             onShuffle = { viewModel.playAllSongs(shuffle = true) },
             onDownloadPlaylist = { viewModel.downloadPlaylist() },
+            onPlaySong = { index -> viewModel.playSongFromPlaylist(index) },
             onRemoveSongFromPlaylist = if (successState?.playlistPage?.playlist?.id?.startsWith("LOCAL_") == true) {
                 { songId -> viewModel.removeSongFromPlaylist(songId) }
             } else null,
@@ -162,7 +167,7 @@ fun PlaylistScreen(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Atrás",
+                contentDescription = stringResource(Res.string.back),
                 tint = MaterialTheme.colorScheme.onSurface
             )
         }

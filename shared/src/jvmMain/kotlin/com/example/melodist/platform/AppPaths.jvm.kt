@@ -4,9 +4,10 @@ import java.io.File
 import java.util.logging.Logger
 
 actual object AppPaths {
-    actual val appName: String = "Melodist"
+    actual val appName: String = "LyriK"
 
     private val log = Logger.getLogger("AppPaths")
+    private const val VENDOR_NAME = "Tarma"
 
     private fun localAppDataBase(): File {
         val fromEnv = System.getenv("LOCALAPPDATA")
@@ -16,7 +17,9 @@ actual object AppPaths {
         }
     }
 
-    private val appRootFile: File by lazy { File(localAppDataBase(), appName) }
+    private val appRootFile: File by lazy {
+        File(File(localAppDataBase(), VENDOR_NAME), appName)
+    }
 
     actual val dataRoot: String get() = appRootFile.absolutePath
     actual val configRoot: String get() = appRootFile.absolutePath
@@ -52,5 +55,6 @@ actual object AppPaths {
             }
         }
     }
+
 }
 

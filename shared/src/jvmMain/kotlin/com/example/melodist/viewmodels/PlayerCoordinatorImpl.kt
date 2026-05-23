@@ -1,7 +1,10 @@
 package com.example.melodist.viewmodels
 
+import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
+import io.github.aakira.napier.Napier
+import io.github.aakira.napier.log
 
 class PlayerCoordinatorImpl(
     private val playerViewModel: PlayerViewModel,
@@ -18,6 +21,10 @@ class PlayerCoordinatorImpl(
 
     override fun playPlaylist(songs: List<SongItem>, startIndex: Int, playlistId: String, title: String) {
         playerViewModel.playPlaylist(songs, startIndex, playlistId, title)
+    }
+
+    override fun playPlaylistWithQueue(queue: YouTubePlaylistQueue, shuffle: Boolean) {
+        playerViewModel.playPlaylistWithQueue(queue, shuffle)
     }
 
     override fun downloadSongs(songs: List<SongItem>) {

@@ -17,17 +17,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
 /**
- * ✅ Optimizado: solo ejecuta la animación infinita cuando [isPlaying] es true.
- * Cuando no reproduce, muestra un icono estático — ahorra ciclos de GPU/CPU.
+ * ✅ Altamente Optimizado:
+ * - Solo ejecuta animación cuando [isPlaying] es true (ahorra ciclos de CPU/GPU en inactividad).
+ * - Utiliza `graphicsLayer { scaleY = anim.value }` para realizar la animación de escala
+ *   completamente en la fase de dibujo (draw phase), evitando recomposiciones y re-layouts a 60 FPS.
  */
 @Composable
 fun AnimatedEqualizer(
@@ -63,15 +67,18 @@ fun AnimatedEqualizer(
                 Box(
                     modifier = Modifier
                         .width(4.dp)
-                        .fillMaxHeight(anim.value)
-                        .clip(RoundedCornerShape(2.dp))
-                        .background(color)
+                        .fillMaxHeight()
+                        .graphicsLayer {
+                            scaleY = anim.value
+                            transformOrigin = TransformOrigin(0.5f, 1f) // Escalado desde el fondo
+                        }
+                        .background(color, RoundedCornerShape(2.dp))
                 )
             }
         }
     } else {
-        // ✅ Icono estático cuando no reproduce — sin animación, sin costo GPU
-        androidx.compose.material3.Icon(
+        // ✅ Icono estático cuando no reproduce — sin animación, sin costo de CPU/GPU
+        Icon(
             imageVector = Icons.Filled.MusicNote,
             contentDescription = null,
             modifier = modifier

@@ -25,13 +25,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.ColorPainter
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import coil3.compose.LocalPlatformContext
 import coil3.compose.SubcomposeAsyncImage
 import coil3.request.ImageRequest
@@ -45,7 +50,7 @@ enum class PlaceholderType {
 @Composable
 fun ShimmerBox(modifier: Modifier = Modifier, shape: Shape = RectangleShape) {
     val infiniteTransition = rememberInfiniteTransition(label = "shimmer")
-    val alpha by infiniteTransition.animateFloat(
+    val alphaState = infiniteTransition.animateFloat(
         initialValue = 0.15f,
         targetValue = 0.4f,
         animationSpec = infiniteRepeatable(
@@ -56,15 +61,11 @@ fun ShimmerBox(modifier: Modifier = Modifier, shape: Shape = RectangleShape) {
     )
     Box(
         modifier = modifier
-            .clip(shape)
-            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = alpha))
+            .graphicsLayer { alpha = alphaState.value }
+            .background(MaterialTheme.colorScheme.onSurface, shape)
     )
 }
 
-/**
- * ✅ Optimizado: limita la resolución máxima de descarga para ahorrar RAM.
- * En listas usa tamaño bajo (64px), en detalles usa alto (256px).
- */
 @Composable
 fun MelodistImage(
     url: String?,
@@ -75,8 +76,7 @@ fun MelodistImage(
     iconSize: Dp = 32.dp,
     contentScale: ContentScale = ContentScale.Fit,
     alignment: Alignment = Alignment.Center,
-    // ✅ Nuevo: permite controlar la calidad/resolución de descarga
-    isLowRes: Boolean = true,
+    isLowRes: Boolean = false,
 ) {
     val placeholderIcon: ImageVector = when (placeholderType) {
         PlaceholderType.SONG -> Icons.Default.MusicNote
@@ -86,9 +86,11 @@ fun MelodistImage(
         PlaceholderType.DOWNLOADS -> Icons.Default.Download
     }
 
+
     val placeholderTint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
     val placeholderBg = MaterialTheme.colorScheme.surfaceContainerHighest
     val imagesEnabled by LocalUserPreferences.current.imagesEnabled.collectAsState(true)
+    val highResEnabled by LocalUserPreferences.current.highResCoverArt.collectAsState(true)
 
     val finalIconSize = if (placeholderType == PlaceholderType.DOWNLOADS) 64.dp else iconSize
 
@@ -105,27 +107,15 @@ fun MelodistImage(
             )
         }
     } else {
-        val errorPlaceholder: @Composable () -> Unit = {
-            Box(
-                modifier = Modifier.fillMaxSize().background(placeholderBg),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = placeholderIcon,
-                    contentDescription = null,
-                    modifier = Modifier.size(iconSize),
-                    tint = placeholderTint
-                )
-            }
-        }
 
-        // ✅ Limitar tamaño de descarga: las miniaturas de listas no necesitan alta resolución
-        val coilSize = if (isLowRes) 64 else 256
+        val effectiveLowRes = isLowRes || !highResEnabled
+        val coilSize = if (effectiveLowRes) 160 else 512
 
-        SubcomposeAsyncImage(
+        AsyncImage(
             model = ImageRequest.Builder(LocalPlatformContext.current)
                 .data(url)
                 .crossfade(true)
+                .size(coilSize)
                 .build(),
             contentDescription = contentDescription,
             modifier = modifier
@@ -133,16 +123,8 @@ fun MelodistImage(
                 .clipToBounds(),
             contentScale = contentScale,
             alignment = alignment,
-            loading = {
-                ShimmerBox(
-                    modifier = Modifier.fillMaxSize(),
-                    shape = shape
-                )
-            },
-            error = {
-                errorPlaceholder()
-            }
+            placeholder = ColorPainter(Color.DarkGray),
+            error = ColorPainter(Color.DarkGray)
         )
     }
 }
-

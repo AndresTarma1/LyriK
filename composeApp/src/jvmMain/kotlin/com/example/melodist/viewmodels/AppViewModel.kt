@@ -26,7 +26,7 @@ class AppViewModel : ViewModel() {
     private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
     val updateInfo: StateFlow<AppUpdateInfo?> = _updateInfo.asStateFlow()
 
-    private val currentVersion = "0.1.2"
+    private val currentVersion = "0.1.3"
 
     fun checkForUpdates() {
         viewModelScope.launch {
@@ -50,12 +50,13 @@ class AppViewModel : ViewModel() {
         _updateInfo.value = null
     }
 
+    private val jsonParser = Json { ignoreUnknownKeys = true }
+
     private suspend fun fetchLatestVersion(): GithubRelease? {
         val json = HttpClient().use { client ->
-            client.get("https://api.github.com/repos/AndresTarma1/Melodist/releases/latest").bodyAsText()
+            client.get("https://api.github.com/repos/AndresTarma1/LyriK/releases/latest").bodyAsText()
         }
-        return Json { ignoreUnknownKeys = true }
-            .decodeFromString<GithubRelease>(json)
+        return jsonParser.decodeFromString<GithubRelease>(json)
     }
 
     private fun compareVersions(v1: String, v2: String): Int {

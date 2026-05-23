@@ -2,8 +2,10 @@ package com.example.melodist.viewmodels
 
 import com.example.melodist.player.PlaybackState
 import com.example.melodist.models.MediaMetadata
+import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.models.WatchEndpoint
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 /**
  * Describes how the queue was built.
@@ -34,7 +36,8 @@ data class QueueSession(
     val order: List<Int> = emptyList(),
     val currentIndex: Int = -1,
     val continuation: String? = null,
-    val endpoint: WatchEndpoint? = null
+    val endpoint: WatchEndpoint? = null,
+    @Transient val playlistQueue: YouTubePlaylistQueue? = null,
 ) {
     fun currentSong(): MediaMetadata? = order.getOrNull(currentIndex)?.let(items::getOrNull)
 

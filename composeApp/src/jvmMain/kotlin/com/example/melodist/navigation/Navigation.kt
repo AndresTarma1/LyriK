@@ -47,23 +47,26 @@ import com.example.melodist.ui.screens.*
 import com.example.melodist.ui.screens.home.HomeScreenRoute
 import com.example.melodist.ui.screens.library.LibraryScreenRoute
 import com.example.melodist.utils.LocalPlayerViewModel
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
+import kotlinx.coroutines.*
+
 
 
 data class TabInfo(
     val config: ScreenConfig,
-    val label: String,
     val icon: ImageVector
 )
 
 private val mainTabs = listOf(
-    TabInfo(ScreenConfig.Home, "Inicio", Icons.Filled.Home),
-    TabInfo(ScreenConfig.Search, "Buscar", Icons.Filled.Search),
-    TabInfo(ScreenConfig.Library, "Librería", Icons.Filled.LibraryMusic),
+    TabInfo(ScreenConfig.Home, Icons.Filled.Home),
+    TabInfo(ScreenConfig.Search, Icons.Filled.Search),
+    TabInfo(ScreenConfig.Library, Icons.Filled.LibraryMusic),
 )
 
 private val bottomTabs = listOf(
-    TabInfo(ScreenConfig.Account, "Cuenta", Icons.Filled.Person),
-    TabInfo(ScreenConfig.Settings, "Ajustes", Icons.Filled.Settings),
+    TabInfo(ScreenConfig.Account, Icons.Filled.Person),
+    TabInfo(ScreenConfig.Settings, Icons.Filled.Settings),
 )
 
 
@@ -78,35 +81,14 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val progressState by playerViewModel.progressState.collectAsState()
     var isNowPlayingExpanded by remember { mutableStateOf(false) }
     var isQueueVisible by remember { mutableStateOf(false) }
-    val textInputService = LocalTextInputService.current
 
-    // Estado para el ancho de la cola. Empieza en 420.dp
-    var queueWidth by remember { mutableStateOf(420.dp) }
+    val queueWidth = 420.dp
     val animatedWidth by animateDpAsState(queueWidth)
 
-    // Fondo global (el "océano" sobre el que flotan las islas)
     Surface(
         modifier = Modifier
-            .fillMaxSize()
-            .onPreviewKeyEvent {
-                if (it.type == KeyEventType.KeyDown) {
-                    if (textInputService != null) return@onPreviewKeyEvent false
-                    when (it.key) {
-                        Key.Spacebar -> {
-                            playerViewModel.togglePlayPause()
-                            true
-                        }
-                        Key.M -> {
-                            playerViewModel.toggleMute()
-                            true
-                        }
-                        else -> false
-                    }
-                } else {
-                    false
-                }
-            },
-        color = MaterialTheme.colorScheme.surface,
+            .fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
@@ -130,7 +112,16 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                     rootComponent.switchTab(tab.config)
                                 },
                                 icon = { Icon(tab.icon, null) },
-                                label = { Text(tab.label) },
+                                label = {
+                                    Text(
+                                        when (tab.config) {
+                                            ScreenConfig.Home -> stringResource(Res.string.nav_home)
+                                            ScreenConfig.Search -> stringResource(Res.string.nav_search)
+                                            ScreenConfig.Library -> stringResource(Res.string.nav_library)
+                                            else -> ""
+                                        }
+                                    )
+                                },
                                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                                 alwaysShowLabel = false,
                             )
@@ -147,7 +138,15 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                     rootComponent.switchTab(tab.config)
                                 },
                                 icon = { Icon(tab.icon, null) },
-                                label = { Text(tab.label) },
+                                label = {
+                                    Text(
+                                        when (tab.config) {
+                                            ScreenConfig.Account -> stringResource(Res.string.nav_account)
+                                            ScreenConfig.Settings -> stringResource(Res.string.nav_settings)
+                                            else -> ""
+                                        }
+                                    )
+                                },
                                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                                 alwaysShowLabel = false,
                             )
@@ -166,14 +165,11 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                         .padding(end = 16.dp, bottom = bottomPadding) // Margen exterior seguro
                 ) {
 
-                    // Fila Superior: Pantalla Principal + Cola Lateral
                     Row(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
                     ) {
-
-                        // 🏝️ CONTENIDO PRINCIPAL
                         Box(
                             modifier = Modifier
                                 .weight(1f)
@@ -192,21 +188,12 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                 )
                             }
 
-                            // NowPlaying como Overlay con animación de abajo hacia arriba
                             androidx.compose.animation.AnimatedVisibility(
                                 visible = isNowPlayingExpanded && currentSong != null,
                                 enter = slideInVertically(
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    ),
                                     initialOffsetY = { it }
                                 ) + fadeIn(),
                                 exit = slideOutVertically(
-                                    animationSpec = spring(
-                                        dampingRatio = Spring.DampingRatioNoBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    ),
                                     targetOffsetY = { it }
                                 ) + fadeOut()
                             ) {
@@ -224,22 +211,19 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                             }
                         }
 
-                        androidx.compose.animation.AnimatedVisibility(
+                        AnimatedVisibility(
                             visible = isQueueVisible,
                             enter = slideInHorizontally(
-                                animationSpec = spring(dampingRatio = 0.85f),
-                                initialOffsetX = { it } // Entra desde la derecha
+                                initialOffsetX = { it }
                             ) + fadeIn(),
                             exit = slideOutHorizontally(
-                                animationSpec = spring(dampingRatio = 0.85f),
-                                targetOffsetX = { it } // Sale hacia la derecha
+                                targetOffsetX = { it }
                             ) + fadeOut()
                         ) {
                             Row(modifier = Modifier.fillMaxHeight()) {
-                                Spacer(Modifier.width(12.dp)) // Espacio entre contenido principal y cola
+                                Spacer(Modifier.width(12.dp))
 
                                 PlaybackQueuePanel(
-
                                     state = playerState,
                                     onDismiss = { isQueueVisible = false },
                                     modifier = Modifier
@@ -257,14 +241,12 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                 }
             }
             val currentSong = playerState.currentSong
-            androidx.compose.animation.AnimatedVisibility(
+            AnimatedVisibility(
                 visible = currentSong != null,
                 enter = slideInVertically(
-                    animationSpec = spring(dampingRatio = 0.8f),
                     initialOffsetY = { it }
                 ) + fadeIn(),
                 exit = slideOutVertically(
-                    animationSpec = spring(dampingRatio = 0.8f),
                     targetOffsetY = { it }
                 ) + fadeOut()
             ) {

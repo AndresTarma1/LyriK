@@ -5,9 +5,9 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -34,7 +34,6 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.melodist.navigation.Route
@@ -44,8 +43,8 @@ import com.example.melodist.ui.components.context.SongContextMenu
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.components.song.DownloadIndicator
-import com.example.melodist.ui.helpers.contextMenuArea
 import com.example.melodist.ui.helpers.rememberSongDownloadState
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.viewmodels.ArtistState
@@ -53,6 +52,9 @@ import com.example.melodist.viewmodels.ArtistViewModel
 import com.metrolist.innertube.models.*
 import com.metrolist.innertube.pages.ArtistPage
 import com.metrolist.innertube.pages.ArtistSection
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ArtistScreenRoute(
@@ -141,10 +143,10 @@ fun ArtistScreen(
                 .padding(12.dp)
                 .align(Alignment.TopStart)
                 .size(36.dp)
-                .clip(CircleShape)
+                .clip(circleAwareShape())
         ) {
             Icon(
-                Icons.AutoMirrored.Filled.ArrowBack, "Atrás",
+                Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back),
                 tint = Color.White,
                 modifier = Modifier.size(20.dp)
             )
@@ -161,40 +163,79 @@ private fun ArtistScreenContent(
     isSaved: Boolean,
     actions: ArtistScreenActions
 ) {
-    val scrollState = rememberScrollState()
+    val lazyListState = rememberLazyListState()
     val surface = MaterialTheme.colorScheme.surface
 
     Box(modifier = Modifier.fillMaxSize()) {
 
         Box(modifier = Modifier.fillMaxSize().background(surface))
 
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(scrollState)
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier.fillMaxSize()
         ) {
-            ArtistBanner(
-                artistPage = artistPage,
-                isSaved = isSaved,
-                actions = actions,
-                surfaceColor = surface
-            )
+            item(key = "banner") {
+                ArtistBanner(
+                    artistPage = artistPage,
+                    isSaved = isSaved,
+                    actions = actions,
+                    surfaceColor = surface
+                )
+            }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 32.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(28.dp)
-            ) {
-                artistPage.sections.forEach { section ->
-                    ArtistSectionRow(section = section, onNavigate = onNavigate)
+            items(
+                artistPage.sections,
+                key = { it.title }
+            ) { section ->
+
+                val songSection =
+                    section.items.all { it is SongItem }
+
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(
+                            horizontal = 32.dp,
+                            vertical = 16.dp
+                        )
+                ) {
+
+                    Text(
+                        text = section.title
+                    )
+
+                    if (songSection) {
+                        Column {
+                            section.items.forEach { item ->
+                                ArtistSectionListItem(
+                                    item = item,
+                                    onNavigate = onNavigate
+                                )
+                            }
+                        }
+
+                    } else {
+                        HorizontalScrollableRow(
+                            state = rememberLazyListState()
+                        ) {
+
+                            items(
+                                section.items,
+                                key = { it.id }
+                            ) {
+                                ArtistSectionGridItem(
+                                    item = it,
+                                    onNavigate = onNavigate
+                                )
+                            }
+                        }
+                    }
                 }
-                Spacer(Modifier.height(24.dp))
             }
         }
 
         AppVerticalScrollbar(
-            state = scrollState,
+            state = lazyListState,
             modifier = Modifier
                 .align(Alignment.CenterEnd)
                 .fillMaxHeight()
@@ -317,7 +358,7 @@ private fun ArtistBanner(
                                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
                             ) {
                                 Text(
-                                    text = if (descExpanded) "Menos" else "Más",
+                                    text = if (descExpanded) stringResource(Res.string.less) else stringResource(Res.string.more),
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                                     color = Color.White.copy(alpha = 0.9f)
                                 )
@@ -343,12 +384,12 @@ private fun ArtistBanner(
                         disabledContainerColor = Color.White.copy(alpha = 0.3f),
                         disabledContentColor = Color.White.copy(alpha = 0.5f)
                     ),
-                    shape = CircleShape,
+                    shape = circleAwareShape(),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
                 ) {
                     Icon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Aleatorio", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(Res.string.shuffle), fontWeight = FontWeight.SemiBold)
                 }
 
                 // Radio — botón blanco sólido
@@ -361,17 +402,19 @@ private fun ArtistBanner(
                         disabledContainerColor = Color.White.copy(alpha = 0.3f),
                         disabledContentColor = Color.White.copy(alpha = 0.5f)
                     ),
-                    shape = CircleShape,
+                    shape = circleAwareShape(),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
                 ) {
                     Icon(Icons.Rounded.Radio, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Radio", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(Res.string.radio_text), fontWeight = FontWeight.SemiBold)
                 }
 
                 // Suscribirse — borde blanco semitransparente (como YouTube Music)
+                val subscribedText = stringResource(Res.string.subscribed)
+                val subscribeText = stringResource(Res.string.subscribe_text)
                 val subLabel = buildString {
-                    append(if (isSaved) "Suscrito" else "Suscribirse")
+                    append(if (isSaved) subscribedText else subscribeText)
                     artistPage.subscriberCountText?.let { append("  $it") }
                 }
                 OutlinedButton(
@@ -384,7 +427,7 @@ private fun ArtistBanner(
                         width = 1.5.dp,
                         color = Color.White.copy(alpha = if (isSaved) 0.6f else 0.85f)
                     ),
-                    shape = CircleShape,
+                    shape = circleAwareShape(),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp)
                 ) {
                     if (isSaved) {
@@ -398,60 +441,13 @@ private fun ArtistBanner(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
-                        .clip(CircleShape)
+                        .clip(circleAwareShape())
                         .background(Color.White.copy(alpha = 0.12f))
                         .clickable { /* TODO */ }
                         .pointerHoverIcon(PointerIcon.Hand),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Rounded.MoreVert, "Más opciones", tint = Color.White, modifier = Modifier.size(20.dp))
-                }
-            }
-        }
-    }
-}
-
-// SECCIONES DE CONTENIDO
-
-@Composable
-private fun ArtistSectionRow(
-    section: ArtistSection,
-    onNavigate: (Route) -> Unit,
-) {
-    val songSection = section.items.all { it is SongItem }
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = section.title,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
-
-        if (songSection) {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                section.items.forEach { item ->
-                    ArtistSectionListItem(
-                        item = item,
-                        onNavigate = onNavigate,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        } else {
-            HorizontalScrollableRow(
-                modifier = Modifier.fillMaxWidth(),
-                state = rememberLazyListState(),
-                contentPadding = PaddingValues(end = 16.dp, top = 4.dp, bottom = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(items = section.items, key = { it.id }) { item ->
-                    ArtistSectionGridItem(
-                        item = item,
-                        onNavigate = onNavigate,
-                        modifier = Modifier.animateItem(
-                            placementSpec = spring(Spring.DampingRatioMediumBouncy, Spring.StiffnessMediumLow)
-                        )
-                    )
+                    Icon(Icons.Rounded.MoreVert, stringResource(Res.string.more_options), tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -494,7 +490,6 @@ private fun ArtistSectionGridItem(
     val isArtist = item is ArtistItem
 
     var showMenu by remember { mutableStateOf(false) }
-    var menuOffset by remember { mutableStateOf(DpOffset.Zero) }
 
     val downloadState by if (item is SongItem)
         rememberSongDownloadState(item.id, downloadViewModel)
@@ -513,7 +508,7 @@ private fun ArtistSectionGridItem(
     YouTubeGridItem(
         item = item,
         onClick = onClick,
-        imageShape = if (isArtist) CircleShape else RoundedCornerShape(10.dp),
+        imageShape = if (isArtist) circleAwareShape() else RoundedCornerShape(10.dp),
         alignment = if (isArtist) Alignment.CenterHorizontally else Alignment.Start,
         titleAlign = if (isArtist) TextAlign.Center else TextAlign.Start,
         placeholderType = when (item) {
@@ -524,7 +519,7 @@ private fun ArtistSectionGridItem(
         },
         centerPlayVisible = item is SongItem,
         contextMenuEnabled = item is SongItem || item is AlbumItem || item is PlaylistItem,
-        onContextMenuAction = { offset -> menuOffset = offset; showMenu = true },
+        onContextMenuAction = { showMenu = true },
         onMoreClick = if (isArtist) ({ onClick(item) }) else null,
         quickPlay = when (item) {
             is AlbumItem -> CornerQuickPlayConfig(
@@ -557,9 +552,9 @@ private fun ArtistSectionGridItem(
         },
         subtitle = when (item) {
             is SongItem -> item.artists.firstOrNull()?.name.orEmpty()
-            is AlbumItem -> item.artists?.firstOrNull()?.name ?: "Album"
-            is ArtistItem -> "Artista"
-            is PlaylistItem -> item.author?.name ?: "Lista"
+            is AlbumItem -> item.artists?.firstOrNull()?.name ?: stringResource(Res.string.item_album)
+            is ArtistItem -> stringResource(Res.string.item_artist)
+            is PlaylistItem -> item.author?.name ?: stringResource(Res.string.item_list)
         },
         modifier = modifier,
         topStartOverlay = {
@@ -569,7 +564,7 @@ private fun ArtistSectionGridItem(
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(6.dp)
-                        .background(Color.Black.copy(alpha = 0.55f), CircleShape)
+                        .background(Color.Black.copy(alpha = 0.55f), circleAwareShape())
                         .padding(4.dp)
                 )
             }
@@ -579,8 +574,7 @@ private fun ArtistSectionGridItem(
                 SongContextMenu(
                     expanded = showMenu,
                     onDismiss = { showMenu = false },
-                    song = item,
-                    offset = menuOffset
+                    song = item
                 )
             } else if (item is AlbumItem || item is PlaylistItem) {
                 CollectionContextMenu(
@@ -624,8 +618,7 @@ private fun ArtistSectionGridItem(
                                 onEmpty = { onClick(item) }
                             )
                         }
-                    },
-                    offset = menuOffset
+                    }
                 )
             }
         }
