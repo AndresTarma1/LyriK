@@ -1,12 +1,16 @@
 package com.example.melodist.data.account
 
-import com.example.melodist.data.AppDirs
 import com.metrolist.innertube.YouTube
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.stringPreferencesKey
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import java.io.File
-import java.util.prefs.Preferences
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import java.util.logging.Logger
 
 /**
@@ -15,17 +19,8 @@ import java.util.logging.Logger
 actual object AccountManager {
 
     private val log = Logger.getLogger("AccountManager")
-    private const val PREF_NODE = "com/example/melodist/account"
-    private const val COOKIE_CHUNK_PREFIX = "yt_music_cookie_chunk_"
-    private const val COOKIE_CHUNK_COUNT = "yt_music_cookie_chunk_count"
-    private const val LEGACY_COOKIE_KEY = "yt_music_cookie"
-    private const val CHUNK_SIZE = 3_500
-
-    private val prefs: Preferences by lazy {
-        Preferences.userRoot().node(PREF_NODE)
-    }
-
-    private val legacyCookieFile: File get() = AppDirs.cookieFile
+    private val cookieKey = stringPreferencesKey("yt_music_cookie")
+    private lateinit var dataStore: DataStore<Preferences>
 
     private val _loginState = MutableStateFlow(false)
     actual val loginState: StateFlow<Boolean> = _loginState.asStateFlow()
@@ -52,14 +47,13 @@ actual object AccountManager {
         return warnings
     }
 
-    actual fun init() {
-        migrateLegacyStorageIfNeeded()
-
+    actual fun init(dataStore: DataStore<Preferences>) {
+        this.dataStore = dataStore
         val saved = readFromLocalStorage()
         if (!saved.isNullOrBlank()) {
             applyToYouTube(saved)
             _loginState.value = true
-            log.info("AccountManager: sesion restaurada desde almacenamiento local (${saved.length} chars)")
+            log.info("AccountManager: sesion restaurada desde DataStore (${saved.length} chars)")
             diagnose(saved).forEach { log.warning("AccountManager [init]: $it") }
         } else {
             log.info("AccountManager: no hay sesion guardada")
@@ -73,16 +67,11 @@ actual object AccountManager {
         saveToLocalStorage(trimmed)
         applyToYouTube(trimmed)
         _loginState.value = true
-        log.info("AccountManager: cookie guardada en almacenamiento local (${trimmed.length} chars)")
+        log.info("AccountManager: cookie guardada en DataStore (${trimmed.length} chars)")
     }
 
     actual fun clearCookie() {
         clearLocalStorage()
-        try {
-            if (legacyCookieFile.exists()) legacyCookieFile.delete()
-        } catch (e: Exception) {
-            log.warning("No se pudo borrar cookie legada: ${e.message}")
-        }
         YouTube.cookie = null
         YouTube.useLoginForBrowse = false
         _loginState.value = false
@@ -93,84 +82,47 @@ actual object AccountManager {
 
     actual val isLoggedIn: Boolean get() = getCookie() != null
 
-    private fun migrateLegacyStorageIfNeeded() {
-        if (!readFromLocalStorage().isNullOrBlank()) return
-
-        val fromFile = readLegacyFile()
-        if (!fromFile.isNullOrBlank()) {
-            log.info("AccountManager: migrando cookie desde archivo legado (${fromFile.length} chars)")
-            saveToLocalStorage(fromFile)
-            try {
-                legacyCookieFile.delete()
-            } catch (e: Exception) {
-                log.warning("No se pudo eliminar archivo legado de cookie: ${e.message}")
-            }
-            return
-        }
-
-        try {
-            val old = prefs.get(LEGACY_COOKIE_KEY, null)
-            if (!old.isNullOrBlank()) {
-                log.info("AccountManager: migrando cookie desde Preferences legado (${old.length} chars)")
-                saveToLocalStorage(old)
-                prefs.remove(LEGACY_COOKIE_KEY)
-                prefs.flush()
-            }
-        } catch (e: Exception) {
-            log.warning("AccountManager: migracion desde Preferences legado fallo: ${e.message}")
-        }
-    }
-
     private fun saveToLocalStorage(cookie: String) {
-        try {
-            clearLocalStorage(flush = false)
-            val chunks = cookie.chunked(CHUNK_SIZE)
-            prefs.putInt(COOKIE_CHUNK_COUNT, chunks.size)
-            chunks.forEachIndexed { index, chunk ->
-                prefs.put("$COOKIE_CHUNK_PREFIX$index", chunk)
+        val store = getDataStoreOrNull() ?: return
+        runBlocking(Dispatchers.IO) {
+            try {
+                store.edit { prefs ->
+                    prefs[cookieKey] = cookie
+                }
+            } catch (e: Exception) {
+                log.severe("AccountManager: no se pudo guardar la cookie en DataStore: ${e.message}")
             }
-            prefs.flush()
-        } catch (e: Exception) {
-            log.severe("AccountManager: no se pudo guardar la cookie en almacenamiento local: ${e.message}")
         }
     }
 
     private fun readFromLocalStorage(): String? {
-        return try {
-            val count = prefs.getInt(COOKIE_CHUNK_COUNT, 0)
-            if (count <= 0) return null
-
-            buildString {
-                repeat(count) { index ->
-                    append(prefs.get("$COOKIE_CHUNK_PREFIX$index", ""))
-                }
-            }.trim().ifBlank { null }
-        } catch (e: Exception) {
-            log.warning("AccountManager: no se pudo leer la cookie de almacenamiento local: ${e.message}")
-            null
-        }
-    }
-
-    private fun clearLocalStorage(flush: Boolean = true) {
-        try {
-            val count = prefs.getInt(COOKIE_CHUNK_COUNT, 0)
-            repeat(count.coerceAtLeast(0)) { index ->
-                prefs.remove("$COOKIE_CHUNK_PREFIX$index")
+        val store = getDataStoreOrNull() ?: return null
+        return runBlocking(Dispatchers.IO) {
+            try {
+                store.data.first()[cookieKey]?.trim()?.ifBlank { null }
+            } catch (e: Exception) {
+                log.warning("AccountManager: no se pudo leer la cookie de DataStore: ${e.message}")
+                null
             }
-            prefs.remove(COOKIE_CHUNK_COUNT)
-            prefs.remove(LEGACY_COOKIE_KEY)
-            if (flush) prefs.flush()
-        } catch (e: Exception) {
-            log.warning("AccountManager: no se pudo limpiar almacenamiento local: ${e.message}")
         }
     }
 
-    private fun readLegacyFile(): String? {
-        return try {
-            if (legacyCookieFile.exists()) legacyCookieFile.readText(Charsets.UTF_8).trim().ifBlank { null }
-            else null
-        } catch (e: Exception) {
-            log.warning("AccountManager: no se pudo leer cookie legada: ${e.message}")
+    private fun clearLocalStorage() {
+        val store = getDataStoreOrNull() ?: return
+        runBlocking(Dispatchers.IO) {
+            try {
+                store.edit { prefs ->
+                    prefs.remove(cookieKey)
+                }
+            } catch (e: Exception) {
+                log.warning("AccountManager: no se pudo limpiar DataStore: ${e.message}")
+            }
+        }
+    }
+
+    private fun getDataStoreOrNull(): DataStore<Preferences>? {
+        return if (this::dataStore.isInitialized) dataStore else {
+            log.warning("AccountManager: DataStore no inicializado; omitiendo persistencia de cookie")
             null
         }
     }

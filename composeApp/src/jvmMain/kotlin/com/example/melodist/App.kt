@@ -40,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.ApplicationScope
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
 import com.example.melodist.data.repository.AppLocale
@@ -63,6 +64,7 @@ import com.example.melodist.viewmodels.PlayerUiState
 import com.example.melodist.viewmodels.PlayerViewModel
 import com.kdroid.composetray.tray.api.Tray
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import lyrik.composeapp.generated.resources.Music_note_circle
@@ -113,6 +115,18 @@ fun ApplicationScope.App(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val updateInfo by appViewModel.updateInfo.collectAsState()
+
+    LaunchedEffect(userPreferences) {
+        val initialWidth = userPreferences.windowWidth.first()
+        val initialHeight = userPreferences.windowHeight.first()
+        val initialMaximized = userPreferences.windowMaximized.first()
+        windowState.size = DpSize(initialWidth.dp, initialHeight.dp)
+        windowState.placement = if (initialMaximized) {
+            WindowPlacement.Maximized
+        } else {
+            WindowPlacement.Floating
+        }
+    }
 
     LaunchedEffect(Unit) {
         appViewModel.checkForUpdates()

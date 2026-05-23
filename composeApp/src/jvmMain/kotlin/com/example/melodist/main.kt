@@ -3,150 +3,80 @@ package com.example.melodist
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import coil3.compose.setSingletonImageLoaderFactory
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.example.melodist.data.AppDirs
 import com.example.melodist.data.account.AccountManager
-import com.example.melodist.data.repository.JvmConfig
-import com.example.melodist.data.repository.JvmConfigRepository
+import com.example.melodist.bootstrap.AppEnvironment
+import com.example.melodist.bootstrap.JvmConfigLauncher
+import com.example.melodist.bootstrap.PlatformCrashHandler
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.di.appModule
 import com.example.melodist.di.dataStoreModule
+import com.example.melodist.lifecycle.AppLifecycleManager
 import com.example.melodist.navigation.RootComponent
-import com.example.melodist.player.DownloadService
-import com.example.melodist.player.PlayerService
 import com.example.melodist.player.WindowsMediaSession
-import com.example.melodist.utils.SyncUtils
+import com.example.melodist.ui.components.CoilSetup
 import com.example.melodist.viewmodels.AppViewModel
 import com.example.melodist.viewmodels.DownloadViewModel
 import com.example.melodist.viewmodels.PlayerViewModel
-import com.metrolist.innertube.YouTube
-import com.metrolist.innertube.models.YouTubeLocale
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import java.io.File
-import java.io.PrintWriter
-import java.io.StringWriter
-import java.time.LocalDateTime
-import kotlin.system.exitProcess
-import java.io.PrintStream
-import java.io.FileOutputStream
-import coil3.compose.setSingletonImageLoaderFactory
-import com.example.melodist.ui.components.CoilSetup
 
 fun main() {
+    AppEnvironment.initialize()
+    PlatformCrashHandler.register()
 
-    setupEnvironments()
-
-    Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
-        logStartupError("Uncaught exception on thread '${thread.name}'", throwable)
-    }
-
-    val koinApp = try {
+    val koinApp = PlatformCrashHandler.runSafely("Error al iniciar Koin") {
         startKoin { modules(appModule, dataStoreModule) }
-    } catch (e: Throwable) {
-        logStartupError("Error al iniciar Koin", e)
-        throw e
+    }
+    val koin = koinApp.koin
+
+    PlatformCrashHandler.runSafely("Error iniciando AccountManager") {
+        val dataStore = koin.get<DataStore<Preferences>>()
+        AccountManager.init(dataStore)
     }
 
-    val jvmConfigRepository = try {
-        koinApp.koin.get<JvmConfigRepository>()
-    } catch (e: Throwable) {
-        logStartupError("Error creando JvmConfigRepository", e)
-        throw e
-    }
+    koin.get<JvmConfigLauncher>().applySync()
 
-    runBlocking {
-        val persistedConfig = jvmConfigRepository.config.first()
-        applyJvmConfigSystemProperties(persistedConfig)
+    val playerViewModel = PlatformCrashHandler.runSafely("Error creando PlayerViewModel") {
+        koin.get<PlayerViewModel>().also { it.initialize() }
     }
-
-    val playerViewModel = try {
-        koinApp.koin.get<PlayerViewModel>().also {
-            it.initialize()
-        }
-    } catch (e: Throwable) {
-        logStartupError("Error creando PlayerViewModel", e)
-        throw e
+    val downloadViewModel = PlatformCrashHandler.runSafely("Error creando DownloadViewModel") {
+        koin.get<DownloadViewModel>()
     }
-    val downloadViewModel = try {
-        koinApp.koin.get<DownloadViewModel>()
-    } catch (e: Throwable) {
-        logStartupError("Error creando DownloadViewModel", e)
-        throw e
+    val appViewModel = PlatformCrashHandler.runSafely("Error creando AppViewModel") {
+        koin.get<AppViewModel>()
     }
-    val appViewModel = try {
-        koinApp.koin.get<AppViewModel>()
-    } catch (e: Throwable) {
-        logStartupError("Error creando AppViewModel", e)
-        throw e
+    val userPreferencesRepository = PlatformCrashHandler.runSafely("Error creando UserPreferencesRepository") {
+        koin.get<UserPreferencesRepository>()
     }
+    val lifecycleManager = koin.get<AppLifecycleManager>()
+    val mediaSession = koin.get<WindowsMediaSession>()
 
-    koinApp.koin.get<WindowsMediaSession>().apply {
-        initialize()
-        setCallbacks(
-            onPlay = { playerViewModel.togglePlayPause() },
-            onPause = { playerViewModel.togglePlayPause() },
-            onNext = { playerViewModel.next() },
-            onPrevious = { playerViewModel.previous() },
-            onStop = { playerViewModel.stop() },
-        )
-        setPositionProvider { playerViewModel.progressState.value.positionMs }
-    }
-
-    val userPreferencesRepository = try {
-        koinApp.koin.get<UserPreferencesRepository>()
-    } catch (e: Throwable) {
-        logStartupError("Error creando UserPreferencesRepository", e)
-        throw e
-    }
-
-    val initialWidth: Int
-    val initialHeight: Int
-    val initialMaximized: Boolean
-
-    runBlocking {
-        initialWidth = userPreferencesRepository.windowWidth.first()
-        initialHeight = userPreferencesRepository.windowHeight.first()
-        initialMaximized = userPreferencesRepository.windowMaximized.first()
-    }
-
-
+    mediaSession.initialize()
+    mediaSession.setCallbacks(
+        onPlay = { playerViewModel.togglePlayPause() },
+        onPause = { playerViewModel.togglePlayPause() },
+        onNext = { playerViewModel.next() },
+        onPrevious = { playerViewModel.previous() },
+        onStop = { playerViewModel.stop() },
+    )
+    mediaSession.setPositionProvider { playerViewModel.progressState.value.positionMs }
 
     application {
-        setSingletonImageLoaderFactory { context ->
-            CoilSetup.createImageLoader(context)
-        }
-        System.setProperty("compose.swing.render.on.graphics", "true")
+        setSingletonImageLoaderFactory { context -> CoilSetup.createImageLoader(context) }
         val windowState = rememberWindowState(
-            placement = if (initialMaximized) WindowPlacement.Maximized else WindowPlacement.Floating,
-            width = initialWidth.dp,
-            height = initialHeight.dp,
+            width = 1200.dp,
+            height = 800.dp,
             position = WindowPosition(Alignment.Center),
         )
-
-
         val lifecycle = remember { LifecycleRegistry() }
-        val rootComponent = remember {
-            RootComponent(
-                componentContext = DefaultComponentContext(lifecycle)
-            )
-        }
-
-        fun doExit() {
-            koinApp.koin.get<WindowsMediaSession>().release()
-            runCatching { koinApp.koin.get<PlayerService>().release() }
-            runCatching { koinApp.koin.get<DownloadService>().release() }
-            runCatching { koinApp.koin.get<SyncUtils>().cancelAllSyncs() }
-            stopKoin()
-            exitProcess(0)
-        }
+        val rootComponent = remember { RootComponent(DefaultComponentContext(lifecycle)) }
 
         App(
             rootComponent = rootComponent,
@@ -155,74 +85,8 @@ fun main() {
             downloadViewModel = downloadViewModel,
             userPreferences = userPreferencesRepository,
             windowState = windowState,
-            onExit = ::doExit
+            onExit = { lifecycleManager.cleanUpAndExit() },
         )
     }
 }
 
-private fun setupEnvironments() {
-    AppDirs.ensureDirectories()
-    val tmpDir = AppDirs.tmpDir.also { it.mkdirs() }
-
-    System.setProperty("org.sqlite.tmpdir", tmpDir.absolutePath)
-    System.setProperty("java.io.tmpdir", tmpDir.absolutePath)
-
-    // Redirect stdout and stderr to log files
-    try {
-        val sysOutFile = File(AppDirs.logsDir, "sysout.log")
-        val sysErrFile = File(AppDirs.logsDir, "syserr.log")
-        System.setOut(PrintStream(FileOutputStream(sysOutFile, true), true))
-        System.setErr(PrintStream(FileOutputStream(sysErrFile, true), true))
-        System.out.println("[${LocalDateTime.now()}] --- Application Starting ---")
-        System.err.println("[${LocalDateTime.now()}] --- Application Starting ---")
-    } catch (e: Exception) {
-        // Can't log here initially if permissions fail, but try to log to error file anyway
-    }
-
-    AccountManager.init()
-
-    val sysLocale = java.util.Locale.getDefault()
-    val rawCountry = sysLocale.country
-    val rawLang = sysLocale.toLanguageTag()
-    val safeGl = if (rawCountry.matches(Regex("^[a-zA-Z]{2}$"))) rawCountry.uppercase() else "US"
-    val safeHl = if (rawLang.matches(Regex("^[a-zA-Z]{2}(-[a-zA-Z]{2})?$"))) rawLang else "en-US"
-    YouTube.locale = YouTubeLocale(safeGl, safeHl)
-
-}
-
-private fun logStartupError(context: String, throwable: Throwable) {
-    runCatching {
-        val logsDir = File(AppDirs.dataRoot, "logs")
-        if (!logsDir.exists()) logsDir.mkdirs()
-
-        val logFile = File(logsDir, "startup.log")
-        val stackTrace = StringWriter().also { throwable.printStackTrace(PrintWriter(it)) }.toString()
-        val entry = buildString {
-            appendLine("[${LocalDateTime.now()}] $context")
-            appendLine(stackTrace)
-            appendLine("------------------------------------------------------------")
-        }
-        logFile.appendText(entry)
-    }
-}
-
-private fun applyJvmConfigSystemProperties(config: JvmConfig) {
-    val customRenderApiRequested =
-        System.getenv("SKIKO_RENDER_API") != null ||
-            System.getProperty("skiko.renderApi") != null
-    if (!customRenderApiRequested) {
-        System.setProperty("skiko.renderApi", config.renderApi.name)
-    }
-
-    config.toJvmArgs()
-        .filter { it.startsWith("-D") && it.contains("=") }
-        .forEach { arg ->
-            val keyValue = arg.removePrefix("-D")
-            val separatorIndex = keyValue.indexOf('=')
-            if (separatorIndex > 0) {
-                val key = keyValue.substring(0, separatorIndex)
-                val value = keyValue.substring(separatorIndex + 1)
-                System.setProperty(key, value)
-            }
-        }
-}

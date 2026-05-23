@@ -9,6 +9,8 @@ import com.example.melodist.data.repository.ArtistRepository
 import com.example.melodist.data.repository.PlaylistRepository
 import com.example.melodist.data.repository.SearchRepository
 import com.example.melodist.data.repository.SongRepository
+import com.example.melodist.bootstrap.JvmConfigLauncher
+import com.example.melodist.lifecycle.AppLifecycleManager
 import com.example.melodist.viewmodels.AccountViewModel
 import com.example.melodist.viewmodels.AlbumViewModel
 import com.example.melodist.viewmodels.ArtistViewModel
@@ -70,6 +72,8 @@ val appModule = module {
     // ✅ PlayerViewModel singleton pero inicialización pesada diferida al init{} interno
     single<PlayerViewModel> { PlayerViewModel(get(), get(), get(), get(), get(), get()) }
     single<PlayerCoordinator> { PlayerCoordinatorImpl(get<PlayerViewModel>(), get<DownloadViewModel>()) }
+    single<AppLifecycleManager> { AppLifecycleManager(get(), get(), get(), get()) }
+    single<JvmConfigLauncher> { JvmConfigLauncher(get()) }
 
     // ViewModels — loginState de AccountManager para reaccionar a cambios de sesión
     factory { AccountViewModel() }
