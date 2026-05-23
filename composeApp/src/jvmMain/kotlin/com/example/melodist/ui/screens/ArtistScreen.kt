@@ -52,6 +52,9 @@ import com.example.melodist.viewmodels.ArtistViewModel
 import com.metrolist.innertube.models.*
 import com.metrolist.innertube.pages.ArtistPage
 import com.metrolist.innertube.pages.ArtistSection
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ArtistScreenRoute(
@@ -143,7 +146,7 @@ fun ArtistScreen(
                 .clip(circleAwareShape())
         ) {
             Icon(
-                Icons.AutoMirrored.Filled.ArrowBack, "Atrás",
+                Icons.AutoMirrored.Filled.ArrowBack, stringResource(Res.string.back),
                 tint = Color.White,
                 modifier = Modifier.size(20.dp)
             )
@@ -355,7 +358,7 @@ private fun ArtistBanner(
                                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
                             ) {
                                 Text(
-                                    text = if (descExpanded) "Menos" else "Más",
+                                    text = if (descExpanded) stringResource(Res.string.less) else stringResource(Res.string.more),
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
                                     color = Color.White.copy(alpha = 0.9f)
                                 )
@@ -386,7 +389,7 @@ private fun ArtistBanner(
                 ) {
                     Icon(Icons.Rounded.Shuffle, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Aleatorio", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(Res.string.shuffle), fontWeight = FontWeight.SemiBold)
                 }
 
                 // Radio — botón blanco sólido
@@ -404,12 +407,14 @@ private fun ArtistBanner(
                 ) {
                     Icon(Icons.Rounded.Radio, null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text("Radio", fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(Res.string.radio_text), fontWeight = FontWeight.SemiBold)
                 }
 
                 // Suscribirse — borde blanco semitransparente (como YouTube Music)
+                val subscribedText = stringResource(Res.string.subscribed)
+                val subscribeText = stringResource(Res.string.subscribe_text)
                 val subLabel = buildString {
-                    append(if (isSaved) "Suscrito" else "Suscribirse")
+                    append(if (isSaved) subscribedText else subscribeText)
                     artistPage.subscriberCountText?.let { append("  $it") }
                 }
                 OutlinedButton(
@@ -442,7 +447,7 @@ private fun ArtistBanner(
                         .pointerHoverIcon(PointerIcon.Hand),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(Icons.Rounded.MoreVert, "Más opciones", tint = Color.White, modifier = Modifier.size(20.dp))
+                    Icon(Icons.Rounded.MoreVert, stringResource(Res.string.more_options), tint = Color.White, modifier = Modifier.size(20.dp))
                 }
             }
         }
@@ -547,9 +552,9 @@ private fun ArtistSectionGridItem(
         },
         subtitle = when (item) {
             is SongItem -> item.artists.firstOrNull()?.name.orEmpty()
-            is AlbumItem -> item.artists?.firstOrNull()?.name ?: "Album"
-            is ArtistItem -> "Artista"
-            is PlaylistItem -> item.author?.name ?: "Lista"
+            is AlbumItem -> item.artists?.firstOrNull()?.name ?: stringResource(Res.string.item_album)
+            is ArtistItem -> stringResource(Res.string.item_artist)
+            is PlaylistItem -> item.author?.name ?: stringResource(Res.string.item_list)
         },
         modifier = modifier,
         topStartOverlay = {

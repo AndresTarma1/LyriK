@@ -40,6 +40,9 @@ import com.example.melodist.ui.components.artwork.ArtworkColors
 import com.example.melodist.ui.components.artwork.rememberArtworkColors
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 data class AlbumScreenState(
     val songs: List<SongItem> = emptyList(),
@@ -147,7 +150,7 @@ fun AlbumScreen(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Atrás",
+                contentDescription = stringResource(Res.string.back),
                 tint = MaterialTheme.colorScheme.onSurface
             )
         }

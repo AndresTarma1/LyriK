@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
+import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -52,6 +53,9 @@ import com.example.melodist.viewmodels.RepeatMode
 import com.example.melodist.utils.upscaleThumbnailUrl
 import ir.mahozad.multiplatform.wavyslider.WaveDirection
 import ir.mahozad.multiplatform.wavyslider.material3.WavySlider
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
 
 
@@ -145,7 +149,7 @@ fun MiniPlayer(
                                 ) {
                                     Icon(
                                         imageVector = if(isNowPlayingExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp,
-                                        contentDescription = if(isNowPlayingExpanded) "Collapse Now Playing" else "Expand Now Playing",
+                                        contentDescription = if(isNowPlayingExpanded) stringResource(Res.string.mp_collapse) else stringResource(Res.string.mp_expand),
                                         tint = Color.White
                                     )
                                 }
@@ -169,7 +173,7 @@ fun MiniPlayer(
                                 overflow = TextOverflow.Ellipsis
                             )
                             Text(
-                                text = if (isError) state.error ?: "Error" else song.artists.joinToString(", ") { it.name },
+                                text = if (isError) state.error ?: stringResource(Res.string.mp_error) else song.artists.joinToString(", ") { it.name },
                                 style = MaterialTheme.typography.bodySmall,
                                 color = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -178,8 +182,8 @@ fun MiniPlayer(
                         }
 
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                            tooltip = { Text(if (state.currentSong?.liked == true) "Quitar me gusta" else "Me gusta") },
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                            tooltip = { Text(if (state.currentSong?.liked == true) stringResource(Res.string.mp_unlike) else stringResource(Res.string.mp_like)) },
                             state = rememberTooltipState()
                         ) {
                             IconButton(
@@ -188,7 +192,7 @@ fun MiniPlayer(
                             ) {
                                 Icon(
                                     imageVector = if (state.currentSong?.liked == true) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                    contentDescription = "Me gusta",
+                                    contentDescription = stringResource(Res.string.mp_like),
                                     tint = if (state.currentSong?.liked == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(20.dp)
                                 )
@@ -211,8 +215,8 @@ fun MiniPlayer(
                     ) {
                         // Botón Aleatorio
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                            tooltip = { Text("Aleatorio") },
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                            tooltip = { Text(stringResource(Res.string.mp_shuffle)) },
                             state = rememberTooltipState()
                         ) {
                             IconButton(
@@ -224,7 +228,7 @@ fun MiniPlayer(
                                 )
                             ) {
                                 Icon(
-                                    Icons.Rounded.Shuffle, "Aleatorio",
+                                    Icons.Rounded.Shuffle, stringResource(Res.string.mp_shuffle),
                                     modifier = Modifier.size(20.dp),
                                     tint = if (state.isShuffled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -232,8 +236,8 @@ fun MiniPlayer(
                         }
 
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                            tooltip = { Text("Anterior") },
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                            tooltip = { Text(stringResource(Res.string.mp_previous)) },
                             state = rememberTooltipState()
                         ) {
                             IconButton(
@@ -241,7 +245,7 @@ fun MiniPlayer(
                                 modifier = Modifier.size(40.dp).pointerHoverIcon(PointerIcon.Hand)
                             ) {
                                 Icon(
-                                    Icons.Rounded.SkipPrevious, "Anterior",
+                                    Icons.Rounded.SkipPrevious, stringResource(Res.string.mp_previous),
                                     tint = MaterialTheme.colorScheme.onSurface,
                                     modifier = Modifier.size(32.dp)
                                 )
@@ -249,8 +253,8 @@ fun MiniPlayer(
                         }
 
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                            tooltip = { Text(if (isPlaying) "Pausar" else "Reproducir") },
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                            tooltip = { Text(if (isPlaying) stringResource(Res.string.tray_pause) else stringResource(Res.string.tray_play)) },
                             state = rememberTooltipState()
                         ) {
                             FilledIconButton(
@@ -271,7 +275,7 @@ fun MiniPlayer(
                                 } else {
                                     Icon(
                                         imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                        contentDescription = if (isPlaying) "Pausar" else "Reproducir",
+                                        contentDescription = if (isPlaying) stringResource(Res.string.tray_pause) else stringResource(Res.string.tray_play),
                                         modifier = Modifier.size(32.dp)
                                     )
                                 }
@@ -279,8 +283,8 @@ fun MiniPlayer(
                         }
 
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                            tooltip = { Text("Siguiente") },
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                            tooltip = { Text(stringResource(Res.string.mp_next)) },
                             state = rememberTooltipState()
                         ) {
                             IconButton(
@@ -288,7 +292,7 @@ fun MiniPlayer(
                             modifier = Modifier.size(40.dp).pointerHoverIcon(PointerIcon.Hand)
                             ) {
                             Icon(
-                                Icons.Rounded.SkipNext, "Siguiente",
+                                Icons.Rounded.SkipNext, stringResource(Res.string.mp_next),
                                 tint = MaterialTheme.colorScheme.onSurface,
                                 modifier = Modifier.size(32.dp)
                             )
@@ -297,12 +301,12 @@ fun MiniPlayer(
 
                         // Botón Repetir
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
                             tooltip = {
                                 Text(when (state.repeatMode) {
-                                    RepeatMode.ONE -> "Repetir una"
-                                    RepeatMode.ALL -> "Repetir todo"
-                                    else -> "Repetir"
+                                    RepeatMode.ONE -> stringResource(Res.string.mp_repeat_one)
+                                    RepeatMode.ALL -> stringResource(Res.string.mp_repeat_all)
+                                    else -> stringResource(Res.string.mp_repeat)
                                 })
                             },
                             state = rememberTooltipState()
@@ -321,7 +325,7 @@ fun MiniPlayer(
                                 val repeatIcon =
                                     if (state.repeatMode == RepeatMode.ONE) Icons.Rounded.RepeatOne else Icons.Rounded.Repeat
                                 Icon(
-                                    repeatIcon, "Repetir",
+                                    repeatIcon, stringResource(Res.string.mp_repeat),
                                     modifier = Modifier.size(20.dp),
                                     tint = if (isRepeatOff) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
                                 )
@@ -421,8 +425,8 @@ fun MiniPlayer(
                         }
 
                         TooltipBox(
-                            positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                            tooltip = { Text(if (volumeFloat == 0f) "Activar sonido" else "Silenciar") },
+                            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                            tooltip = { Text(if (volumeFloat == 0f) stringResource(Res.string.mp_unmute) else stringResource(Res.string.mp_mute)) },
                             state = rememberTooltipState()
                         ) {
                             IconButton(
@@ -435,7 +439,7 @@ fun MiniPlayer(
                                         volumeFloat < 0.4f -> Icons.AutoMirrored.Rounded.VolumeDown
                                         else -> Icons.AutoMirrored.Rounded.VolumeUp
                                     },
-                                    "Volumen",
+                                    stringResource(Res.string.mp_volume),
                                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.size(24.dp)
                                 )
@@ -444,8 +448,10 @@ fun MiniPlayer(
                     }
 
                     TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = { Text("Cola de reproducción") },
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above,
+                            4.dp
+                        ),
+                        tooltip = { Text(stringResource(Res.string.mp_queue)) },
                         state = rememberTooltipState()
                     ) {
                         IconButton(
@@ -457,13 +463,13 @@ fun MiniPlayer(
                                 else Color.Transparent
                             )
                         ) {
-                            Icon(Icons.AutoMirrored.Filled.QueueMusic, "Cola", modifier = Modifier.size(24.dp))
+                            Icon(Icons.AutoMirrored.Filled.QueueMusic, stringResource(Res.string.mp_queue), modifier = Modifier.size(24.dp))
                         }
                     }
 
                     TooltipBox(
-                        positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
-                        tooltip = { Text(if (isNowPlayingExpanded) "Cerrar reproducción" else "Abrir reproducción") },
+                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+                        tooltip = { Text(if (isNowPlayingExpanded) stringResource(Res.string.mp_collapse) else stringResource(Res.string.mp_expand)) },
                         state = rememberTooltipState()
                     ) {
                         IconButton(
@@ -483,7 +489,7 @@ fun MiniPlayer(
                             )
                             Icon(
                                 Icons.Default.ArrowDropDown,
-                                "Reproducción",
+                                stringResource(Res.string.play_item),
                                 modifier = Modifier.size(32.dp).graphicsLayer { rotationZ = rotation },
                                 tint = if (isNowPlayingExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                             )

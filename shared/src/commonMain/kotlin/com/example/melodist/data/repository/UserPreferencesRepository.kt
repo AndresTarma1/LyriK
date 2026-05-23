@@ -9,28 +9,28 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-enum class AudioQuality(val label: String) {
-    LOW("Baja (ahorrar datos)"),
-    NORMAL("Normal"),
-    HIGH("Alta (mayor consumo)")
+enum class AudioQuality {
+    LOW, NORMAL, HIGH
 }
 
-enum class ThemeMode(val label: String) {
-    SYSTEM("Sistema"),
-    DARK("Oscuro"),
-    LIGHT("Claro")
+enum class ThemeMode {
+    SYSTEM, DARK, LIGHT
 }
 
-enum class ThemePalette(val label: String, val primary: Long, val secondary: Long) {
-    DEFAULT("Por defecto", 0xFF687988, 0xFF72787E),
-    OCEANO("Océano", 0xFF0288D1, 0xFF0277BD),
-    BOSQUE("Bosque", 0xFF2E7D32, 0xFF388E3C),
-    ATARDECER("Atardecer", 0xFFC62828, 0xFFEF6C00),
-    PURPURA("Púrpura", 0xFF6A1B9A, 0xFF8E24AA),
-    TEAL("Teal", 0xFF00695C, 0xFF00897B),
-    AMBAR("Ámbar", 0xFFFF8F00, 0xFFFFA000),
-    INDIGO("Índigo", 0xFF283593, 0xFF3949AB),
-    YTMUSIC("YouTube Music", 0xFFFF0033, 0xFFB00020)
+enum class AppLocale(val tag: String?) {
+    SYSTEM(null), ES("es"), EN("en")
+}
+
+enum class ThemePalette(val primary: Long, val secondary: Long) {
+    DEFAULT(0xFF687988, 0xFF72787E),
+    OCEANO(0xFF0288D1, 0xFF0277BD),
+    BOSQUE(0xFF2E7D32, 0xFF388E3C),
+    ATARDECER(0xFFC62828, 0xFFEF6C00),
+    PURPURA(0xFF6A1B9A, 0xFF8E24AA),
+    TEAL(0xFF00695C, 0xFF00897B),
+    AMBAR(0xFFFF8F00, 0xFFFFA000),
+    INDIGO(0xFF283593, 0xFF3949AB),
+    YTMUSIC(0xFFFF0033, 0xFFB00020)
 }
 
 class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
@@ -50,6 +50,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val QUEUE_LOCKED = booleanPreferencesKey("queue_locked")
         val EQUALIZER_BANDS = stringPreferencesKey("equalizer_bands")
         val THEME_PALETTE = stringPreferencesKey("theme_palette")
+        val LOCALE = stringPreferencesKey("locale")
     }
 
     val audioQuality: Flow<AudioQuality> = dataStore.data.map { preferences ->
@@ -148,6 +149,15 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setThemePalette(palette: ThemePalette) {
         dataStore.edit { it[PreferencesKeys.THEME_PALETTE] = palette.name }
+    }
+
+    val locale: Flow<AppLocale> = dataStore.data.map { pref ->
+        val name = pref[PreferencesKeys.LOCALE] ?: AppLocale.SYSTEM.name
+        try { AppLocale.valueOf(name) } catch (_: Exception) { AppLocale.SYSTEM }
+    }
+
+    suspend fun setLocale(locale: AppLocale) {
+        dataStore.edit { it[PreferencesKeys.LOCALE] = locale.name }
     }
 
 }

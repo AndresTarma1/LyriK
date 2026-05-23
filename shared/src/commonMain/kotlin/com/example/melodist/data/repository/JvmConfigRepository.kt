@@ -9,30 +9,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
 enum class RenderApi(
-    val label: String,
-    val description: String,
     val jvmArg: String?,
 ) {
-    DIRECTX(
-        label = "DirectX",
-        description = "Renderer por defecto en Windows. Usa aceleracion por GPU y suele ser el mejor equilibrio.",
-        jvmArg = null,
-    ),
-    OPENGL(
-        label = "OpenGL",
-        description = "Renderer alternativo por GPU. Puede ayudar en algunos equipos, pero aqui puede fallar con imagenes circulares.",
-        jvmArg = "-Dskiko.renderApi=OPENGL",
-    ),
-    SOFTWARE(
-        label = "Software",
-        description = "Renderiza por CPU. En pruebas consume menos memoria nativa y evito errores visuales a cambio de consumo de CPU.",
-        jvmArg = "-Dskiko.renderApi=SOFTWARE",
-    ),
-    ANGLE(
-        label = "ANGLE",
-        description = "Renderer que traduce llamadas OpenGL a DirectX. Puede ser útil en equipos con drivers OpenGL problemáticos, pero no es oficialmente soportado en Skia.",
-        jvmArg = "-Dskiko.renderApi=ANGLE",
-    )
+    DIRECTX(jvmArg = null),
+    OPENGL(jvmArg = "-Dskiko.renderApi=OPENGL"),
+    SOFTWARE(jvmArg = "-Dskiko.renderApi=SOFTWARE"),
+    ANGLE(jvmArg = "-Dskiko.renderApi=ANGLE"),
 }
 
 data class JvmConfig(

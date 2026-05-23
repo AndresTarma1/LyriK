@@ -75,6 +75,9 @@ import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.YTItem
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
 
 enum class ItemContentSource {
@@ -88,11 +91,12 @@ data class CornerQuickPlayConfig(
     val onClick: () -> Unit,
 )
 
+@Composable
 private fun YTItem.mediaGridSubtitle(): String = when (this) {
-    is AlbumItem -> artists?.firstOrNull()?.name ?: year?.toString() ?: "Album"
-    is ArtistItem -> "Artista"
-    is PlaylistItem -> author?.name ?: songCountText ?: "Playlist"
-    is SongItem -> artists.firstOrNull()?.name ?: "Cancion"
+    is AlbumItem -> artists?.firstOrNull()?.name ?: year?.toString() ?: stringResource(Res.string.item_album)
+    is ArtistItem -> stringResource(Res.string.item_artist)
+    is PlaylistItem -> author?.name ?: songCountText ?: stringResource(Res.string.item_playlist)
+    is SongItem -> artists.firstOrNull()?.name ?: stringResource(Res.string.item_song)
 }
 
 private fun YTItem.mediaGridPlaceholderType(): PlaceholderType = when (this) {
@@ -179,7 +183,7 @@ fun YouTubeGridItem(
                     ) {
                         Icon(
                             Icons.Rounded.PlayArrow,
-                            "Reproducir",
+                            stringResource(Res.string.play_item),
                             tint = Color.White,
                             modifier = Modifier
                                 .size(56.dp)
@@ -194,7 +198,7 @@ fun YouTubeGridItem(
 
                 HoverCornerActionButton(
                     icon = Icons.Rounded.MoreVert,
-                    contentDescription = "Opciones",
+                    contentDescription = stringResource(Res.string.options),
                     onClick = { onMoreClick?.invoke() ?: openMenuFromButton() },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
@@ -208,7 +212,7 @@ fun YouTubeGridItem(
                 if (quickPlay != null) {
                     HoverCornerActionButton(
                         icon = Icons.Rounded.PlayArrow,
-                        contentDescription = "Reproducir",
+                        contentDescription = stringResource(Res.string.play_item),
                         onClick = quickPlay.onClick,
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
@@ -345,7 +349,7 @@ fun MediaGridItem(
                         Box(contentAlignment = Alignment.Center) {
                             Icon(
                                 imageVector = sourceIcon,
-                                contentDescription = if (source == ItemContentSource.LOCAL) "Local" else "YouTube Music",
+                                contentDescription = if (source == ItemContentSource.LOCAL) stringResource(Res.string.cd_local) else stringResource(Res.string.cd_youtube),
                                 tint = Color.White,
                                 modifier = Modifier.size(14.dp)
                             )
@@ -361,7 +365,7 @@ fun MediaGridItem(
                                 .padding(4.dp)
                                 .graphicsLayer { alpha = menuAlpha }
                         ) {
-                            Icon(Icons.Default.MoreVert, "Opciones", modifier = Modifier.size(18.dp), tint = Color.White.copy(alpha = 0.9f))
+                            Icon(Icons.Default.MoreVert, stringResource(Res.string.options), modifier = Modifier.size(18.dp), tint = Color.White.copy(alpha = 0.9f))
                         }
                     }
 
@@ -378,7 +382,7 @@ fun MediaGridItem(
                                 contentColor = Color.White
                             )
                         ) {
-                            Icon(Icons.Filled.PlayArrow, contentDescription = "Reproducir", modifier = Modifier.size(20.dp))
+                            Icon(Icons.Filled.PlayArrow, contentDescription = stringResource(Res.string.play_item), modifier = Modifier.size(20.dp))
                         }
                     }
                 }
@@ -505,13 +509,13 @@ fun YoutubeListItem(
                         "$artists$album"
                     }
                     is AlbumItem -> {
-                        val artists = item.artists?.joinToString { it.name } ?: "Álbum"
-                        "Álbum • $artists"
+                        val artists = item.artists?.joinToString { it.name } ?: stringResource(Res.string.item_album)
+                        "${stringResource(Res.string.item_album)} • $artists"
                     }
-                    is ArtistItem -> "Artista"
+                    is ArtistItem -> stringResource(Res.string.item_artist)
                     is PlaylistItem -> {
                         val author = item.author?.name?.let { " • $it" } ?: ""
-                        "Playlist$author"
+                        "${stringResource(Res.string.item_playlist)}$author"
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -561,7 +565,7 @@ fun YoutubeListItem(
                     ) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,
-                            contentDescription = "Más opciones",
+                            contentDescription = stringResource(Res.string.more_options),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }

@@ -7,6 +7,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun DownloadConfirmationDialog(
@@ -15,8 +18,8 @@ fun DownloadConfirmationDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Eliminar descargas") },
-        text = { Text("¿Estás seguro que deseas eliminar las descargas de esta lista?") },
+        title = { Text(stringResource(Res.string.download_confirm_title)) },
+        text = { Text(stringResource(Res.string.download_confirm_message)) },
         confirmButton = {
             Button(
                 onClick = {
@@ -28,12 +31,12 @@ fun DownloadConfirmationDialog(
                     contentColor = MaterialTheme.colorScheme.onError
                 )
             ) {
-                Text("Eliminar")
+                Text(stringResource(Res.string.download_confirm_delete))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(Res.string.cancel))
             }
         }
     )

@@ -92,6 +92,9 @@ import androidx.compose.ui.input.pointer.pointerInput
 import com.example.melodist.ui.components.context.SongContextMenu
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import org.jetbrains.jewel.foundation.modifier.onHover
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun NowPlayingLayout(
@@ -170,7 +173,7 @@ fun NowPlayingLayout(
                     ) {
                         Icon(
                             Icons.Filled.MoreVert,
-                            contentDescription = "Más opciones",
+                            contentDescription = stringResource(Res.string.more_options),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -179,7 +182,7 @@ fun NowPlayingLayout(
                         onDismissRequest = { showMenu = false }
                     ) {
                         DropdownMenuItem(
-                            text = { Text("Ecualizador") },
+                            text = { Text(stringResource(Res.string.equalizer_menu)) },
                             onClick = { showMenu = false; showEqualizer = true },
                             leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
                         )
@@ -193,7 +196,7 @@ fun NowPlayingLayout(
         AlertDialog(
             onDismissRequest = { showEqualizer = false },
             icon = { Icon(Icons.Rounded.GraphicEq, null) },
-            title = { Text("Ecualizador de 10 bandas") },
+            title = { Text(stringResource(Res.string.equalizer_title)) },
             text = {
                 EqualizerPanel(
                     bands = equalizerBands,
@@ -201,7 +204,7 @@ fun NowPlayingLayout(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showEqualizer = false }) { Text("Cerrar") }
+                TextButton(onClick = { showEqualizer = false }) { Text(stringResource(Res.string.close_equalizer)) }
             }
         )
     }
@@ -223,12 +226,13 @@ fun PlaybackQueuePanel(
     val playlistsViewModel: LibraryPlaylistsViewModel = koinInject()
     var showSaveQueueDialog by remember { mutableStateOf(false) }
     var showAddQueueDialog by remember { mutableStateOf(false) }
-    var queuePlaylistName by remember(state.queueSource, state.queue) {
+    val defaultQueueName = stringResource(Res.string.queue_title)
+    var queuePlaylistName by remember(state.queueSource, state.queue, defaultQueueName) {
         mutableStateOf(
             when (val source = state.queueSource) {
                 is QueueSource.Album -> source.title
                 is QueueSource.Playlist -> source.title
-                else -> "Cola de reproducción"
+                else -> defaultQueueName
             }
         )
     }
@@ -264,12 +268,12 @@ fun PlaybackQueuePanel(
             ) {
                 Column {
                     Text(
-                        "Cola de reproducción",
+                        stringResource(Res.string.queue_title),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "${state.queue.size} canciones",
+                        stringResource(Res.string.queue_songs_count, state.queue.size),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -284,7 +288,7 @@ fun PlaybackQueuePanel(
                         ) {
                             Icon(
                                 Icons.Default.MoreVert,
-                                "Opciones",
+                                stringResource(Res.string.options),
                                 modifier = Modifier.size(22.dp),
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -299,7 +303,7 @@ fun PlaybackQueuePanel(
                                     showMenu = false
                                     showAddQueueDialog = true
                                 },
-                                text = { Text("Añadir a playlist") },
+                                text = { Text(stringResource(Res.string.add_to_playlist)) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.AutoMirrored.Filled.PlaylistAdd,
@@ -313,7 +317,7 @@ fun PlaybackQueuePanel(
                                     showMenu = false
                                     downloadViewModel.downloadAll(queueSongs)
                                 },
-                                text = { Text("Descargar cola") },
+                                text = { Text(stringResource(Res.string.download_queue)) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Default.Download,
@@ -327,7 +331,7 @@ fun PlaybackQueuePanel(
                                     showMenu = false
                                     showSaveQueueDialog = true
                                 },
-                                text = { Text("Guardar como playlist") },
+                                text = { Text(stringResource(Res.string.save_as_playlist)) },
                                 leadingIcon = {
                                     Icon(
                                         Icons.Default.Save,
@@ -343,7 +347,7 @@ fun PlaybackQueuePanel(
                                         preferencesRepo.setQueueLocked(!queueLocked)
                                     }
                                 },
-                                text = { Text(if (queueLocked) "Desbloquear cola" else "Bloquear cola") },
+                                text = { Text(if (queueLocked) stringResource(Res.string.unlock_queue) else stringResource(Res.string.lock_queue)) },
                                 leadingIcon = {
                                     Icon(
                                         if (queueLocked) Icons.Rounded.Lock else Icons.Rounded.LockOpen,
@@ -361,7 +365,7 @@ fun PlaybackQueuePanel(
                         modifier = Modifier.size(36.dp).pointerHoverIcon(PointerIcon.Hand) // Botón más grande
                     ) {
                         Icon(
-                            Icons.Default.Close, "Cerrar",
+                            Icons.Default.Close, stringResource(Res.string.close_queue),
                             modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -389,14 +393,14 @@ fun PlaybackQueuePanel(
                         )
                         Spacer(Modifier.height(20.dp))
                         Text(
-                            "La cola está vacía",
+                            stringResource(Res.string.queue_empty),
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
-                            "Reproduce una canción, álbum o playlist para empezar",
+                            stringResource(Res.string.queue_empty_hint),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                             textAlign = TextAlign.Center
@@ -452,12 +456,12 @@ fun PlaybackQueuePanel(
     if (showSaveQueueDialog) {
         AlertDialog(
             onDismissRequest = { showSaveQueueDialog = false },
-            title = { Text("Guardar cola como playlist") },
+            title = { Text(stringResource(Res.string.save_queue_title)) },
             text = {
                 OutlinedTextField(
                     value = queuePlaylistName,
                     onValueChange = { queuePlaylistName = it },
-                    label = { Text("Nombre") },
+                    label = { Text(stringResource(Res.string.playlist_name_label)) },
                     singleLine = true
                 )
             },
@@ -468,10 +472,10 @@ fun PlaybackQueuePanel(
                         playlistsViewModel.createLocalPlaylist(queuePlaylistName.trim(), queueSongs)
                         showSaveQueueDialog = false
                     }
-                ) { Text("Guardar") }
+                ) { Text(stringResource(Res.string.btn_save)) }
             },
             dismissButton = {
-                TextButton(onClick = { showSaveQueueDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { showSaveQueueDialog = false }) { Text(stringResource(Res.string.cancel)) }
             }
         )
     }
@@ -510,10 +514,10 @@ fun SongHeader(
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth(0.72f)) {
         state.queueSource?.let { source ->
             val label = when (source) {
-                is QueueSource.Album -> "De: ${source.title}"
-                is QueueSource.Playlist -> "De: ${source.title}"
-                is QueueSource.Single -> "Radio de la cancion"
-                QueueSource.Custom -> "Cola personalizada"
+                is QueueSource.Album -> stringResource(Res.string.from_album, source.title)
+                is QueueSource.Playlist -> stringResource(Res.string.from_playlist, source.title)
+                is QueueSource.Single -> stringResource(Res.string.song_radio)
+                QueueSource.Custom -> stringResource(Res.string.custom_queue)
             }
             Surface(
                 shape = RoundedCornerShape(12.dp),
@@ -676,7 +680,7 @@ fun NowPlayingHeader(
                         )
                         Spacer(Modifier.width(4.dp))
                         Text(
-                            "Reproduciendo ahora",
+                            stringResource(Res.string.now_playing),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.primary,
@@ -706,7 +710,7 @@ fun NowPlayingHeader(
                     IconButton(onClick = onRemove, modifier = Modifier.size(34.dp)) {
                         Icon(
                             Icons.Default.PlaylistRemove,
-                            "Quitar de la cola",
+                            stringResource(Res.string.remove_from_queue),
                             modifier = Modifier.size(19.dp)
                         )
                     }
@@ -806,7 +810,7 @@ fun QueueItem(
                         ) {
                             Icon(
                                 imageVector = Icons.Filled.PlayArrow,
-                                contentDescription = "Reproducir",
+                                contentDescription = stringResource(Res.string.play_item),
                                 tint = Color.White,
                                 modifier = Modifier.size(24.dp).align(Alignment.Center)
                             )
@@ -842,7 +846,7 @@ fun QueueItem(
                 IconButton(onClick = onRemove, modifier = Modifier.size(34.dp)) {
                     Icon(
                         Icons.Default.PlaylistRemove,
-                        "Quitar de la cola",
+                        stringResource(Res.string.remove_from_queue),
                         modifier = Modifier.size(19.dp)
                     )
                 }

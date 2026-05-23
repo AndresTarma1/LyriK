@@ -2,6 +2,7 @@ package com.example.melodist.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.melodist.data.repository.AppLocale
 import com.example.melodist.data.repository.AudioQuality
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
@@ -48,6 +49,9 @@ class SettingsViewModel(
     val themePalette: StateFlow<ThemePalette> = preferencesRepository.themePalette
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemePalette.DEFAULT)
 
+    val locale: StateFlow<AppLocale> = preferencesRepository.locale
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppLocale.SYSTEM)
+
     fun setAudioQuality(quality: AudioQuality) {
         viewModelScope.launch { preferencesRepository.setAudioQuality(quality) }
     }
@@ -90,5 +94,9 @@ class SettingsViewModel(
 
     fun setThemePalette(palette: ThemePalette) {
         viewModelScope.launch { preferencesRepository.setThemePalette(palette) }
+    }
+
+    fun setLocale(locale: AppLocale) {
+        viewModelScope.launch { preferencesRepository.setLocale(locale) }
     }
 }

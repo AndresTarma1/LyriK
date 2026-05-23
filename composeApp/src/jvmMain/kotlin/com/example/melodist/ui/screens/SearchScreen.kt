@@ -88,6 +88,9 @@ import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.pages.ChartsPage
 import com.metrolist.innertube.pages.ExplorePage
 import com.metrolist.innertube.pages.MoodAndGenres
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
 
 data class SearchScreenState(
@@ -262,9 +265,9 @@ fun SearchSection(
                 onSearch = { onSearch(query) },
                 expanded = active,
                 onExpandedChange = onActiveChange,
-                placeholder = {
-                    Text(
-                        "Canciones, artistas, álbumes...",
+                    placeholder = {
+                        Text(
+                            stringResource(Res.string.search_placeholder),
                         style = MaterialTheme.typography.bodyLarge.copy(
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
@@ -280,7 +283,7 @@ fun SearchSection(
                 trailingIcon = {
                     if (query.isNotEmpty()) {
                         IconButton(onClick = { onQueryChange("") }) {
-                            Icon(Icons.Default.Close, contentDescription = "Clear")
+                            Icon(Icons.Default.Close, contentDescription = stringResource(Res.string.cd_clear))
                         }
                     }
                 }
@@ -302,9 +305,9 @@ fun SearchSection(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            SectionHeader("Búsquedas recientes")
+                            SectionHeader(stringResource(Res.string.recent_searches))
                             Text(
-                                text = "Borrar todo",
+                                text = stringResource(Res.string.clear_all),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier
@@ -327,7 +330,7 @@ fun SearchSection(
                     }
                 } else {
                     item {
-                        SectionHeader("Búsquedas recientes")
+                        SectionHeader(stringResource(Res.string.recent_searches))
                     }
                     item {
                         EmptyStateText()
@@ -335,7 +338,7 @@ fun SearchSection(
                 }
             } else {
                 item {
-                    SectionHeader("Sugerencias")
+                    SectionHeader(stringResource(Res.string.suggestions_title))
                 }
 
                 // ✅ Limitar sugerencias visibles para no sobrecargar la lista
@@ -455,7 +458,7 @@ private fun HistoryListItem(query: String, onClick: () -> Unit, onDelete: () -> 
             IconButton(onClick = onDelete) {
                 Icon(
                     imageVector = Icons.Default.Close,
-                    contentDescription = "Eliminar",
+                    contentDescription = stringResource(Res.string.cd_delete),
                     modifier = Modifier.size(18.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
@@ -468,7 +471,7 @@ private fun HistoryListItem(query: String, onClick: () -> Unit, onDelete: () -> 
 @Composable
 private fun EmptyStateText() {
     Text(
-        text = "No hay búsquedas recientes aún.",
+        text = stringResource(Res.string.no_recent_searches),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -481,12 +484,12 @@ fun FilterRow(
     onFilterSelected: (YouTube.SearchFilter?) -> Unit
 ) {
     val filters = listOf(
-        "Todo" to null,
-        "Videos" to YouTube.SearchFilter.FILTER_VIDEO,
-        "Canciones" to YouTube.SearchFilter.FILTER_SONG,
-        "Álbumes" to YouTube.SearchFilter.FILTER_ALBUM,
-        "Artistas" to YouTube.SearchFilter.FILTER_ARTIST,
-        "Playlists" to YouTube.SearchFilter.FILTER_COMMUNITY_PLAYLIST
+        stringResource(Res.string.filter_all) to null,
+        stringResource(Res.string.filter_videos) to YouTube.SearchFilter.FILTER_VIDEO,
+        stringResource(Res.string.filter_songs) to YouTube.SearchFilter.FILTER_SONG,
+        stringResource(Res.string.filter_albums) to YouTube.SearchFilter.FILTER_ALBUM,
+        stringResource(Res.string.filter_artists) to YouTube.SearchFilter.FILTER_ARTIST,
+        stringResource(Res.string.filter_playlists) to YouTube.SearchFilter.FILTER_COMMUNITY_PLAYLIST
     )
 
     Row(
@@ -582,7 +585,7 @@ fun ResultsList(
         is SearchState.Error -> {
             EmptyStateView(
                 icon = Icons.Default.Close,
-                message = "Algo salió mal"
+                message = stringResource(Res.string.something_went_wrong)
             )
         }
 
@@ -601,7 +604,7 @@ fun ResultsList(
             if (items.isEmpty()) {
                 EmptyStateView(
                     icon = Icons.Default.Search,
-                    message = "No se encontraron resultados"
+                    message = stringResource(Res.string.no_results)
                 )
             } else {
                 Box {
@@ -690,7 +693,7 @@ private fun SearchChartsContent(
     onMoodClick: (String, String?) -> Unit = { _, _ -> },
 ) {
     if (charts == null && explore == null && moodAndGenres.isEmpty()) {
-        EmptyStateView(Icons.AutoMirrored.Filled.TrendingUp, "Explora tendencias y busca tu musica")
+        EmptyStateView(Icons.AutoMirrored.Filled.TrendingUp, stringResource(Res.string.explore_trends))
         return
     }
 
@@ -708,7 +711,7 @@ private fun SearchChartsContent(
             if (albums.isNotEmpty()) {
                 item {
                     SearchAlbumGrid(
-                        title = "Nuevos lanzamientos",
+                        title = stringResource(Res.string.new_releases),
                         albums = albums,
                         onItemClick = onItemClick,
                     )
@@ -793,7 +796,7 @@ private fun SearchMoodGrid(
             Spacer(Modifier.size(8.dp))
 
             Text(
-                text = "Estados de ánimo y géneros",
+                text = stringResource(Res.string.moods_genres),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )

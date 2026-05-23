@@ -35,6 +35,9 @@ import com.example.melodist.viewmodels.PlaylistViewModel
 import com.metrolist.innertube.models.SongItem
 import com.example.melodist.ui.components.artwork.ArtworkColors
 import com.example.melodist.ui.components.artwork.rememberArtworkColors
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 data class PlaylistScreenState(
     val songs: List<SongItem> = emptyList(),
@@ -164,7 +167,7 @@ fun PlaylistScreen(
         ) {
             Icon(
                 Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = "Atrás",
+                contentDescription = stringResource(Res.string.back),
                 tint = MaterialTheme.colorScheme.onSurface
             )
         }

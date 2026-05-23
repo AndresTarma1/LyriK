@@ -29,6 +29,9 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun EqualizerPanel(
@@ -63,13 +66,13 @@ fun EqualizerPanel(
                     modifier = Modifier.size(20.dp)
                 )
                 Text(
-                    text = "Ganancia (dB)",
+                    text = stringResource(Res.string.eq_gain),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             TextButton(onClick = { localBands = List(10) { 0f } }) {
-                Text("Restablecer")
+                Text(stringResource(Res.string.eq_reset))
             }
         }
 

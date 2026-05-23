@@ -39,15 +39,15 @@ enum class LibraryTab {
     LIBRARY, ALBUMS, ARTISTS, PLAYLISTS
 }
 
-enum class LibrarySortOrder(val label: String) {
-    NAME_ASC("Nombre A-Z"), NAME_DESC("Nombre Z-A"), DATE_ADDED("Fecha añadido")
+enum class LibrarySortOrder {
+    NAME_ASC, NAME_DESC, DATE_ADDED
 }
 
-enum class YtmLibraryFilter(val label: String, val filter: YouTube.LibraryFilter) {
-    RECENT_ACTIVITY("Actividad reciente", YouTube.LibraryFilter.FILTER_RECENT_ACTIVITY),
-    RECENTLY_PLAYED("Reproducido recientemente", YouTube.LibraryFilter.FILTER_RECENTLY_PLAYED),
-    PLAYLISTS_AZ("Playlists A-Z", YouTube.LibraryFilter.FILTER_PLAYLISTS_ALPHABETICAL),
-    PLAYLISTS_RECENT("Playlists recientes", YouTube.LibraryFilter.FILTER_PLAYLISTS_RECENTLY_SAVED),
+enum class YtmLibraryFilter(val filter: YouTube.LibraryFilter) {
+    RECENT_ACTIVITY(YouTube.LibraryFilter.FILTER_RECENT_ACTIVITY),
+    RECENTLY_PLAYED(YouTube.LibraryFilter.FILTER_RECENTLY_PLAYED),
+    PLAYLISTS_AZ(YouTube.LibraryFilter.FILTER_PLAYLISTS_ALPHABETICAL),
+    PLAYLISTS_RECENT(YouTube.LibraryFilter.FILTER_PLAYLISTS_RECENTLY_SAVED),
 }
 
 // Estado para el contenido remoto de YTM

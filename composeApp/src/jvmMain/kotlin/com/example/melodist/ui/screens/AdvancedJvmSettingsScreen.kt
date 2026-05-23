@@ -23,10 +23,15 @@ import androidx.compose.ui.window.Dialog
 import com.example.melodist.data.repository.JvmConfig
 import com.example.melodist.data.repository.RenderApi
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
+import com.example.melodist.ui.screens.shared.displayDescription
+import com.example.melodist.ui.screens.shared.displayName
 import com.example.melodist.utils.AppRestarter
 import com.example.melodist.viewmodels.JvmSettingsUiState
 import com.example.melodist.viewmodels.JvmSettingsViewModel
 import kotlinx.coroutines.launch
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,7 +47,7 @@ fun AdvancedJvmSettingsScreen(
     Dialog(onDismissRequest = onDismiss) {
         BoxWithConstraints {
             val dialogWidth = (maxWidth * 0.9f).coerceIn(480.dp, maxWidth)
-            val dialogHeight = (maxHeight * 0.7f).coerceIn(360.dp, maxHeight)
+            val dialogHeight = (maxHeight * 0.7f).coerceIn(420.dp, maxHeight)
 
             Surface(
                 modifier = Modifier.width(dialogWidth).height(dialogHeight),
@@ -60,7 +65,7 @@ fun AdvancedJvmSettingsScreen(
                         Header(onDismiss = onDismiss)
 
                         Spacer(Modifier.height(20.dp))
-                        SectionTitle("Renderizado de Skiko")
+                        SectionTitle(stringResource(Res.string.jvm_settings_title))
                         Spacer(Modifier.height(8.dp))
                         RenderApiSelector(
                             selected = uiState.renderApi,
@@ -77,7 +82,7 @@ fun AdvancedJvmSettingsScreen(
                                 modifier = Modifier.weight(1f).height(44.dp),
                                 shape = RoundedCornerShape(10.dp),
                             ) {
-                                Text("Guardar cambios")
+                                Text(stringResource(Res.string.save_changes))
                             }
                         }
 
@@ -123,17 +128,17 @@ private fun Header(onDismiss: () -> Unit) {
     ) {
         Column {
             Text(
-                "Renderizado de Skiko",
+                stringResource(Res.string.jvm_settings_title),
                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             )
             Text(
-                "Los cambios se aplican cuando reinicias la aplicacion",
+                stringResource(Res.string.jvm_settings_subtitle),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         IconButton(onClick = onDismiss) {
-            Icon(Icons.Default.Close, "Cerrar")
+            Icon(Icons.Default.Close, stringResource(Res.string.close_label))
         }
     }
 }
@@ -148,18 +153,18 @@ private fun RestartDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         icon = { Icon(Icons.Default.Warning, null, tint = MaterialTheme.colorScheme.primary) },
-        title = { Text("Aplicar cambios") },
+        title = { Text(stringResource(Res.string.apply_changes_title)) },
         text = {
             Column {
-                Text("Los cambios se guardaran y se aplicaran al reiniciar la aplicacion.")
+                Text(stringResource(Res.string.apply_changes_message))
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Renderer seleccionado: ${uiState.renderApi.label}",
+                    stringResource(Res.string.selected_renderer, uiState.renderApi.displayName()),
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    uiState.renderApi.description,
+                    uiState.renderApi.displayDescription(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -167,16 +172,16 @@ private fun RestartDialog(
         },
         confirmButton = {
             Button(onClick = onSaveAndRestart, shape = RoundedCornerShape(8.dp)) {
-                Text("Guardar y reiniciar")
+                Text(stringResource(Res.string.save_restart))
             }
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 TextButton(onClick = onSaveWithoutRestart) {
-                    Text("Guardar sin reiniciar")
+                    Text(stringResource(Res.string.save_no_restart))
                 }
                 TextButton(onClick = onDismiss) {
-                    Text("Cancelar")
+                    Text(stringResource(Res.string.cancel))
                 }
             }
         },
@@ -233,12 +238,12 @@ private fun RenderApiSelector(
                     )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            if (renderApi == RenderApi.DIRECTX) "${renderApi.label} (por defecto)" else renderApi.label,
+                            if (renderApi == RenderApi.DIRECTX) stringResource(Res.string.renderer_directx) + " " + stringResource(Res.string.renderer_default) else renderApi.displayName(),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.Medium,
                         )
                         Text(
-                            renderApi.description,
+                            renderApi.displayDescription(),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

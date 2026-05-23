@@ -47,25 +47,26 @@ import com.example.melodist.ui.screens.*
 import com.example.melodist.ui.screens.home.HomeScreenRoute
 import com.example.melodist.ui.screens.library.LibraryScreenRoute
 import com.example.melodist.utils.LocalPlayerViewModel
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.*
 
 
 
 data class TabInfo(
     val config: ScreenConfig,
-    val label: String,
     val icon: ImageVector
 )
 
 private val mainTabs = listOf(
-    TabInfo(ScreenConfig.Home, "Inicio", Icons.Filled.Home),
-    TabInfo(ScreenConfig.Search, "Buscar", Icons.Filled.Search),
-    TabInfo(ScreenConfig.Library, "Librería", Icons.Filled.LibraryMusic),
+    TabInfo(ScreenConfig.Home, Icons.Filled.Home),
+    TabInfo(ScreenConfig.Search, Icons.Filled.Search),
+    TabInfo(ScreenConfig.Library, Icons.Filled.LibraryMusic),
 )
 
 private val bottomTabs = listOf(
-    TabInfo(ScreenConfig.Account, "Cuenta", Icons.Filled.Person),
-    TabInfo(ScreenConfig.Settings, "Ajustes", Icons.Filled.Settings),
+    TabInfo(ScreenConfig.Account, Icons.Filled.Person),
+    TabInfo(ScreenConfig.Settings, Icons.Filled.Settings),
 )
 
 
@@ -111,7 +112,16 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                     rootComponent.switchTab(tab.config)
                                 },
                                 icon = { Icon(tab.icon, null) },
-                                label = { Text(tab.label) },
+                                label = {
+                                    Text(
+                                        when (tab.config) {
+                                            ScreenConfig.Home -> stringResource(Res.string.nav_home)
+                                            ScreenConfig.Search -> stringResource(Res.string.nav_search)
+                                            ScreenConfig.Library -> stringResource(Res.string.nav_library)
+                                            else -> ""
+                                        }
+                                    )
+                                },
                                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                                 alwaysShowLabel = false,
                             )
@@ -128,7 +138,15 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                     rootComponent.switchTab(tab.config)
                                 },
                                 icon = { Icon(tab.icon, null) },
-                                label = { Text(tab.label) },
+                                label = {
+                                    Text(
+                                        when (tab.config) {
+                                            ScreenConfig.Account -> stringResource(Res.string.nav_account)
+                                            ScreenConfig.Settings -> stringResource(Res.string.nav_settings)
+                                            else -> ""
+                                        }
+                                    )
+                                },
                                 modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                                 alwaysShowLabel = false,
                             )

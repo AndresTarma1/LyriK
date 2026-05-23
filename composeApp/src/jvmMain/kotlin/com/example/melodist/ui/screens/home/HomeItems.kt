@@ -31,6 +31,9 @@ import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.YTItem
 import kotlin.collections.isNotEmpty
 import kotlin.collections.orEmpty
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -106,7 +109,7 @@ fun AlbumHomeItem(item: AlbumItem, modifier: Modifier = Modifier, onClick: (YTIt
                 )
             }
         ),
-        subtitle = item.artists?.firstOrNull()?.name ?: "Álbum",
+        subtitle = item.artists?.firstOrNull()?.name ?: stringResource(Res.string.item_album),
         modifier = modifier,
         overlayContent = {
             CollectionContextMenu(
@@ -165,7 +168,7 @@ fun PlaylistHomeItem(item: PlaylistItem, modifier: Modifier = Modifier, onClick:
                 )
             }
         ),
-        subtitle = item.author?.name ?: "Lista",
+        subtitle = item.author?.name ?: stringResource(Res.string.item_list),
         modifier = modifier,
         overlayContent = {
             CollectionContextMenu(
@@ -209,7 +212,7 @@ fun ArtistHomeItem(item: ArtistItem, modifier: Modifier = Modifier, onClick: (YT
         centerPlayVisible = false,
         contextMenuEnabled = false,
         onMoreClick = { onClick(item) },
-        subtitle = "Artista",
+        subtitle = stringResource(Res.string.item_artist),
         modifier = modifier
     )
 }

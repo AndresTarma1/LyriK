@@ -47,6 +47,9 @@ import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.pages.BrowseResult
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun YouTubeBrowseScreenRoute(
@@ -93,7 +96,7 @@ fun YouTubeBrowseScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = title.ifEmpty { "Explorar" },
+                        text = title.ifEmpty { stringResource(Res.string.title_fallback) },
                         fontWeight = FontWeight.Black,
                         style = MaterialTheme.typography.displaySmall.copy(fontSize = 28.sp),
                         maxLines = 1,
@@ -103,7 +106,7 @@ fun YouTubeBrowseScreen(
                     IconButton(onClick = onBack) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver",
+                            contentDescription = stringResource(Res.string.back_label),
                         )
                     }
                 },
@@ -183,7 +186,7 @@ private fun BrowseContent(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "No hay contenido disponible",
+                            text = stringResource(Res.string.no_content_available),
                             style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -267,7 +270,7 @@ private fun YouTubeBrowseError(message: String) {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "No se pudo cargar el contenido",
+            text = stringResource(Res.string.could_not_load_content),
             style = MaterialTheme.typography.titleMedium,
         )
         Spacer(Modifier.height(8.dp))
