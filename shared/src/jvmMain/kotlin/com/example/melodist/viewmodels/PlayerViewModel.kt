@@ -5,40 +5,20 @@ import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.db.DatabaseDao
-import com.example.melodist.db.entities.AlbumEntity
 import com.example.melodist.db.entities.ArtistEntity
 import com.example.melodist.models.MediaMetadata
 import com.example.melodist.models.toMediaMetadata
-import com.example.melodist.player.AgeRestrictedException
-import com.example.melodist.player.AudioStreamResolver
-import com.example.melodist.player.DownloadService
-import com.example.melodist.player.PlaybackState
-import com.example.melodist.player.PlayerService
-import com.example.melodist.player.WindowsMediaSession
+import com.example.melodist.player.*
 import com.example.melodist.utils.withMissingMetadataResolved
 import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
-import com.sun.jna.platform.unix.aix.Perfstat
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
 import java.net.HttpURLConnection
 import java.net.URI
 import java.util.logging.Logger
-import kotlin.jvm.JvmName
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class PlayerViewModel(
     private val playerService: PlayerService,
@@ -142,7 +122,6 @@ class PlayerViewModel(
             val hash = url.hashCode()
             val tmpFile = java.io.File(System.getProperty("java.io.tmpdir"), "melodist_smtc_thumb_$hash.jpg")
 
-            // Si el archivo ya existe, reutilízalo (mismo hash de URL = misma imagen)
             if (tmpFile.exists()) {
                 return@withContext "file:///${tmpFile.absolutePath.replace('\\', '/')}"
             }
@@ -225,7 +204,6 @@ class PlayerViewModel(
         shuffle: Boolean = false,
         onEmpty: (() -> Unit)? = null
     ) {
-        // Siempre obtener canciones via browse API (sin recomendaciones/automix)
         viewModelScope.launch {
             val songs = apiService.getAlbum(browseId).getOrNull()?.songs.orEmpty()
             if (songs.isNotEmpty()) {

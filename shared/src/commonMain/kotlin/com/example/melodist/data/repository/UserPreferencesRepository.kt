@@ -21,6 +21,12 @@ enum class AppLocale(val tag: String?) {
     SYSTEM(null), ES("es"), EN("en")
 }
 
+enum class YouTubeRegion(val gl: String, val hl: String) {
+    SYSTEM("", ""),
+    US("US", "en"),
+    CO("CO", "es"),
+}
+
 enum class ThemePalette(val primary: Long, val secondary: Long) {
     DEFAULT(0xFF687988, 0xFF72787E),
     OCEANO(0xFF0288D1, 0xFF0277BD),
@@ -51,6 +57,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val EQUALIZER_BANDS = stringPreferencesKey("equalizer_bands")
         val THEME_PALETTE = stringPreferencesKey("theme_palette")
         val LOCALE = stringPreferencesKey("locale")
+        val YOUTUBE_REGION = stringPreferencesKey("youtube_region")
     }
 
     val audioQuality: Flow<AudioQuality> = dataStore.data.map { preferences ->
@@ -158,6 +165,15 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setLocale(locale: AppLocale) {
         dataStore.edit { it[PreferencesKeys.LOCALE] = locale.name }
+    }
+
+    val youtubeRegion: Flow<YouTubeRegion> = dataStore.data.map { pref ->
+        val name = pref[PreferencesKeys.YOUTUBE_REGION] ?: YouTubeRegion.SYSTEM.name
+        try { YouTubeRegion.valueOf(name) } catch (_: Exception) { YouTubeRegion.SYSTEM }
+    }
+
+    suspend fun setYoutubeRegion(region: YouTubeRegion) {
+        dataStore.edit { it[PreferencesKeys.YOUTUBE_REGION] = region.name }
     }
 
 }

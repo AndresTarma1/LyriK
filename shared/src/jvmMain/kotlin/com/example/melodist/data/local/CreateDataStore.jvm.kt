@@ -7,7 +7,7 @@ import com.example.melodist.platform.AppPaths
 
 fun createDataStore(): DataStore<Preferences> = createDataStore(
     producePath = {
-        val dir = File(AppPaths.dataRoot, "data")
+        val dir = File(AppPaths.roamingRoot, "data")
         if (!dir.exists()) {
             dir.mkdirs()
         }

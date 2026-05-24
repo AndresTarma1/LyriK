@@ -46,7 +46,7 @@ fun AdvancedJvmSettingsScreen(
 
     Dialog(onDismissRequest = onDismiss) {
         BoxWithConstraints {
-            val dialogWidth = (maxWidth * 0.9f).coerceIn(480.dp, maxWidth)
+            val dialogWidth = (maxWidth * 0.9f).coerceIn(420.dp, maxWidth)
             val dialogHeight = (maxHeight * 0.7f).coerceIn(420.dp, maxHeight)
 
             Surface(

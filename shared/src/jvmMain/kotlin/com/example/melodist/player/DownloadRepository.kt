@@ -516,7 +516,7 @@ class DownloadRepository(
                 connection.disconnect()
             }
         } catch (e: Exception) {
-            log.warning($$"HEAD probe failed: ${e.message}")
+            log.warning("HEAD probe failed: ${e.message}")
             null
         }
     }
@@ -534,6 +534,15 @@ class DownloadRepository(
                     albumId = song.album?.id,
                     albumName = song.album?.name,
                     explicit = song.explicit,
+                )
+            )
+        } else {
+            databaseDao.updateSongMetadata(
+                SongEntity(
+                    id = song.id,
+                    title = song.title,
+                    duration = song.duration ?: existing.duration,
+                    thumbnailUrl = song.thumbnail,
                 )
             )
         }

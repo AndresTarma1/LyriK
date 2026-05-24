@@ -8,6 +8,7 @@ import com.example.melodist.data.repository.AudioQuality
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.data.repository.RenderApi
+import com.example.melodist.data.repository.YouTubeRegion
 import com.example.melodist.viewmodels.LibrarySortOrder
 import com.example.melodist.viewmodels.YtmLibraryFilter
 
@@ -74,4 +75,11 @@ fun AppLocale.displayName(): String = when (this) {
     AppLocale.SYSTEM -> stringResource(Res.string.language_system)
     AppLocale.ES -> stringResource(Res.string.language_spanish)
     AppLocale.EN -> stringResource(Res.string.language_english)
+}
+
+@Composable
+fun YouTubeRegion.displayName(): String = when (this) {
+    YouTubeRegion.SYSTEM -> stringResource(Res.string.region_system)
+    YouTubeRegion.US -> stringResource(Res.string.region_us)
+    YouTubeRegion.CO -> stringResource(Res.string.region_co)
 }

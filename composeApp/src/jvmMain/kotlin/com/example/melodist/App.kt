@@ -46,6 +46,9 @@ import androidx.compose.ui.window.WindowState
 import com.example.melodist.data.repository.AppLocale
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.UserPreferencesRepository
+import com.example.melodist.data.repository.YouTubeRegion
+import com.metrolist.innertube.YouTube
+import com.metrolist.innertube.models.YouTubeLocale
 import java.util.Locale
 import com.example.melodist.navigation.NavigationDesktop
 import com.example.melodist.navigation.RootComponent
@@ -63,6 +66,7 @@ import com.example.melodist.viewmodels.DownloadViewModel
 import com.example.melodist.viewmodels.PlayerUiState
 import com.example.melodist.viewmodels.PlayerViewModel
 import com.kdroid.composetray.tray.api.Tray
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -116,6 +120,7 @@ fun ApplicationScope.App(
     val snackbarHostState = remember { SnackbarHostState() }
     val updateInfo by appViewModel.updateInfo.collectAsState()
 
+    // Carga de dimensiones iniciales de ventana segura
     LaunchedEffect(userPreferences) {
         val initialWidth = userPreferences.windowWidth.first()
         val initialHeight = userPreferences.windowHeight.first()
@@ -170,25 +175,41 @@ fun ApplicationScope.App(
         playerViewModel.uiState.map { it.playbackState }.distinctUntilChanged()
     }
 
+    val appLocale by remember(userPreferences) { userPreferences.locale }.collectAsState(AppLocale.SYSTEM)
+    LaunchedEffect(appLocale) {
+        val newLocale = appLocale.tag?.let { Locale.forLanguageTag(it) }
+        if (newLocale != null) Locale.setDefault(newLocale)
+    }
+
     val currentSong by currentSongFlow.collectAsState(initial = playerViewModel.uiState.value.currentSong)
     val playbackState by playbackStateFlow.collectAsState(initial = playerViewModel.uiState.value.playbackState)
     val artworkColors = rememberArtworkColors(currentSong?.thumbnailUrl)
-    val themeMode by remember { userPreferences.themeMode }.collectAsState(ThemeMode.SYSTEM)
-    val appLocale by remember { userPreferences.locale }.collectAsState(AppLocale.SYSTEM)
-    LaunchedEffect(appLocale) {
-        val newLocale = appLocale.tag?.let { Locale(it) }
-        if (newLocale != null) Locale.setDefault(newLocale)
+    val themeMode by remember(userPreferences) { userPreferences.themeMode }.collectAsState(ThemeMode.SYSTEM)
+    val youtubeRegion by remember(userPreferences) { userPreferences.youtubeRegion }.collectAsState(YouTubeRegion.SYSTEM)
+
+    LaunchedEffect(youtubeRegion) {
+        if (youtubeRegion == YouTubeRegion.SYSTEM) {
+            val sysLocale = Locale.getDefault()
+            val rawCountry = sysLocale.country
+            val rawLang = sysLocale.toLanguageTag()
+            val safeGl = if (rawCountry.matches(Regex("^[a-zA-Z]{2}$"))) rawCountry.uppercase() else "US"
+            val safeHl = if (rawLang.matches(Regex("^[a-zA-Z]{2}(-[a-zA-Z]{2})?$"))) rawLang else "en-US"
+            YouTube.locale = YouTubeLocale(safeGl, safeHl)
+        } else {
+            YouTube.locale = YouTubeLocale(youtubeRegion.gl, youtubeRegion.hl)
+        }
     }
+
     val isDark = when (themeMode) {
         ThemeMode.DARK -> true
         ThemeMode.LIGHT -> false
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
 
-    key(appLocale) {
     MelodistTheme(artworkColors = artworkColors, userPreferences = userPreferences) {
         val surfaceColor = MaterialTheme.colorScheme.surface
 
+        // Obtenemos los estilos correctos directamente en el contexto Composable
         val titleBarStyle = if (isDark) {
             TitleBarStyle.dark(
                 colors = TitleBarColors.dark(
@@ -208,11 +229,7 @@ fun ApplicationScope.App(
         }
 
         IntUiTheme(
-            theme = if (isDark) {
-                JewelTheme.darkThemeDefinition()
-            } else {
-                JewelTheme.lightThemeDefinition()
-            },
+            theme = if (isDark) JewelTheme.darkThemeDefinition() else JewelTheme.lightThemeDefinition(),
             styling = ComponentStyling.decoratedWindow(titleBarStyle = titleBarStyle),
         ) {
             CompositionLocalProvider(
@@ -239,7 +256,7 @@ fun ApplicationScope.App(
                             confirmButton = {
                                 TextButton(onClick = {
                                     appViewModel.dismissUpdate()
-                                    kotlinx.coroutines.runBlocking {
+                                    scope.launch(Dispatchers.IO) {
                                         try {
                                             java.awt.Desktop.getDesktop().browse(
                                                 java.net.URI(info.downloadUrl ?: "https://github.com/AndresTarma1/LyriK/releases/latest")
@@ -259,6 +276,7 @@ fun ApplicationScope.App(
                     }
 
                     window.minimumSize = Dimension(1024, 600)
+
                     DisposableEffect(Unit) {
                         val startMaximized = windowState.placement == WindowPlacement.Maximized
                         val listener = object : ComponentAdapter() {
@@ -268,12 +286,10 @@ fun ApplicationScope.App(
                                     window.extendedState = Frame.MAXIMIZED_BOTH
                                 }
                                 EventQueue.invokeLater {
-                                    window.isVisible = true
                                     isVisible = true
                                 }
                             }
                         }
-
                         window.addComponentListener(listener)
                         onDispose { window.removeComponentListener(listener) }
                     }
@@ -285,16 +301,15 @@ fun ApplicationScope.App(
                         )
                     }
 
-                    NavigationDesktop(rootComponent)
-                    SnackbarHost(hostState = snackbarHostState)
+                    key(appLocale) {
+                        NavigationDesktop(rootComponent)
+                        SnackbarHost(hostState = snackbarHostState)
+                    }
+                }
             }
         }
     }
-    }
 }
-
-}
-
 @Composable
 private fun ApplicationScope.TrayCustom(
     trayState: PlayerUiState,

@@ -11,7 +11,7 @@ ktor = "3.3.3"
 material3 = "1.10.0-alpha05"
 materialIconsExtended = "1.7.3"
 brotli = "0.1.2"
-newpipeextractor = "v0.26.1"
+newpipeextractor = "v0.26.2"
 koin-bom = "4.1.1"
 sqldelight = "2.0.2"
 coil = "3.4.0"
@@ -24,10 +24,11 @@ jewel = "0.34.0-253.31033.149"
 jbr = "1.10.1"
 reorderable = "3.1.0"
 heze = "2.0.0-alpha01"
+compose-settings = "3.1.0"
 
 [libraries]
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
+#kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }
 androidx-lifecycle-viewmodelCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "androidx-lifecycle" }
 androidx-lifecycle-runtimeCompose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
@@ -102,6 +103,9 @@ kmpalette-core = { module = "com.materialkolor.palette:core", version.ref = "kmp
 kmpalette_network = { module = "com.materialkolor.palette:extensions-network", version.ref = "kmpalette" }
 kmpalette-extensions-file = { module = "com.materialkolor.palette:extensions-file", version.ref = "kmpalette" }
 
+composeSettings-ui = { group = "com.github.alorma.compose-settings", name = "ui-tiles", version.ref = "compose-settings" }
+composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", name = "ui-tiles-extended", version.ref = "compose-settings" }
+composeSettings-ui-expressive = { group = "com.github.alorma.compose-settings", name = "ui-tiles-expressive", version.ref = "compose-settings" }
 [plugins]
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }

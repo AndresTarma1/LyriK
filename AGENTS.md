@@ -28,6 +28,11 @@
 - Buttons with icons need clear content descriptions. Use familiar Material icons when available.
 - Loading states should match the target screen layout closely.
 
+## i18n / Locale
+- `Locale.setDefault()` must be called before any Compose composition to avoid a SYSTEM→saved-locale transition at startup.
+- When using `key(appLocale)` to force recomposition on locale change, wrap **only** the content inside `DecoratedWindow` (NavigationDesktop, SnackbarHost, etc.), never the window chrome (`DecoratedWindow`, `IntUiTheme`, `MelodistTheme`) or Jewel theme providers. Wrapping the window chrome causes the entire window to destroy and recreate, making the app appear to close and reopen.
+- `stringResource()` captures values at composition time. After changing the locale, the content must be recomposed (via `key(appLocale)`) for strings to update. The window chrome and title bar strings do not need dynamic locale switching (they follow the initial locale set at startup).
+
 ## Data And Downloads
 - Local playlists must react to song additions/removals: update count, thumbnail, and displayed list consistently.
 - Download state must flow from `DownloadViewModel`; UI should not infer download completion from files directly.
@@ -47,9 +52,10 @@
 - **shared/** — Common business logic, SQLDelight DB, repositories, ViewModels
 - **innertube/** — YouTube Music API wrapper (NewPipe + custom parsing)
 - **Audio engine** — mpv via `MpvLib.kt` (WASAPI, Windows-only)
-- **Data paths** — `%LOCALAPPDATA%\Tarma\LyriK\` (DB, DataStore, cache, downloads)
+- **Data paths** — `%APPDATA%\Tarma\LyriK\` (DB, DataStore preferences, persistent user files) / `%LOCALAPPDATA%\Tarma\LyriK\` (cache, downloads, volatile data)
 
 ## Key Files
+- `composeApp/src/jvmMain/kotlin/com/example/melodist/App.kt` — Root composable: ArtAppColors, theme, locale sync, DecoratedWindow, tray
 - `composeApp/src/jvmMain/kotlin/com/example/melodist/navigation/Navigation.kt` — Desktop layout, keyboard shortcuts, queue/now-playing panels
 - `composeApp/src/jvmMain/kotlin/com/example/melodist/ui/components/MiniPlayer.kt` — Bottom bar with tooltips, like button, volume badge
 - `composeApp/src/jvmMain/kotlin/com/example/melodist/ui/components/player/NowPlayingLayouts.kt` — Queue panel with sticky now-playing header, QueueItem
@@ -80,6 +86,12 @@
 - Fixed quick picks missing artist metadata (save artist maps on toggleLike/cache)
 - Settings dialogs responsive with `BoxWithConstraints`
 - Advanced JVM configuration screen with restart
+- Roaming/local data path split (`AppPaths.jvm.kt`: roaming=`%APPDATA%`, local=`%LOCALAPPDATA%`)
+- Renamed DataStore file to `user.preferences_pb`
+- Added `compose-settings` library + refactored `SettingsScreen.kt` with SettingsGroup/SettingsSwitch/DropdownMenu
+- Added `YouTubeRegion` preference + region dropdown in Settings + `YouTube.locale` sync via `LaunchedEffect`
+- Fixed `ensureSongInDb()` to update song metadata when already existing (instead of skip)
+- `key(appLocale)` wraps only content inside DecoratedWindow, not the window chrome (fixes apparent app restart on startup)
 - Version bumped to 0.1.1 with tag
 
 ## Known Issues (Prioritized)

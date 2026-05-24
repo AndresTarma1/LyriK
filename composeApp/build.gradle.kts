@@ -83,6 +83,11 @@ kotlin {
 
             implementation("ir.mahozad.multiplatform:wavy-slider:2.2.0")
 
+            implementation(libs.composeSettings.ui)
+            implementation(libs.composeSettings.ui.expressive)
+            implementation(libs.composeSettings.ui.extended)
+
+
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

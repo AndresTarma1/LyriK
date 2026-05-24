@@ -39,7 +39,6 @@ class PlayerService {
     private var endNotified = false
 
     private var prevPlayingPos = 0L
-    private var statsTickCounter = 0
 
     fun init() {
         if (initAttempted) return
@@ -71,6 +70,7 @@ class PlayerService {
                 mpvPlayer.openUri(url)
             } catch (e: Exception) {
                 _playbackState.value = PlaybackState.ERROR
+                log.severe("Error al reproducir: ${e.message}")
             }
         }
     }
@@ -202,8 +202,7 @@ class PlayerService {
                 } catch (e: Throwable) {
                     // silent catch for background ticker
                 }
-                val pollInterval = if (_playbackState.value == PlaybackState.PLAYING ||
-                    _playbackState.value == PlaybackState.LOADING) 250L else 1000L
+                val pollInterval = 1000L
                 delay(pollInterval.milliseconds)
             }
         }

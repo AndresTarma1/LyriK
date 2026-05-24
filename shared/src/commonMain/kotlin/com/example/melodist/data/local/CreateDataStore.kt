@@ -10,4 +10,4 @@ fun createDataStore(producePath: () -> String): DataStore<Preferences> =
         produceFile = { producePath().toPath()}
     )
 
-internal const val dataStoreFileName = "melodist.preferences_pb"
+internal const val dataStoreFileName = "user.preferences_pb"

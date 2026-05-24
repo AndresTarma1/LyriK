@@ -7,6 +7,7 @@ import com.example.melodist.data.repository.AudioQuality
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.data.repository.UserPreferencesRepository
+import com.example.melodist.data.repository.YouTubeRegion
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -51,6 +52,9 @@ class SettingsViewModel(
 
     val locale: StateFlow<AppLocale> = preferencesRepository.locale
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), AppLocale.SYSTEM)
+
+    val youtubeRegion: StateFlow<YouTubeRegion> = preferencesRepository.youtubeRegion
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), YouTubeRegion.SYSTEM)
 
     fun setAudioQuality(quality: AudioQuality) {
         viewModelScope.launch { preferencesRepository.setAudioQuality(quality) }
@@ -98,5 +102,9 @@ class SettingsViewModel(
 
     fun setLocale(locale: AppLocale) {
         viewModelScope.launch { preferencesRepository.setLocale(locale) }
+    }
+
+    fun setYoutubeRegion(region: YouTubeRegion) {
+        viewModelScope.launch { preferencesRepository.setYoutubeRegion(region) }
     }
 }

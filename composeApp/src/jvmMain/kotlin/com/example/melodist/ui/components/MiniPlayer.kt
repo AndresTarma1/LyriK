@@ -1,10 +1,11 @@
 package com.example.melodist.ui.components
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.*
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -21,21 +22,14 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
-import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -43,17 +37,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.player.PlaybackState
+import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.isWideThumbnail
 import com.example.melodist.viewmodels.PlayerProgressState
-import com.example.melodist.viewmodels.QueueSource
 import com.example.melodist.viewmodels.RepeatMode
-import com.example.melodist.utils.upscaleThumbnailUrl
 import ir.mahozad.multiplatform.wavyslider.WaveDirection
 import ir.mahozad.multiplatform.wavyslider.material3.WavySlider
-import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
@@ -118,9 +109,6 @@ fun MiniPlayer(
                         Box(modifier = Modifier
                             .sizeIn(maxWidth = thumbSize * ratio, maxHeight = thumbSize)
                             .aspectRatio(ratio)
-                            // Detectamos el hover de forma correcta
-                            .onPointerEvent(PointerEventType.Enter) { isHovered = true }
-                            .onPointerEvent(PointerEventType.Exit) { isHovered = false }
                             .onHover{ isHovered = it}
                             .clickable(onClick = onToggleNowPlaying)
                             .pointerHoverIcon(PointerIcon.Hand)
@@ -351,31 +339,20 @@ fun MiniPlayer(
                                     seekValue = it
                                 },
                                 onValueChangeFinished = {
-                                    isDragging = false // El usuario soltó el slider
+                                    isDragging = false
                                     playerViewModel.seekTo((seekValue?.times(progressState.durationMs))?.toLong() ?: 0L)
-                                    seekValue = null // Limpiar el valor temporal
-                                                        },
-                                // Visual: Si está en pausa Y no lo estoy moviendo, la ola se detiene
-                                waveLength = 102.dp, // Mantén una longitud constante para que no desaparezca
-                                waveHeight = if (isPlaying || isDragging) 10.dp else 0.dp, // Se aplana solo en pausa real
+                                    seekValue = null },
+                                waveLength = 102.dp,
+                                waveHeight = if (isPlaying || isDragging) 10.dp else 0.dp,
                                 waveVelocity = if (isPlaying && !isDragging) {
                                     28.dp to WaveDirection.TAIL
                                 } else {
-                                    0.dp to WaveDirection.TAIL // Se queda estática mientras arrastras o en pausa
+                                    0.dp to WaveDirection.TAIL
                                 },
                                 waveThickness = 8.dp,
                                 trackThickness = 9.dp,
                                 incremental = false,
                             )
-
-//                            LinearWavyProgressIndicator(
-//                                progress = { animatedProgress },
-//                                waveSpeed = 15.dp,
-//                                modifier = Modifier.fillMaxWidth(),
-//                                amplitude = { progress ->
-//                                    if(progress > 0 && isPlaying ) 1F else 0F
-//                                }
-//                            )
                         }
 
                         TimeText(progressState.durationMs)
