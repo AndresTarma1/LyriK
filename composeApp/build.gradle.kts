@@ -35,8 +35,10 @@ tasks.withType<JavaExec>().configureEach {
 kotlin {
     jvm()
 
-    jvmToolchain(21) // Esto fuerza a Gradle a buscar/descargar un JDK completo (v21)
-
+    jvmToolchain {
+        vendor = JvmVendorSpec.JETBRAINS
+        languageVersion = JavaLanguageVersion.of(21)
+    }
 
     sourceSets {
         commonMain.dependencies {
@@ -120,10 +122,14 @@ compose.desktop {
 
         jvmArgs(*melodistJvmArgs.toTypedArray())
 
+
+
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "LyriK"
             packageVersion = "0.1.3"
+
+            javaHome = "\${System.getProperty(\"user.home\")}/.jdks/jbr-21.0.10"
 
             windows {
                 msiPackageVersion = "0.1.3"

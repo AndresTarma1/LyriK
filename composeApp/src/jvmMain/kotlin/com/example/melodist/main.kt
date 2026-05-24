@@ -41,6 +41,7 @@ fun main() {
         AccountManager.init(dataStore)
     }
 
+
     koin.get<JvmConfigLauncher>().applySync()
 
     val playerViewModel = PlatformCrashHandler.runSafely("Error creando PlayerViewModel") {
