@@ -128,7 +128,7 @@ compose.desktop {
             windows {
                 msiPackageVersion = "0.1.3"
                 packageName = "LyriK"
-                iconFile.set(project.file("icons/music.ico"))
+                iconFile.set(project.file("icons/Music_note_circle.ico"))
                 menu = true
                 menuGroup = "LyriK"
                 shortcut = true
