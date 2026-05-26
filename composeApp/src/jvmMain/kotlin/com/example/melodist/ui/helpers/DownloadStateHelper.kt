@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
-import com.example.melodist.player.DownloadState
+import com.example.melodist.download.DownloadState
 import com.example.melodist.viewmodels.DownloadViewModel
 
 /**

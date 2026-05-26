@@ -1,6 +1,7 @@
-package com.example.melodist.player
+package com.example.melodist.download
 
 import com.example.melodist.db.DatabaseDao
+import com.example.melodist.player.AudioStreamResolver
 import com.metrolist.innertube.models.SongItem
 import kotlinx.coroutines.flow.StateFlow
 import java.io.File

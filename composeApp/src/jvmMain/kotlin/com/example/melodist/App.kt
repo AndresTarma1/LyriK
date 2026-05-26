@@ -1,6 +1,7 @@
 package com.example.melodist
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -99,6 +100,7 @@ import org.jetbrains.jewel.window.TitleBar
 import org.jetbrains.jewel.window.TitleBarScope
 import org.jetbrains.jewel.window.styling.TitleBarColors
 import org.jetbrains.jewel.window.styling.TitleBarStyle
+import java.awt.Desktop
 import java.awt.Dimension
 import java.awt.EventQueue
 import java.awt.Frame
@@ -209,7 +211,6 @@ fun ApplicationScope.App(
     MelodistTheme(artworkColors = artworkColors, userPreferences = userPreferences) {
         val surfaceColor = MaterialTheme.colorScheme.surface
 
-        // Obtenemos los estilos correctos directamente en el contexto Composable
         val titleBarStyle = if (isDark) {
             TitleBarStyle.dark(
                 colors = TitleBarColors.dark(
@@ -258,7 +259,7 @@ fun ApplicationScope.App(
                                     appViewModel.dismissUpdate()
                                     scope.launch(Dispatchers.IO) {
                                         try {
-                                            java.awt.Desktop.getDesktop().browse(
+                                            Desktop.getDesktop().browse(
                                                 java.net.URI(info.downloadUrl ?: "https://github.com/AndresTarma1/LyriK/releases/latest")
                                             )
                                         } catch (_: Exception) {}
@@ -294,7 +295,7 @@ fun ApplicationScope.App(
                         onDispose { window.removeComponentListener(listener) }
                     }
 
-                    TitleBar {
+                    TitleBar{
                         MelodistTitleBar(
                             currentSong = currentSong?.title,
                             isPlaying = playbackState == PlaybackState.PLAYING,
@@ -408,7 +409,7 @@ private fun TitleBarScope.MelodistTitleBar(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier
-                            .widthIn(max = 300.dp)
+                            .widthIn(max = 450.dp)
                             .basicMarquee(
                                 velocity = if(isPlaying) 25.dp else 0.dp,
                             ),

@@ -31,12 +31,11 @@ import com.example.melodist.viewmodels.JvmSettingsViewModel
 import com.example.melodist.viewmodels.PlayerCoordinator
 import com.example.melodist.viewmodels.PlayerCoordinatorImpl
 import com.example.melodist.viewmodels.YouTubeBrowseViewModel
-import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.db.DatabaseDao
 import com.example.melodist.db.MelodistDatabase
 import com.example.melodist.db.MusicDatabase
 import com.example.melodist.player.AudioStreamResolver
-import com.example.melodist.player.DownloadService
+import com.example.melodist.download.DownloadService
 import com.example.melodist.player.PlayerService
 import com.example.melodist.player.WindowsMediaSession
 import com.example.melodist.utils.SyncUtils
@@ -63,7 +62,7 @@ val appModule = module {
     // Player (singletons — shared across entire app)
     // ✅ PlayerService se inicializa perezosamente — solo al primero play()
     single<PlayerService> { PlayerService() }
-    single<AudioStreamResolver> { AudioStreamResolver() }
+    single<AudioStreamResolver> { AudioStreamResolver(get()) }
     single<WindowsMediaSession> { WindowsMediaSession() }
     single<DownloadService> { DownloadService(get(), get()) }
     single<AppViewModel> { AppViewModel() }

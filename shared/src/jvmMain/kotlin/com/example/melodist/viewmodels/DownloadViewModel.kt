@@ -8,9 +8,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.repository.SongRepository
 import com.example.melodist.db.DatabaseDao
 
-import com.example.melodist.player.DownloadService
+import com.example.melodist.download.DownloadService
 
-import com.example.melodist.player.DownloadState
+import com.example.melodist.download.DownloadState
 
 import com.metrolist.innertube.models.SongItem
 import kotlinx.coroutines.Dispatchers

@@ -1,6 +1,6 @@
 package com.example.melodist.lifecycle
 
-import com.example.melodist.player.DownloadService
+import com.example.melodist.download.DownloadService
 import com.example.melodist.player.PlayerService
 import com.example.melodist.player.WindowsMediaSession
 import com.example.melodist.utils.SyncUtils

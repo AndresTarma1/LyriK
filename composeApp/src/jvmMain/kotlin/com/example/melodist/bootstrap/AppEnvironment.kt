@@ -18,7 +18,7 @@ object AppEnvironment {
         System.setProperty("java.io.tmpdir", tmpDir.absolutePath)
         System.setProperty("compose.swing.render.on.graphics", "true")
 
-        redirectStandardStreams()
+        // redirectStandardStreams()
         configureYouTubeLocale()
     }
 

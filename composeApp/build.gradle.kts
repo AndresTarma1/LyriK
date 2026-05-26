@@ -21,7 +21,7 @@ val melodistJvmArgs = listOf(
     "-XX:+UseCompressedOops",
     "-XX:MaxHeapFreeRatio=30",
     "-XX:MinHeapFreeRatio=10",
-    "-Dskiko.gpu.resourceCacheLimit=67108864", // 64MB para la cache de recursos GPU de Skiko
+    "-Dskiko.gpu.resourceCacheLimit=67108864",
 )
 
 val melodistDevJvmArgs = melodistJvmArgs
@@ -81,7 +81,6 @@ kotlin {
 
             implementation(libs.heze)
             implementation(libs.heze.blur)
-//            implementation(libs.heze.materials)
 
             implementation("ir.mahozad.multiplatform:wavy-slider:2.2.0")
 
@@ -128,8 +127,6 @@ compose.desktop {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "LyriK"
             packageVersion = "0.1.3"
-
-            javaHome = "\${System.getProperty(\"user.home\")}/.jdks/jbr-21.0.10"
 
             windows {
                 msiPackageVersion = "0.1.3"

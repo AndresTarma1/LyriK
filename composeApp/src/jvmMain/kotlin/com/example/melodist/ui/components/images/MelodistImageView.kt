@@ -120,7 +120,8 @@ fun MelodistImage(
             contentDescription = contentDescription,
             modifier = modifier
                 .clip(shape)
-                .clipToBounds(),
+                .clipToBounds()
+                .background(placeholderBg),
             contentScale = contentScale,
             alignment = alignment,
             placeholder = ColorPainter(Color.DarkGray),

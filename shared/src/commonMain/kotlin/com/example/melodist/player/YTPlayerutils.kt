@@ -1,5 +1,6 @@
 package com.example.melodist.player
 
+import com.example.melodist.data.repository.AudioQuality
 import com.metrolist.innertube.NewPipeExtractor
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.YouTubeClient
@@ -68,7 +69,7 @@ object YTPlayerutils {
     suspend fun playerResponseForPlayback(
         videoId: String,
         playlistId: String? = null,
-        audioQuality: AudioQuality = AudioQuality.AUTO,
+        audioQuality: AudioQuality = AudioQuality.NORMAL,
     ): Result<PlaybackData> = runCatching {
         /**
          * This is required for some clients to get working streams however
@@ -91,22 +92,17 @@ object YTPlayerutils {
         var streamPlayerResponse: PlayerResponse? = null
 
         for (clientIndex in (-1 until STREAM_FALLBACK_CLIENTS.size)) {
-            // reset for each client
             format = null
             streamUrl = null
             streamExpiresInSeconds = null
 
-            // decide which client to use for streams and load its player response
             val client: YouTubeClient
             if (clientIndex == -1) {
-                // try with streams from main client first
                 streamPlayerResponse = mainPlayerResponse
             } else {
-                // after main client use fallback clients
                 client = STREAM_FALLBACK_CLIENTS[clientIndex]
 
                 if (client.loginRequired && !isLoggedIn && YouTube.cookie == null) {
-                    // skip client if it requires login but user is not logged in
                     continue
                 }
 
@@ -114,9 +110,7 @@ object YTPlayerutils {
                     YouTube.player(videoId, playlistId, client, signatureTimestamp).getOrNull()
             }
 
-            // process current client response
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
-                // Try to get streams using newPipePlayer method
                 val newPipeResponse = YouTube.newPipePlayer(videoId, streamPlayerResponse)
                 val responseToUse = newPipeResponse ?: streamPlayerResponse
 
@@ -138,7 +132,6 @@ object YTPlayerutils {
                 if (streamUrl == null) {
                     streamUrl = findUrlOrNull(format, videoId, responseToUse)
                     if (streamUrl != null) {
-                        // Cache por 5 minutos (300_000 ms) o el tiempo de expiración del stream
                         val ttl = minOf(
                             streamPlayerResponse.streamingData?.expiresInSeconds?.times(1000L)
                                 ?: 300_000L,
@@ -165,7 +158,6 @@ object YTPlayerutils {
                 }
 
                 if (validateStatus(streamUrl)) {
-                    // working stream found
                     break
                 }
             }
@@ -213,18 +205,20 @@ object YTPlayerutils {
         playerResponse: PlayerResponse,
         audioQuality: AudioQuality,
     ): PlayerResponse.StreamingData.Format? {
-
-        val format = playerResponse.streamingData?.adaptiveFormats
+        val formats = playerResponse.streamingData?.adaptiveFormats
             ?.filter { it.isAudio && it.isOriginal }
-            ?.maxByOrNull {
-                it.bitrate * when (audioQuality) {
-                    AudioQuality.AUTO -> -1
-                    AudioQuality.HIGH -> 1
-                    AudioQuality.LOW -> -1
-                } + (if (it.mimeType.startsWith("audio/webm")) 10240 else 0) // prefer opus stream
+            ?: return null
+
+        return when (audioQuality) {
+            AudioQuality.LOW -> formats.minByOrNull { it.bitrate }
+            AudioQuality.NORMAL -> {
+                val sorted = formats.sortedBy { it.bitrate }
+                sorted.getOrNull(sorted.size / 2) ?: sorted.firstOrNull()
             }
-        return format
+            AudioQuality.HIGH -> formats.maxByOrNull { it.bitrate }
+        }
     }
+
 
     /**
      * Checks if the stream url returns a successful status.
@@ -233,7 +227,6 @@ object YTPlayerutils {
      */
     private suspend fun validateStatus(url: String): Boolean {
         return try {
-            // ✅ Usa el cliente singleton en vez de crear uno nuevo cada vez
             val response: HttpResponse = validationClient.head(url)
             response.status.isSuccess()
         } catch (e: Exception) {

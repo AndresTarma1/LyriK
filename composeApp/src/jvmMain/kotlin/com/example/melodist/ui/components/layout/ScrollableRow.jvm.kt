@@ -20,9 +20,14 @@ import androidx.compose.foundation.lazy.grid.LazyHorizontalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollbarAdapter
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import org.jetbrains.jewel.foundation.modifier.onHover
 
 
 @Composable
@@ -47,16 +52,17 @@ fun HorizontalScrollableRow(
             Spacer(modifier = Modifier.height(12.dp))
         }
 
-        HorizontalScrollbar(
-            adapter = rememberScrollbarAdapter(state),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth() // Ocupa todo el ancho para simular la integración nativa
-                .height(10.dp)
-                .padding(horizontal = 40.dp)
-                    ,
-            style = scrollbarStyle
-        )
+            HorizontalScrollbar(
+                adapter = rememberScrollbarAdapter(state),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth() // Ocupa todo el ancho para simular la integración nativa
+                    .height(10.dp)
+                    .padding(horizontal = 40.dp)
+                        ,
+                style = scrollbarStyle
+            )
+
     }
 }
 

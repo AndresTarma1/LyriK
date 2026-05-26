@@ -35,6 +35,7 @@ import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -463,10 +464,7 @@ fun YoutubeListItem(
         else -> RoundedCornerShape(6.dp)
     }
 
-    val imageSize = when (item) {
-        is PlaylistItem, is ArtistItem -> 56.dp
-        else -> 48.dp
-    }
+    val imageSize = 56.dp
 
     var showMenu by remember { mutableStateOf(false) }
     var isHovered by remember { mutableStateOf(false) }
@@ -490,7 +488,7 @@ fun YoutubeListItem(
                 }
             )
     ) {
-        androidx.compose.material3.ListItem(
+       ListItem(
             modifier = Modifier.fillMaxWidth(),
             colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = Color.Transparent),
             headlineContent = {
@@ -550,9 +548,9 @@ fun YoutubeListItem(
                         is PlaylistItem -> PlaceholderType.PLAYLIST
                         else -> PlaceholderType.SONG
                     },
-                    contentScale = ContentScale.Crop,
+                    contentScale = ContentScale.Fit,
                     iconSize = if (item is PlaylistItem) 28.dp else 24.dp,
-                    isLowRes = true  // ✅ Baja resolución en listas
+                    isLowRes = true
                 )
             },
             trailingContent = {

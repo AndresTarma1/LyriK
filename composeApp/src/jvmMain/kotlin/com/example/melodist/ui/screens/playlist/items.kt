@@ -29,7 +29,6 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
-import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Checkbox
@@ -56,7 +55,7 @@ import com.example.melodist.ui.components.song.AddToPlaylistDialog
 import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.PlaceholderType
 import com.example.melodist.ui.components.context.SongContextMenu
-import com.example.melodist.player.DownloadState
+import com.example.melodist.download.DownloadState
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.ui.helpers.rememberSongDownloadState
 import com.example.melodist.ui.screens.shared.formatDuration

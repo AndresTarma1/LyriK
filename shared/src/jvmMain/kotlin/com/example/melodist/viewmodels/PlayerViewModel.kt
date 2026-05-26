@@ -6,6 +6,7 @@ import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.db.DatabaseDao
 import com.example.melodist.db.entities.ArtistEntity
+import com.example.melodist.download.DownloadService
 import com.example.melodist.models.MediaMetadata
 import com.example.melodist.models.toMediaMetadata
 import com.example.melodist.player.*
@@ -624,6 +625,7 @@ class PlayerViewModel(
 
         resolveJob = viewModelScope.launch {
             _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
+            _progressState.update { it.copy(positionMs = 0, durationMs = song.duration.toLong() * 1000) }
             playerService.stopAudioOnly()
 
             try {

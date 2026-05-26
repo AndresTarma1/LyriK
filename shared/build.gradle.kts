@@ -29,7 +29,7 @@ kotlin {
             api(libs.sqldelight.coroutines)
 
 
-            implementation("io.github.aakira:napier:2.7.1")
+            api("io.github.aakira:napier:2.7.1")
 
 
             // DataStore library

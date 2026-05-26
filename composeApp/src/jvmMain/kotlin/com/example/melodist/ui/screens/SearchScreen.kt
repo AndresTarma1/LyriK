@@ -34,7 +34,9 @@ import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.NorthWest
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,6 +60,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.*
 import androidx.compose.ui.text.font.FontWeight
@@ -165,7 +169,7 @@ fun SearchScreenRoute(
 fun SearchScreen(
     state: SearchScreenState,
     actions: SearchActions,
-    playerViewModel: PlayerViewModel? = null
+    playerViewModel: PlayerViewModel
 ) {
     var active by remember { mutableStateOf(false) }
 
@@ -341,7 +345,6 @@ fun SearchSection(
                     SectionHeader(stringResource(Res.string.suggestions_title))
                 }
 
-                // ✅ Limitar sugerencias visibles para no sobrecargar la lista
                 items(suggestions.take(8), key = { it }) { suggestion ->
                     SuggestionListItem(
                         suggestion = suggestion,
@@ -515,13 +518,11 @@ fun FilterRow(
 
             }
         }
-
-
     }
-
 }
 
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun ResultsList(
     uiState: SearchState,
@@ -610,7 +611,7 @@ fun ResultsList(
                 Box {
 
                     LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                         state = scrollable
                     ) {
@@ -649,12 +650,6 @@ fun ResultsList(
                                 item = item,
                                 source = source,
                                 onItemClick = onItemClick,
-                                modifier = Modifier.animateItem(
-                                    placementSpec = spring(
-                                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                                        stiffness = Spring.StiffnessMediumLow
-                                    )
-                                )
                             )
                         }
 
@@ -666,8 +661,8 @@ fun ResultsList(
                                         .padding(16.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    CircularProgressIndicator(
-                                        strokeWidth = 3.dp
+                                    CircularWavyProgressIndicator(
+                                        stroke = Stroke(5F, cap = StrokeCap.Round),
                                     )
                                 }
                             }
