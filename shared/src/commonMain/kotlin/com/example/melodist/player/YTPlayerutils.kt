@@ -5,6 +5,7 @@ import com.metrolist.innertube.NewPipeExtractor
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.YouTubeClient
 import com.metrolist.innertube.models.response.PlayerResponse
+import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
@@ -83,6 +84,7 @@ object YTPlayerutils {
 
         val mainPlayerResponse =
             YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp).getOrThrow()
+        Napier.d("Resolving playback stream for $videoId with quality=$audioQuality signatureTimestamp=$signatureTimestamp")
         val audioConfig = mainPlayerResponse.playerConfig?.audioConfig
         val videoDetails = mainPlayerResponse.videoDetails
         val playbackTracking = mainPlayerResponse.playbackTracking
@@ -103,6 +105,7 @@ object YTPlayerutils {
                 client = STREAM_FALLBACK_CLIENTS[clientIndex]
 
                 if (client.loginRequired && !isLoggedIn && YouTube.cookie == null) {
+                    Napier.d("Skipping playback client ${client.clientName} for $videoId because login is required")
                     continue
                 }
 
@@ -113,6 +116,8 @@ object YTPlayerutils {
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
                 val newPipeResponse = YouTube.newPipePlayer(videoId, streamPlayerResponse)
                 val responseToUse = newPipeResponse ?: streamPlayerResponse
+                val clientName = if (clientIndex == -1) MAIN_CLIENT.clientName else STREAM_FALLBACK_CLIENTS[clientIndex].clientName
+                Napier.d("Trying playback client $clientName for $videoId; newPipeResponse=${newPipeResponse != null}")
 
                 format =
                     findFormat(
@@ -121,6 +126,7 @@ object YTPlayerutils {
                     )
 
                 if (format == null) {
+                    Napier.w("No audio format found for $videoId using client $clientName")
                     continue
                 }
 
@@ -144,11 +150,13 @@ object YTPlayerutils {
                 }
 
                 if (streamUrl == null) {
+                    Napier.w("No stream URL found for $videoId itag=${format.itag} using client $clientName")
                     continue
                 }
 
                 streamExpiresInSeconds = streamPlayerResponse.streamingData?.expiresInSeconds
                 if (streamExpiresInSeconds == null) {
+                    Napier.w("Missing stream expiry for $videoId using client $clientName")
                     continue
                 }
 
@@ -158,8 +166,15 @@ object YTPlayerutils {
                 }
 
                 if (validateStatus(streamUrl)) {
+                    Napier.d("Resolved stream for $videoId using client $clientName itag=${format.itag}")
                     break
+                } else {
+                    Napier.w("Stream URL validation failed for $videoId using client $clientName itag=${format.itag}; trying fallback client")
                 }
+            } else if (streamPlayerResponse != null) {
+                Napier.w(
+                    "Playback client response not OK for $videoId: status=${streamPlayerResponse.playabilityStatus.status}, reason=${streamPlayerResponse.playabilityStatus.reason}"
+                )
             }
         }
 
@@ -230,6 +245,7 @@ object YTPlayerutils {
             val response: HttpResponse = validationClient.head(url)
             response.status.isSuccess()
         } catch (e: Exception) {
+            Napier.w("Stream URL validation request failed", e)
             false
         }
     }
@@ -247,12 +263,14 @@ object YTPlayerutils {
 
         // First check if format already has a URL from newPipePlayer
         if (!format.url.isNullOrEmpty()) {
+            Napier.d("Using direct stream URL for $videoId itag=${format.itag}")
             return format.url
         }
 
         // Try to get URL using NewPipeExtractor signature deobfuscation
         val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
         if (deobfuscatedUrl != null) {
+            Napier.d("Using NewPipe-deobfuscated stream URL for $videoId itag=${format.itag}")
             return deobfuscatedUrl
         }
 
@@ -261,6 +279,7 @@ object YTPlayerutils {
         if (streamUrls.isNotEmpty()) {
             val streamUrl = streamUrls.find { it.first == format.itag }?.second
             if (streamUrl != null) {
+                Napier.d("Using NewPipe StreamInfo URL for $videoId itag=${format.itag}")
                 return streamUrl
             }
 
@@ -272,6 +291,7 @@ object YTPlayerutils {
             }?.second
 
             if (audioStream != null) {
+                Napier.d("Using NewPipe StreamInfo audio fallback URL for $videoId requestedItag=${format.itag}")
                 return audioStream
             }
         }

@@ -15,6 +15,7 @@ import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
 import java.net.HttpURLConnection
@@ -662,6 +663,7 @@ class PlayerViewModel(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                Napier.e("Playback failed for ${song.id} - ${song.title}", e)
                 if (requestId == playRequestId) {
                     _uiState.update { it.copy(error = e.message) }
                 }

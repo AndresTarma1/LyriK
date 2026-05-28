@@ -3,6 +3,8 @@ package com.example.melodist.bootstrap
 import com.example.melodist.data.AppDirs
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.YouTubeLocale
+import io.github.aakira.napier.DebugAntilog
+import io.github.aakira.napier.Napier
 import java.io.File
 import java.io.FileOutputStream
 import java.io.PrintStream
@@ -12,13 +14,14 @@ object AppEnvironment {
 
     fun initialize() {
         AppDirs.ensureDirectories()
+//        redirectStandardStreams()
+        Napier.base(DebugAntilog())
         val tmpDir = AppDirs.tmpDir.also { it.mkdirs() }
 
         System.setProperty("org.sqlite.tmpdir", tmpDir.absolutePath)
         System.setProperty("java.io.tmpdir", tmpDir.absolutePath)
         System.setProperty("compose.swing.render.on.graphics", "true")
 
-        // redirectStandardStreams()
         configureYouTubeLocale()
     }
 
