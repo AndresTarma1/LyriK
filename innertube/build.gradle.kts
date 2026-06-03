@@ -14,6 +14,8 @@ dependencies {
     implementation(libs.ktor.serialization.json)
     implementation(libs.ktor.client.encoding)
     implementation(libs.brotli)
-    implementation(libs.newpipeextractor)
+    implementation("com.github.MetrolistGroup:MetrolistExtractor:6305155") {
+        exclude(group = "com.google.protobuf")
+    }
     testImplementation(libs.junit)
 }

@@ -472,6 +472,7 @@ private fun ArtistSectionListItem(
                 is PlaylistItem -> onNavigate(Route.Playlist(clicked.id))
                 is ArtistItem -> onNavigate(Route.Artist(clicked.id))
                 is SongItem -> playerViewModel.playSingle(clicked)
+                else -> {}
             }
         },
         modifier = modifier
@@ -502,6 +503,7 @@ private fun ArtistSectionGridItem(
             is PlaylistItem -> onNavigate(Route.Playlist(clicked.id))
             is ArtistItem -> onNavigate(Route.Artist(clicked.id))
             is SongItem -> playerViewModel.playSingle(clicked)
+            else -> {}
         }
     }
 
@@ -555,6 +557,7 @@ private fun ArtistSectionGridItem(
             is AlbumItem -> item.artists?.firstOrNull()?.name ?: stringResource(Res.string.item_album)
             is ArtistItem -> stringResource(Res.string.item_artist)
             is PlaylistItem -> item.author?.name ?: stringResource(Res.string.item_list)
+            else -> ""
         },
         modifier = modifier,
         topStartOverlay = {

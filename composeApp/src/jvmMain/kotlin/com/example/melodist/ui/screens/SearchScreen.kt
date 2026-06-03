@@ -220,13 +220,14 @@ fun SearchScreen(
                     when (item) {
 
                         is SongItem -> {
-                            playerViewModel?.playSingle(item)
+                            playerViewModel.playSingle(item)
                         }
                         else -> {
                             val route = when (item) {
                                 is AlbumItem -> Route.Album(item.id)
                                 is PlaylistItem -> Route.Playlist(item.id)
                                 is ArtistItem -> Route.Artist(item.id)
+                                else -> Route.Home
                             }
                             actions.onNavigate(route)
                         }

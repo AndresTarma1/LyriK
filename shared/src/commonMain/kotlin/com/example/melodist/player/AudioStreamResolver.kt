@@ -15,7 +15,7 @@ class AudioStreamResolver(
         val quality = userPreferences.audioQuality.first()
         return YTPlayerutils.playerResponseForPlayback(videoId = videoId, audioQuality = quality).fold(
             onSuccess = { data -> data },
-            onFailure = { error -> throw Exception("Vaya error: ${error.message}") }
+            onFailure = { error -> throw Exception("Vaya error: $error") }
         )
     }
 }

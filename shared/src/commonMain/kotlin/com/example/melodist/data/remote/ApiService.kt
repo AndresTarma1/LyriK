@@ -52,7 +52,7 @@ class ApiService {
     }
 
     suspend fun getLibraryWithFilter(filter: YouTube.LibraryFilter): Result<LibraryPage> {
-        return YouTube.libraryRecentActivity(filter)
+        return YouTube.libraryRecentActivity()
     }
 
     suspend fun getLibraryByBrowseId(browseId: String, tabIndex: Int = 0): Result<LibraryPage> {

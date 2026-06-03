@@ -73,6 +73,7 @@ fun YouTubeBrowseScreenRoute(
                 is AlbumItem -> { onNavigate(Route.Album(item.id)) }
                 is PlaylistItem -> { onNavigate(Route.Playlist(item.id)) }
                 is ArtistItem -> { onNavigate(Route.Artist(item.id)) }
+                else -> {}
             }
         },
     )

@@ -98,6 +98,7 @@ private fun YTItem.mediaGridSubtitle(): String = when (this) {
     is ArtistItem -> stringResource(Res.string.item_artist)
     is PlaylistItem -> author?.name ?: songCountText ?: stringResource(Res.string.item_playlist)
     is SongItem -> artists.firstOrNull()?.name ?: stringResource(Res.string.item_song)
+    else -> ""
 }
 
 private fun YTItem.mediaGridPlaceholderType(): PlaceholderType = when (this) {
@@ -105,6 +106,7 @@ private fun YTItem.mediaGridPlaceholderType(): PlaceholderType = when (this) {
     is ArtistItem -> PlaceholderType.ARTIST
     is PlaylistItem -> PlaceholderType.PLAYLIST
     is SongItem -> PlaceholderType.SONG
+    else -> PlaceholderType.SONG
 }
 
 private fun YTItem.mediaGridShape(): Shape = when (this) {
@@ -515,6 +517,8 @@ fun YoutubeListItem(
                         val author = item.author?.name?.let { " • $it" } ?: ""
                         "${stringResource(Res.string.item_playlist)}$author"
                     }
+
+                    else -> ""
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(

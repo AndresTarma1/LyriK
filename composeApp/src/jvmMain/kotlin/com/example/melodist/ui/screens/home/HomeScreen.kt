@@ -337,6 +337,8 @@ private fun HomeSectionItem(
             onClick = { onNavigate(Route.Artist((it as ArtistItem).id)) },
             modifier = modifier,
         )
+
+        else -> {}
     }
 }
 
