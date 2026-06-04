@@ -6,6 +6,7 @@ import com.example.melodist.db.entities.ArtistEntity
 import com.example.melodist.db.entities.FormatEntity
 import com.example.melodist.db.entities.SongEntity
 import com.example.melodist.player.AudioStreamResolver
+import com.example.melodist.player.PlaybackData
 import com.example.melodist.player.YTPlayerutils
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
@@ -573,7 +574,7 @@ class DownloadRepository(
         }
     }
 
-    private suspend fun saveFormatMetadata(songId: String, stream: YTPlayerutils.PlaybackData) {
+    private suspend fun saveFormatMetadata(songId: String, stream: PlaybackData) {
         databaseDao.insertFormat(
             FormatEntity(
                 id = songId,

@@ -32,6 +32,7 @@ kotlin {
             api("io.github.aakira:napier:2.7.1")
 
 
+
             // DataStore library
             api("androidx.datastore:datastore:1.2.1")
             api("androidx.datastore:datastore-preferences:1.2.1")
@@ -49,6 +50,12 @@ kotlin {
             implementation("net.java.dev.jna:jna-platform-jpms:5.18.1")
             implementation("org.jetbrains.runtime:jbr-api:1.10.1")
             implementation("dev.toastbits:mediasession:0.1.1")
+
+            // Source: https://mvnrepository.com/artifact/org.graalvm.js/js-scriptengine
+            implementation("org.graalvm.js:js-scriptengine:25.0.3")
+
+            // Source: https://mvnrepository.com/artifact/org.graalvm.js/js
+            implementation("org.graalvm.js:js:25.0.3")
         }
     }
 }

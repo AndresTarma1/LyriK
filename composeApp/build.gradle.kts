@@ -11,6 +11,7 @@ plugins {
 
 val melodistJvmArgs = listOf(
     "--add-modules=java.sql",
+    "--add-modules=jcef",
     "--enable-native-access=ALL-UNNAMED",
     "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
     "-XX:+UseG1GC",

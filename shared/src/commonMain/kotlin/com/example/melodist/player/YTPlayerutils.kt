@@ -3,87 +3,30 @@ package com.example.melodist.player
 import com.example.melodist.data.repository.AudioQuality
 import com.metrolist.innertube.NewPipeExtractor
 import com.metrolist.innertube.YouTube
-import com.metrolist.innertube.models.YouTubeClient
 import com.metrolist.innertube.models.response.PlayerResponse
 import io.github.aakira.napier.Napier
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.request.head
-import io.ktor.client.statement.HttpResponse
-import io.ktor.http.isSuccess
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import java.util.LinkedHashMap
 
 object YTPlayerutils {
-    private val MAIN_CLIENT: YouTubeClient = YouTubeClient.WEB_REMIX
-
-    private val STREAM_FALLBACK_CLIENTS: Array<YouTubeClient> = arrayOf(
-        YouTubeClient.TVHTML5,
-        YouTubeClient.ANDROID_VR_1_43_32,
-        YouTubeClient.ANDROID_VR_1_61_48,
-        YouTubeClient.ANDROID_CREATOR,
-        YouTubeClient.IPADOS,
-        YouTubeClient.ANDROID_VR_NO_AUTH,
-        YouTubeClient.MOBILE,
-        YouTubeClient.TVHTML5_SIMPLY_EMBEDDED_PLAYER,
-        YouTubeClient.IOS,
-        YouTubeClient.WEB,
-        YouTubeClient.WEB_CREATOR
-    )
-
-    /**
-     * Cliente HTTP singleton para validación de streams.
-     * Evita crear un nuevo cliente en cada llamada (memory leak).
-     */
-    private val validationClient by lazy {
-        HttpClient(CIO) {
-            expectSuccess = false
-            install(HttpTimeout) {
-                connectTimeoutMillis = 3000
-                requestTimeoutMillis = 5000
-            }
-        }
-    }
-
-    data class PlaybackData(
-        val audioConfig: PlayerResponse.PlayerConfig.AudioConfig?,
-        val videoDetails: PlayerResponse.VideoDetails?,
-        val playbackTracking: PlayerResponse.PlaybackTracking?,
-        val format: PlayerResponse.StreamingData.Format,
-        val streamUrl: String,
-        val streamExpiresInSeconds: Int,
-    )
-
-    /**
-     * Cache simple con tamaño máximo para evitar peticiones repetidas de stream URL.
-     * Clave: "$videoId|$format.itag"
-     */
-    private val streamUrlCache = object : LinkedHashMap<String, Pair<String, Long>>(16, 0.75f, true) {
-        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<String, Long>>?): Boolean {
-            return size > 20
-        }
-    }
-    private val cacheMutex = Mutex()
-
     suspend fun playerResponseForPlayback(
         videoId: String,
         playlistId: String? = null,
         audioQuality: AudioQuality = AudioQuality.NORMAL,
     ): Result<PlaybackData> = runCatching {
-        /**
-         * This is required for some clients to get working streams however
-         * it should not be forced for the [MAIN_CLIENT] because the response of the [MAIN_CLIENT]
-         * is required even if the streams won't work from this client.
-         * This is why it is allowed to be null.
-         */
+
         val signatureTimestamp = getSignatureTimestampOrNull(videoId)
+        Napier.i { "Signature timestamp for $videoId: ${signatureTimestamp ?: "null"}" }
 
         val isLoggedIn = YouTube.cookie != null
 
+        // TODO: PoToken generation for WEB_REMIX client
+        // 1. Ensure visitorData/dataSyncId is available (fetch if null)
+        // 2. Generate PoToken via PoTokenGenerator.getWebClientPoToken(videoId, sessionId)
+        // 3. Pass poToken.playerRequestPoToken to YouTube.player() below
+        // 4. After URL resolution, append pot=streamingDataPoToken to stream URLs
+        //    for clients with useWebPoTokens=true
+
         val mainPlayerResponse =
-            YouTube.player(videoId, playlistId, MAIN_CLIENT, signatureTimestamp).getOrThrow()
+            YouTube.player(videoId, playlistId, FallbackClients.mainClient, signatureTimestamp).getOrThrow()
         Napier.d("Resolving playback stream for $videoId with quality=$audioQuality signatureTimestamp=$signatureTimestamp")
         val audioConfig = mainPlayerResponse.playerConfig?.audioConfig
         val videoDetails = mainPlayerResponse.videoDetails
@@ -93,59 +36,50 @@ object YTPlayerutils {
         var streamExpiresInSeconds: Int? = null
         var streamPlayerResponse: PlayerResponse? = null
 
-        for (clientIndex in (-1 until STREAM_FALLBACK_CLIENTS.size)) {
+        for (clientIndex in (-1 until FallbackClients.streamFallbackClients.size)) {
             format = null
             streamUrl = null
             streamExpiresInSeconds = null
 
-            val client: YouTubeClient
-            if (clientIndex == -1) {
+            val client = if (clientIndex == -1) {
                 streamPlayerResponse = mainPlayerResponse
+                null
             } else {
-                client = STREAM_FALLBACK_CLIENTS[clientIndex]
-
-                if (client.loginRequired && !isLoggedIn && YouTube.cookie == null) {
-                    Napier.d("Skipping playback client ${client.clientName} for $videoId because login is required")
+                val fallbackClient = FallbackClients.streamFallbackClients[clientIndex]
+                if (fallbackClient.loginRequired && !isLoggedIn && YouTube.cookie == null) {
+                    Napier.d("Skipping playback client ${fallbackClient.clientName} for $videoId because login is required")
                     continue
                 }
-
                 streamPlayerResponse =
-                    YouTube.player(videoId, playlistId, client, signatureTimestamp).getOrNull()
+                    YouTube.player(videoId, playlistId, fallbackClient, signatureTimestamp).getOrNull()
+                fallbackClient
             }
 
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
                 val newPipeResponse = YouTube.newPipePlayer(videoId, streamPlayerResponse)
                 val responseToUse = newPipeResponse ?: streamPlayerResponse
-                val clientName = if (clientIndex == -1) MAIN_CLIENT.clientName else STREAM_FALLBACK_CLIENTS[clientIndex].clientName
+                val clientName = client?.clientName
+                    ?: FallbackClients.mainClient.clientName
                 Napier.d("Trying playback client $clientName for $videoId; newPipeResponse=${newPipeResponse != null}")
 
-                format =
-                    findFormat(
-                        responseToUse,
-                        audioQuality,
-                    )
-
+                format = FormatSelector.findFormat(responseToUse, audioQuality)
                 if (format == null) {
                     Napier.w("No audio format found for $videoId using client $clientName")
                     continue
                 }
 
-                // Revisar cache antes de validar red
                 val cacheKey = "$videoId|${format.itag}"
-                val cached = cacheMutex.withLock { streamUrlCache[cacheKey] }
-                streamUrl = cached?.takeIf { System.currentTimeMillis() < it.second }?.first
+                streamUrl = StreamCache.get(cacheKey)
 
                 if (streamUrl == null) {
-                    streamUrl = findUrlOrNull(format, videoId, responseToUse)
+                    streamUrl = StreamUrlResolver.resolveUrl(format, videoId, responseToUse)
                     if (streamUrl != null) {
                         val ttl = minOf(
                             streamPlayerResponse.streamingData?.expiresInSeconds?.times(1000L)
                                 ?: 300_000L,
-                            300_000L
+                            300_000L,
                         )
-                        cacheMutex.withLock {
-                            streamUrlCache[cacheKey] = Pair(streamUrl, System.currentTimeMillis() + ttl)
-                        }
+                        StreamCache.put(cacheKey, streamUrl, ttl)
                     }
                 }
 
@@ -154,18 +88,20 @@ object YTPlayerutils {
                     continue
                 }
 
+                // TODO: Append pot=streamingDataPoToken for PoToken-enabled clients
+                streamUrl = StreamUrlResolver.applyNTransform(streamUrl)
+
                 streamExpiresInSeconds = streamPlayerResponse.streamingData?.expiresInSeconds
                 if (streamExpiresInSeconds == null) {
                     Napier.w("Missing stream expiry for $videoId using client $clientName")
                     continue
                 }
 
-
-                if (clientIndex == STREAM_FALLBACK_CLIENTS.size - 1) {
+                if (clientIndex == FallbackClients.streamFallbackClients.size - 1) {
                     break
                 }
 
-                if (validateStatus(streamUrl)) {
+                if (StreamUrlResolver.validate(streamUrl)) {
                     Napier.d("Resolved stream for $videoId using client $clientName itag=${format.itag}")
                     break
                 } else {
@@ -173,7 +109,7 @@ object YTPlayerutils {
                 }
             } else if (streamPlayerResponse != null) {
                 Napier.w(
-                    "Playback client response not OK for $videoId: status=${streamPlayerResponse.playabilityStatus.status}, reason=${streamPlayerResponse.playabilityStatus.reason}"
+                    "Playback client response not OK for $videoId: status=${streamPlayerResponse.playabilityStatus.status}, reason=${streamPlayerResponse.playabilityStatus.reason}",
                 )
             }
         }
@@ -181,23 +117,12 @@ object YTPlayerutils {
         if (streamPlayerResponse == null) {
             throw Exception("Bad stream player response")
         }
-
         if (streamPlayerResponse.playabilityStatus.status != "OK") {
-            val errorReason = streamPlayerResponse.playabilityStatus.reason
-            throw Error("$errorReason")
+            throw Error(streamPlayerResponse.playabilityStatus.reason ?: "Unknown error")
         }
-
-        if (streamExpiresInSeconds == null) {
-            throw Exception("Missing stream expire time")
-        }
-
-        if (format == null) {
-            throw Exception("Could not find format")
-        }
-
-        if (streamUrl == null) {
-            throw Exception("Could not find stream url")
-        }
+        if (streamExpiresInSeconds == null) throw Exception("Missing stream expire time")
+        if (format == null) throw Exception("Could not find format")
+        if (streamUrl == null) throw Exception("Could not find stream url")
 
         PlaybackData(
             audioConfig,
@@ -213,103 +138,14 @@ object YTPlayerutils {
         videoId: String,
         playlistId: String? = null,
     ): Result<PlayerResponse> {
-        return YouTube.player(videoId, playlistId, client = YouTubeClient.WEB_REMIX)
-    }
-
-    private fun findFormat(
-        playerResponse: PlayerResponse,
-        audioQuality: AudioQuality,
-    ): PlayerResponse.StreamingData.Format? {
-        val formats = playerResponse.streamingData?.adaptiveFormats
-            ?.filter { it.isAudio && it.isOriginal }
-            ?: return null
-
-        return when (audioQuality) {
-            AudioQuality.LOW -> formats.minByOrNull { it.bitrate }
-            AudioQuality.NORMAL -> {
-                val sorted = formats.sortedBy { it.bitrate }
-                sorted.getOrNull(sorted.size / 2) ?: sorted.firstOrNull()
-            }
-            AudioQuality.HIGH -> formats.maxByOrNull { it.bitrate }
-        }
-    }
-
-
-    /**
-     * Checks if the stream url returns a successful status.
-     * If this returns true the url is likely to work.
-     * If this returns false the url might cause an error during playback.
-     */
-    private suspend fun validateStatus(url: String): Boolean {
-        return try {
-            val response: HttpResponse = validationClient.head(url)
-            response.status.isSuccess()
-        } catch (e: Exception) {
-            Napier.w("Stream URL validation request failed", e)
-            false
-        }
+        return YouTube.player(videoId, playlistId, client = FallbackClients.mainClient)
     }
 
     private fun getSignatureTimestampOrNull(videoId: String): Int? {
-        return NewPipeExtractor.getSignatureTimestamp(videoId)
-            .getOrNull()
+        return NewPipeExtractor.getSignatureTimestamp(videoId).getOrNull()
     }
 
-    private fun findUrlOrNull(
-        format: PlayerResponse.StreamingData.Format,
-        videoId: String,
-        playerResponse: PlayerResponse
-    ): String? {
-
-        // First check if format already has a URL from newPipePlayer
-        if (!format.url.isNullOrEmpty()) {
-            Napier.d("Using direct stream URL for $videoId itag=${format.itag}")
-            return format.url
-        }
-
-        // Try to get URL using NewPipeExtractor signature deobfuscation
-        val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
-        if (deobfuscatedUrl != null) {
-            Napier.d("Using NewPipe-deobfuscated stream URL for $videoId itag=${format.itag}")
-            return deobfuscatedUrl
-        }
-
-        // Fallback: try to get URL from StreamInfo
-        val streamUrls = YouTube.getNewPipeStreamUrls(videoId)
-        if (streamUrls.isNotEmpty()) {
-            val streamUrl = streamUrls.find { it.first == format.itag }?.second
-            if (streamUrl != null) {
-                Napier.d("Using NewPipe StreamInfo URL for $videoId itag=${format.itag}")
-                return streamUrl
-            }
-
-            // If exact itag not found, try to find any audio stream
-            val audioStream = streamUrls.find { urlPair ->
-                playerResponse.streamingData?.adaptiveFormats?.any {
-                    it.itag == urlPair.first && it.isAudio
-                } == true
-            }?.second
-
-            if (audioStream != null) {
-                Napier.d("Using NewPipe StreamInfo audio fallback URL for $videoId requestedItag=${format.itag}")
-                return audioStream
-            }
-        }
-
-        return null
-    }
-
-    /**
-     * Invalida la cache de stream URLs para un video específico.
-     * Útil cuando se refresca manualmente la información de un video.
-     */
     suspend fun forceRefreshForVideo(videoId: String) {
-        cacheMutex.lock()
-        try {
-            val keysToRemove = streamUrlCache.keys.filter { it.startsWith("$videoId|") }
-            keysToRemove.forEach { streamUrlCache.remove(it) }
-        } finally {
-            cacheMutex.unlock()
-        }
+        StreamCache.invalidateForVideo(videoId)
     }
 }

@@ -11,7 +11,7 @@ class AgeRestrictedException(message: String) : Exception(message)
 class AudioStreamResolver(
     private val userPreferences: UserPreferencesRepository,
 ) {
-    suspend fun resolveAudioStream(videoId: String): YTPlayerutils.PlaybackData {
+    suspend fun resolveAudioStream(videoId: String): PlaybackData {
         val quality = userPreferences.audioQuality.first()
         return YTPlayerutils.playerResponseForPlayback(videoId = videoId, audioQuality = quality).fold(
             onSuccess = { data -> data },
