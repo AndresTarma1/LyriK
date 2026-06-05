@@ -44,6 +44,7 @@ fun LibraryMixedTab(
     state: LibraryScreenState,
     onNavigate: (Route) -> Unit,
     playerViewModel: PlayerViewModel? = null,
+    onRemovePlaylist: (String) -> Unit = {},
     onQuickPlayAlbum: (browseId: String, playlistId: String?, title: String, onFallback: () -> Unit) -> Unit,
     onQuickShuffleAlbum: (browseId: String, playlistId: String?, title: String, onFallback: () -> Unit) -> Unit,
     onQuickPlayPlaylist: (playlistId: String, endpoint: WatchEndpoint?, title: String, onFallback: () -> Unit) -> Unit,
@@ -68,6 +69,8 @@ fun LibraryMixedTab(
         val onClick: () -> Unit,
         val onPlay: (() -> Unit)? = null,
         val onShuffle: (() -> Unit)? = null,
+        val isRemovable: Boolean = false,
+        val onRemove: () -> Unit = {},
     )
 
     val items = remember(
@@ -132,17 +135,18 @@ fun LibraryMixedTab(
             }
 
             mergedPlaylists.forEach { playlist ->
+                val isYtm = ytm?.playlists?.any { it.id == playlist.id } == true
                 seenPlaylistIds.add(playlist.id)
                 add(
                     MixedGridEntry(
                         key = "pl_${playlist.id}",
                         item = playlist,
                         title = playlist.title,
-                        subtitle = playlist.author?.name ?: playlist.songCountText ?: "Playlist",
+                        subtitle = playlist.songCountText ?: playlist.author?.name ?: "Playlist",
                         thumbnailUrl = playlist.thumbnail,
                         placeholderType = PlaceholderType.PLAYLIST,
                         shape = RoundedCornerShape(12.dp),
-                        source = if (ytm?.playlists?.any { it.id == playlist.id } == true) ItemContentSource.YOUTUBE else ItemContentSource.LOCAL,
+                        source = if (isYtm) ItemContentSource.YOUTUBE else ItemContentSource.LOCAL,
                         onClick = { onNavigate(Route.Playlist(playlist.id)) },
                         onPlay = {
                             onQuickPlayPlaylist(playlist.id, playlist.playEndpoint, playlist.title) {
@@ -154,6 +158,8 @@ fun LibraryMixedTab(
                                 onNavigate(Route.Playlist(playlist.id))
                             }
                         },
+                        isRemovable = !isYtm,
+                        onRemove = { onRemovePlaylist(playlist.id) },
                     )
                 )
             }
@@ -269,7 +275,8 @@ fun LibraryMixedTab(
                             onClick = entry.onClick,
                             onPlay = entry.onPlay,
                             onShuffle = entry.onShuffle,
-                            isRemovable = false,
+                            onRemove = entry.onRemove,
+                            isRemovable = entry.isRemovable,
                             source = entry.source
                         )
                     } else {
@@ -282,7 +289,8 @@ fun LibraryMixedTab(
                             onClick = entry.onClick,
                             onPlay = entry.onPlay,
                             onShuffle = entry.onShuffle,
-                            isRemovable = false,
+                            onRemove = entry.onRemove,
+                            isRemovable = entry.isRemovable,
                             source = entry.source
                         )
                     }

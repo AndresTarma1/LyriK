@@ -1,0 +1,99 @@
+import json
+from pathlib import Path
+from graphify.build import build_from_json
+from graphify.cluster import score_all
+from graphify.analyze import god_nodes, surprising_connections, suggest_questions
+from graphify.report import generate
+
+extraction = json.loads(Path('graphify-out/.graphify_extract.json').read_text(encoding='utf-8'))
+detection  = json.loads(Path('graphify-out/.graphify_detect.json').read_text(encoding='utf-8'))
+analysis   = json.loads(Path('graphify-out/.graphify_analysis.json').read_text(encoding='utf-8'))
+
+G = build_from_json(extraction)
+communities = {int(k): v for k, v in analysis['communities'].items()}
+cohesion = {int(k): v for k, v in analysis['cohesion'].items()}
+tokens = {'input': extraction.get('input_tokens', 0), 'output': extraction.get('output_tokens', 0)}
+
+node_map = {n['id']: n for n in extraction['nodes']}
+
+labels = {
+    0: "JavaScript Parser Engine",
+    1: "YouTube Music API Models",
+    2: "Database Access Layer",
+    3: "Album UI Layouts",
+    4: "Core Kotlin Data Types",
+    5: "YouTube Browse & Player VM",
+    6: "Player State Models",
+    7: "Cipher/JS Solver",
+    8: "Player ViewModel State",
+    9: "Navigation & DI",
+    10: "UI Component Library",
+    11: "InnerTube API Client",
+    12: "Player Screen State",
+    13: "JVM Configuration",
+    14: "User Preferences",
+    15: "YouTube Queue Management",
+    16: "Download Service",
+    17: "Sync Engine",
+    18: "Song DAO",
+    19: "Album DAO",
+    20: "Playlist DAO",
+    21: "Artist DAO",
+    22: "Account Management",
+    23: "Artist Screen UI",
+    24: "Artist ViewModel",
+    25: "App Theme & Colors",
+    26: "Search Functionality",
+    27: "Search ViewModel",
+    28: "Account ViewModel",
+    29: "Home Screen Items",
+    30: "Home ViewModel",
+    31: "Library Screen UI",
+    32: "Library ViewModel",
+    33: "Settings Screen",
+    34: "Settings ViewModel",
+    35: "Playlist Screen UI",
+    36: "Playlist ViewModel",
+    37: "Media Metadata Models",
+    38: "Library Tab Components",
+    39: "MiniPlayer & Now Playing",
+    40: "Filter & Sort Utilities",
+    41: "Thumbnail Utilities",
+    42: "YouTube Region Config",
+    43: "Shimmer & Skeleton UI",
+    44: "Equalizer Panel",
+    45: "Format Selector",
+    46: "Stream URL Resolution",
+    47: "Audio Stream Caching",
+    48: "Album ViewModel",
+    49: "Album Repository",
+    50: "Artist Repository",
+    51: "Playlist Repository",
+    52: "Song Repository",
+    53: "Search Repository",
+    54: "App Lifecycle Manager",
+    55: "App Paths Configuration",
+    56: "Platform Helpers",
+    57: "Database Driver Factory",
+    58: "Music Database Schema",
+    59: "App Restarter Utility",
+    60: "Melodist ViewModel Base",
+    61: "Compose Theme Palette",
+    62: "Playback State Models",
+    63: "YouTubeLocale Setup",
+    64: "Account Manager JVM",
+    65: "PoToken Generator",
+    66: "Windows Media Session",
+    67: "Context Menu Components",
+    68: "Song Download Components",
+    69: "Download Confirmation",
+    70: "Artwork Color Palette",
+    71: "Background Image Layers",
+}
+
+questions = suggest_questions(G, communities, labels)
+
+report = generate(G, communities, cohesion, labels, analysis['gods'], analysis['surprises'], detection, tokens, '.', suggested_questions=questions)
+Path('graphify-out/GRAPH_REPORT.md').write_text(report, encoding='utf-8')
+Path('graphify-out/.graphify_labels.json').write_text(json.dumps({str(k): v for k, v in labels.items()}, ensure_ascii=False), encoding='utf-8')
+print(f'Report updated with {len(labels)} community labels')

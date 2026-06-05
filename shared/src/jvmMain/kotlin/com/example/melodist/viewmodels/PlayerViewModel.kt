@@ -210,7 +210,7 @@ class PlayerViewModel(
             val songs = apiService.getAlbum(browseId).getOrNull()?.songs.orEmpty()
             if (songs.isNotEmpty()) {
                 playAlbum(songs, startIndex, browseId, title)
-                if (shuffle) toggleShuffle()
+                if (shuffle) _uiState.update(PlayerQueueCoordinator::shuffleFromStart)
             } else {
                 onEmpty?.invoke()
             }
@@ -304,7 +304,7 @@ class PlayerViewModel(
                 isShuffled = false,
                 queueSession = session
             )
-            if (shuffle) PlayerQueueCoordinator.toggleShuffle(base) else base
+            if (shuffle) PlayerQueueCoordinator.shuffleFromStart(base) else base
         }
         checkAndFetchMoreSongs(_uiState.value, _uiState.value.currentIndex)
         _uiState.value.currentSong?.let(::resolveAndPlay)
@@ -377,7 +377,7 @@ class PlayerViewModel(
                         isShuffled = false,
                         queueSession = session
                     )
-                    if (shuffle) PlayerQueueCoordinator.toggleShuffle(base) else base
+                    if (shuffle) PlayerQueueCoordinator.shuffleFromStart(base) else base
                 }
                 _uiState.value.currentSong?.let(::resolveAndPlay)
             } else {

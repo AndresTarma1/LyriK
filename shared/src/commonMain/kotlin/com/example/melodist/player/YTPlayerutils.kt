@@ -18,12 +18,22 @@ object YTPlayerutils {
 
         val isLoggedIn = YouTube.cookie != null
 
+        if (YouTube.visitorData == null) {
+            YouTube.visitorData().onSuccess { vd ->
+                YouTube.visitorData = vd
+                Napier.i("visitorData obtained: ${vd.take(8)}...")
+            }.onFailure {
+                Napier.w("Failed to fetch visitorData: ${it.message}")
+            }
+        }
+
         // TODO: PoToken generation for WEB_REMIX client
-        // 1. Ensure visitorData/dataSyncId is available (fetch if null)
+        // 1. Ensure dataSyncId/visitorData is available (fetch if null)
         // 2. Generate PoToken via PoTokenGenerator.getWebClientPoToken(videoId, sessionId)
         // 3. Pass poToken.playerRequestPoToken to YouTube.player() below
         // 4. After URL resolution, append pot=streamingDataPoToken to stream URLs
         //    for clients with useWebPoTokens=true
+        
 
         val mainPlayerResponse =
             YouTube.player(videoId, playlistId, FallbackClients.mainClient, signatureTimestamp).getOrThrow()

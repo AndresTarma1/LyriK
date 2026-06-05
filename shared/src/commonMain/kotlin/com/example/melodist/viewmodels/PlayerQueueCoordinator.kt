@@ -93,6 +93,21 @@ object PlayerQueueCoordinator {
         }
     }
 
+    fun shuffleFromStart(state: PlayerUiState): PlayerUiState {
+        val session = state.queueSession
+        if (session.items.isEmpty()) return state
+
+        val shuffledOrder = session.items.indices.shuffled()
+        val newSession = session.copy(order = shuffledOrder, currentIndex = 0)
+        return state.copy(
+            currentSong = newSession.currentSong(),
+            queue = newSession.queueItems(),
+            currentIndex = 0,
+            isShuffled = true,
+            queueSession = newSession
+        )
+    }
+
     fun move(state: PlayerUiState, fromIndex: Int, toIndex: Int): PlayerUiState {
         val session = state.queueSession
         if (fromIndex !in session.order.indices || toIndex !in session.order.indices) return state

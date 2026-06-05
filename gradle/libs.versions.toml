@@ -4,7 +4,7 @@ composeHotReload = "1.1.1"
 composeMultiplatform = "1.11.0"
 decompose = "3.5.0"
 junit = "4.13.2"
-kotlin = "2.3.21"
+kotlin = "2.4.0"
 kotlinx-coroutines = "1.11.0"
 kotlinx-serialization = "1.8.1"
 ktor = "3.3.3"
@@ -106,6 +106,8 @@ kmpalette-extensions-file = { module = "com.materialkolor.palette:extensions-fil
 composeSettings-ui = { group = "com.github.alorma.compose-settings", name = "ui-tiles", version.ref = "compose-settings" }
 composeSettings-ui-extended = { group = "com.github.alorma.compose-settings", name = "ui-tiles-extended", version.ref = "compose-settings" }
 composeSettings-ui-expressive = { group = "com.github.alorma.compose-settings", name = "ui-tiles-expressive", version.ref = "compose-settings" }
+
+
 [plugins]
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 composeHotReload = { id = "org.jetbrains.compose.hot-reload", version.ref = "composeHotReload" }

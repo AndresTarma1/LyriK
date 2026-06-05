@@ -11,16 +11,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
@@ -28,6 +26,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -43,7 +42,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
@@ -56,6 +54,8 @@ import com.example.melodist.ui.screens.library.tabs.AlbumsTab
 import com.example.melodist.ui.screens.library.tabs.ArtistsTab
 import com.example.melodist.ui.screens.library.tabs.LibraryMixedTab
 import com.example.melodist.ui.screens.library.tabs.PlaylistsTab
+import com.example.melodist.viewmodels.CsvImportState
+import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.example.melodist.viewmodels.LibrarySortOrder
 import com.example.melodist.viewmodels.LibraryTab
 import com.example.melodist.viewmodels.LibraryViewModel
@@ -69,6 +69,7 @@ import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.WatchEndpoint
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
+import org.koin.compose.koinInject
 import org.jetbrains.compose.resources.stringResource
 
 data class LibraryScreenState(
@@ -94,6 +95,7 @@ data class LibraryActions(
     val onQuickShufflePlaylist: (playlistId: String, endpoint: WatchEndpoint?, title: String, onFallback: () -> Unit) -> Unit,
     val onRefreshYtm: () -> Unit,
     val onCreatePlaylist: (String) -> Unit,
+    val onImportCsv: () -> Unit,
     val onSearchQueryChange: (String) -> Unit,
     val onClearSearch: () -> Unit,
     val onSortOrderChange: (LibrarySortOrder) -> Unit,
@@ -106,6 +108,8 @@ fun LibraryScreenRoute(
     onNavigate: (Route) -> Unit,
 ) {
     val playerViewModel = LocalPlayerViewModel.current
+    val playlistsViewModel = koinInject<LibraryPlaylistsViewModel>()
+
     val selectedTab by viewModel.selectedTab.collectAsState()
     val searchQuery by viewModel.searchQuery.collectAsState()
     val sortOrder by viewModel.sortOrder.collectAsState()
@@ -114,6 +118,11 @@ fun LibraryScreenRoute(
     val artists by viewModel.sortedFilteredArtists.collectAsState()
     val playlists by viewModel.sortedFilteredPlaylists.collectAsState()
     val ytmState by viewModel.ytmState.collectAsState()
+    val csvImportState by playlistsViewModel.csvImportState.collectAsState()
+
+    var importNameField by remember { mutableStateOf("") }
+    var showDeletePlaylistDialog by remember { mutableStateOf(false) }
+    var playlistToDelete by remember { mutableStateOf<String?>(null) }
 
     val state = LibraryScreenState(
         selectedTab = selectedTab,
@@ -132,9 +141,11 @@ fun LibraryScreenRoute(
             onNavigate = onNavigate,
             onRemoveAlbum = viewModel::removeAlbum,
             onRemoveArtist = viewModel::removeArtist,
-            onRemovePlaylist = viewModel::removePlaylist,
+            onRemovePlaylist = { id ->
+                playlistToDelete = id
+                showDeletePlaylistDialog = true
+            },
             onQuickPlayAlbum = { browseId, playlistId, title, onFallback ->
-                // Siempre obtener canciones directas (sin recomendaciones/automix)
                 viewModel.resolveAlbumSongsForPlayback(
                     browseId = browseId,
                     onResolved = { songs ->
@@ -178,6 +189,7 @@ fun LibraryScreenRoute(
             },
             onRefreshYtm = viewModel::refreshYtmLibrary,
             onCreatePlaylist = viewModel::createLocalPlaylist,
+            onImportCsv = playlistsViewModel::importCsvFile,
             onSearchQueryChange = viewModel::setSearchQuery,
             onClearSearch = viewModel::clearSearch,
             onSortOrderChange = viewModel::setSortOrder,
@@ -190,7 +202,119 @@ fun LibraryScreenRoute(
         actions = actions,
         playerViewModel = playerViewModel,
     )
+
+    when (val csvState = csvImportState) {
+        is CsvImportState.Ready -> {
+            if (importNameField.isBlank()) {
+                importNameField = csvState.suggestedName
+            }
+            AlertDialog(
+                onDismissRequest = { playlistsViewModel.cancelCsvImport() },
+                title = { Text(stringResource(Res.string.csv_import_title)) },
+                text = {
+                    Column {
+                        Text(stringResource(Res.string.csv_songs_found, csvState.totalCount))
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = importNameField,
+                            onValueChange = { importNameField = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text(stringResource(Res.string.playlist_name_label)) },
+                            singleLine = true,
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            val name = importNameField.trim().ifBlank { csvState.suggestedName }
+                            playlistsViewModel.confirmCsvImport(name)
+                        },
+                    ) { Text(stringResource(Res.string.csv_btn_import)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { playlistsViewModel.cancelCsvImport() }) { Text(stringResource(Res.string.cancel)) }
+                },
+            )
+        }
+
+        is CsvImportState.Searching -> {
+            AlertDialog(
+                onDismissRequest = {},
+                title = { Text(stringResource(Res.string.csv_import_title)) },
+                text = {
+                    Column {
+                        Text(stringResource(Res.string.csv_import_searching, csvState.found + 1, csvState.total, csvState.currentTitle))
+                        Spacer(Modifier.height(12.dp))
+                        LinearProgressIndicator(
+                            progress = { (csvState.found + 1).toFloat() / csvState.total.coerceAtLeast(1).toFloat() },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    }
+                },
+                confirmButton = {},
+            )
+        }
+
+        is CsvImportState.Done -> {
+            AlertDialog(
+                onDismissRequest = { playlistsViewModel.dismissCsvImportResult() },
+                title = { Text(stringResource(Res.string.csv_import_complete)) },
+                text = {
+                    Text(stringResource(Res.string.csv_import_result, csvState.foundCount, csvState.totalCount))
+                },
+                confirmButton = {
+                    TextButton(onClick = { playlistsViewModel.dismissCsvImportResult() }) { Text(stringResource(Res.string.close_label)) }
+                },
+            )
+        }
+
+        is CsvImportState.Error -> {
+            AlertDialog(
+                onDismissRequest = { playlistsViewModel.dismissCsvImportResult() },
+                title = { Text(stringResource(Res.string.csv_import_title)) },
+                text = { Text(stringResource(Res.string.csv_import_error, csvState.message)) },
+                confirmButton = {
+                    TextButton(onClick = { playlistsViewModel.dismissCsvImportResult() }) { Text(stringResource(Res.string.close_label)) }
+                },
+            )
+        }
+
+        is CsvImportState.Idle -> {
+            // No dialog shown
+        }
+    }
+
+    if (showDeletePlaylistDialog && playlistToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeletePlaylistDialog = false
+                playlistToDelete = null
+            },
+            title = { Text(stringResource(Res.string.delete_playlist_title)) },
+            text = { Text(stringResource(Res.string.delete_playlist_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        playlistToDelete?.let(viewModel::removePlaylist)
+                        showDeletePlaylistDialog = false
+                        playlistToDelete = null
+                    },
+                ) { Text(stringResource(Res.string.delete_playlist_confirm)) }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeletePlaylistDialog = false
+                        playlistToDelete = null
+                    },
+                ) { Text(stringResource(Res.string.cancel)) }
+            },
+        )
+    }
 }
+
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -249,6 +373,17 @@ fun LibraryScreen(
                                 )
                             }
                         }
+                    }
+
+                    IconButton(
+                        onClick = actions.onImportCsv,
+                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                    ) {
+                        Icon(
+                            Icons.Default.FileOpen,
+                            contentDescription = stringResource(Res.string.cd_import_csv),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
 
                     IconButton(
@@ -369,6 +504,7 @@ fun LibraryScreen(
                     state = state,
                     onNavigate = actions.onNavigate,
                     playerViewModel = playerViewModel,
+                    onRemovePlaylist = actions.onRemovePlaylist,
                     onQuickPlayAlbum = actions.onQuickPlayAlbum,
                     onQuickShuffleAlbum = actions.onQuickShuffleAlbum,
                     onQuickPlayPlaylist = actions.onQuickPlayPlaylist,

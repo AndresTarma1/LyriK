@@ -13,6 +13,9 @@ import com.example.melodist.data.repository.savedArtistToArtistItem
 import com.example.melodist.data.repository.savedPlaylistToPlaylistItem
 import com.example.melodist.data.repository.savedSongToSongItem
 import com.example.melodist.db.MusicDatabase
+import com.example.melodist.platform.CsvFilePicker
+import com.example.melodist.utils.CsvPlaylistParser
+import com.example.melodist.utils.CsvSongRow
 import com.example.melodist.utils.withMissingMetadataResolved
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AlbumItem
@@ -358,6 +361,26 @@ class LibraryArtistsViewModel(
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 }
 
+sealed class CsvImportState {
+    data object Idle : CsvImportState()
+    data class Ready(
+        val suggestedName: String,
+        val songs: List<CsvSongRow>,
+        val totalCount: Int,
+    ) : CsvImportState()
+    data class Searching(
+        val currentTitle: String,
+        val found: Int,
+        val total: Int,
+    ) : CsvImportState()
+    data class Done(
+        val playlistName: String,
+        val foundCount: Int,
+        val totalCount: Int,
+    ) : CsvImportState()
+    data class Error(val message: String) : CsvImportState()
+}
+
 class LibraryPlaylistsViewModel(
     private val playlistRepository: PlaylistRepository,
 ) : ViewModel() {
@@ -367,6 +390,11 @@ class LibraryPlaylistsViewModel(
     val localPlaylists = savedPlaylists.map { playlists ->
         playlists.filter { it.id.startsWith("LOCAL_") }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    private val _csvImportState = MutableStateFlow<CsvImportState>(CsvImportState.Idle)
+    val csvImportState: StateFlow<CsvImportState> = _csvImportState.asStateFlow()
+
+    private var importJob: kotlinx.coroutines.Job? = null
 
     @OptIn(ExperimentalUuidApi::class)
     fun createLocalPlaylist(name: String, song: SongItem? = null) {
@@ -420,6 +448,99 @@ class LibraryPlaylistsViewModel(
         viewModelScope.launch {
             playlistRepository.removeSongFromPlaylist(playlistId, songId)
         }
+    }
+
+    fun importCsvFile() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = CsvFilePicker.pickAndReadCsvFile() ?: return@launch
+            val songs = CsvPlaylistParser.parse(result.content)
+            withContext(Dispatchers.Main) {
+                if (songs.isEmpty()) {
+                    _csvImportState.value = CsvImportState.Error("No se encontraron canciones válidas en el archivo")
+                } else {
+                    _csvImportState.value = CsvImportState.Ready(
+                        suggestedName = result.fileName,
+                        songs = songs,
+                        totalCount = songs.size,
+                    )
+                }
+            }
+        }
+    }
+
+    fun initiateCsvImport(suggestedName: String, songs: List<CsvSongRow>) {
+        if (songs.isEmpty()) {
+            _csvImportState.value = CsvImportState.Error("No songs to import")
+            return
+        }
+        _csvImportState.value = CsvImportState.Ready(
+            suggestedName = suggestedName,
+            songs = songs,
+            totalCount = songs.size,
+        )
+    }
+
+    fun confirmCsvImport(playlistName: String) {
+        val current = _csvImportState.value as? CsvImportState.Ready ?: return
+        val songs = current.songs
+        if (songs.isEmpty()) return
+
+        importJob = viewModelScope.launch {
+            _csvImportState.value = CsvImportState.Searching(
+                currentTitle = songs.first().title,
+                found = 0,
+                total = songs.size,
+            )
+
+            val foundSongs = mutableListOf<SongItem>()
+            for ((_, row) in songs.withIndex()) {
+                _csvImportState.value = CsvImportState.Searching(
+                    currentTitle = row.title,
+                    found = foundSongs.size,
+                    total = songs.size,
+                )
+
+                val query = "${row.title} ${row.artist}"
+                val searchResult = withContext(Dispatchers.IO) {
+                    YouTube.search(query, YouTube.SearchFilter.FILTER_SONG)
+                }
+                searchResult.getOrNull()?.items?.firstOrNull { it is SongItem }
+                    ?.let { foundSongs.add(it as SongItem) }
+            }
+
+            if (foundSongs.isEmpty()) {
+                _csvImportState.value = CsvImportState.Error("No se encontraron canciones en YouTube Music")
+                return@launch
+            }
+
+            val id = "LOCAL_${kotlin.uuid.Uuid.random()}"
+            val playlist = PlaylistItem(
+                id = id,
+                title = playlistName,
+                author = Artist(name = "Local", id = null),
+                songCountText = null,
+                thumbnail = foundSongs.firstOrNull()?.thumbnail,
+                playEndpoint = null,
+                shuffleEndpoint = null,
+                radioEndpoint = null,
+            )
+            playlistRepository.savePlaylistWithSongs(playlist, foundSongs)
+
+            _csvImportState.value = CsvImportState.Done(
+                playlistName = playlistName,
+                foundCount = foundSongs.size,
+                totalCount = songs.size,
+            )
+        }
+    }
+
+    fun dismissCsvImportResult() {
+        _csvImportState.value = CsvImportState.Idle
+    }
+
+    fun cancelCsvImport() {
+        importJob?.cancel()
+        _csvImportState.value = CsvImportState.Idle
     }
 }
 
