@@ -66,7 +66,7 @@ val appModule = module {
     single<AudioStreamResolver> { AudioStreamResolver(get()) }
     single<WindowsMediaSession> { WindowsMediaSession() }
     single<DownloadService> { DownloadService(get(), get()) }
-    single<QueueManager> { QueueManager(get()) }
+    single<QueueManager> { QueueManager() }
     single<AppViewModel> { AppViewModel() }
     // ✅ DownloadViewModel singleton — mantiene estado de descargas compartido
     single<DownloadViewModel> { DownloadViewModel(get(), get(), get()) }

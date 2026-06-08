@@ -541,9 +541,11 @@ fun ResultsList(
 
     val items = when (uiState) {
         is SearchState.Success -> uiState.items
-        is SearchState.SummarySuccess ->
-            uiState.summary.summaries.flatMap { it.items }
+        else -> emptyList()
+    }
 
+    val summaries = when (uiState) {
+        is SearchState.SummarySuccess -> uiState.summary.summaries
         else -> emptyList()
     }
 
@@ -603,7 +605,13 @@ fun ResultsList(
 
         else -> {
 
-            if (items.isEmpty()) {
+            val hasItems = when (uiState) {
+                is SearchState.Success -> items.isNotEmpty()
+                is SearchState.SummarySuccess -> summaries.isNotEmpty()
+                else -> false
+            }
+
+            if (!hasItems) {
                 EmptyStateView(
                     icon = Icons.Default.Search,
                     message = stringResource(Res.string.no_results)
@@ -632,26 +640,55 @@ fun ResultsList(
                             }
                         }
 
-                        items(
-                            items = items,
-                            key = { it.id }
-                        ) { item ->
-                            val downloadViewModel = LocalDownloadViewModel.current
-                            val downloadState by if (item is SongItem) {
-                                rememberSongDownloadState(item.id, downloadViewModel)
-                            } else {
-                                remember { mutableStateOf(null) }
+                        if (summaries.isNotEmpty()) {
+                            summaries.forEach { summary ->
+                                item(key = "header_${summary.title}") {
+                                    SectionHeader(summary.title)
+                                }
+                                items(
+                                    items = summary.items,
+                                    key = { "item_${it.id}" }
+                                ) { item ->
+                                    val downloadViewModel = LocalDownloadViewModel.current
+                                    val downloadState by if (item is SongItem) {
+                                        rememberSongDownloadState(item.id, downloadViewModel)
+                                    } else {
+                                        remember { mutableStateOf(null) }
+                                    }
+                                    val source = if (item is SongItem && downloadState != null) {
+                                        ItemContentSource.LOCAL
+                                    } else {
+                                        ItemContentSource.YOUTUBE
+                                    }
+                                    YoutubeListItem(
+                                        item = item,
+                                        source = source,
+                                        onItemClick = onItemClick,
+                                    )
+                                }
                             }
-                            val source = if (item is SongItem && downloadState != null) {
-                                ItemContentSource.LOCAL
-                            } else {
-                                ItemContentSource.YOUTUBE
+                        } else {
+                            items(
+                                items = items,
+                                key = { it.id }
+                            ) { item ->
+                                val downloadViewModel = LocalDownloadViewModel.current
+                                val downloadState by if (item is SongItem) {
+                                    rememberSongDownloadState(item.id, downloadViewModel)
+                                } else {
+                                    remember { mutableStateOf(null) }
+                                }
+                                val source = if (item is SongItem && downloadState != null) {
+                                    ItemContentSource.LOCAL
+                                } else {
+                                    ItemContentSource.YOUTUBE
+                                }
+                                YoutubeListItem(
+                                    item = item,
+                                    source = source,
+                                    onItemClick = onItemClick,
+                                )
                             }
-                            YoutubeListItem(
-                                item = item,
-                                source = source,
-                                onItemClick = onItemClick,
-                            )
                         }
 
                         if (uiState is SearchState.Success && uiState.isLoadingMore) {

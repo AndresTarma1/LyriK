@@ -122,8 +122,8 @@ class SearchViewModel(
             _uiState.value = SearchState.Loading
             if (_filter.value === null) {
                 YouTube.searchSummary(_searchQuery.value)
-                    .onSuccess {
-                        _uiState.value = SearchState.SummarySuccess(it)
+                    .onSuccess { page ->
+                        _uiState.value = SearchState.SummarySuccess(page)
                     }
                     .onFailure {
                         _uiState.value = SearchState.Error(it.message ?: "Unknown error")

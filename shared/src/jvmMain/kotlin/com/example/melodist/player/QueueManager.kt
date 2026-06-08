@@ -3,15 +3,8 @@ package com.example.melodist.player
 import com.example.melodist.models.MediaMetadata
 import com.example.melodist.viewmodels.PlayerQueueCoordinator
 import com.example.melodist.viewmodels.PlayerUiState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
-class QueueManager(
-    private val externalScope: CoroutineScope,
-) {
+class QueueManager {
     fun buildUiState(queue: Queue, shuffle: Boolean = false): PlayerUiState {
         val items = queue.initialItems
         val startIdx = queue.startIndex.coerceIn(0, items.lastIndex)

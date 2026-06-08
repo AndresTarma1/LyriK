@@ -17,6 +17,7 @@ import io.ktor.client.plugins.compression.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.*
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -35,6 +36,10 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 @OptIn(ExperimentalEncodingApi::class)
 class InnerTube {
     private var httpClient = createClient()
+
+    private companion object {
+        const val PLAYBACK_TELEMETRY_VER = "2"
+    }
 
     var locale = YouTubeLocale(
         gl = Locale.getDefault().country,
@@ -55,7 +60,7 @@ class InnerTube {
             httpClient.close()
             httpClient = createClient()
         }
-    
+
     var proxyAuth: String? = null
 
     var useLoginForBrowse: Boolean = false
@@ -88,18 +93,18 @@ class InnerTube {
                         java.util.concurrent.TimeUnit.MINUTES
                     )
                 )
-                
+
                 // Timeout configurations
                 connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
                 readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
                 writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-                
+
                 // Enable HTTP/2 for better performance
                 protocols(listOf(okhttp3.Protocol.HTTP_2, okhttp3.Protocol.HTTP_1_1))
-                
+
                 // Retry on connection failure
                 retryOnConnectionFailure(true)
-                
+
                 // Cache configuration for better performance
                 cache(
                     okhttp3.Cache(
@@ -107,12 +112,12 @@ class InnerTube {
                         maxSize = 50L * 1024L * 1024L // 50 MB
                     )
                 )
-                
+
                 // Apply proxy configuration
                 this@InnerTube.proxy?.let { proxyConfig ->
                     proxy(proxyConfig)
                 }
-                
+
                 // Apply proxy authentication
                 this@InnerTube.proxyAuth?.let { auth ->
                     proxyAuthenticator { _, response ->
@@ -195,13 +200,13 @@ class InnerTube {
         continuation: String? = null,
     ) = withRetry {
         httpClient.post("search") {
-            ytClient(client, setLogin = useLoginForBrowse)
+            ytClient(client, setLogin = false)
             setBody(
                 SearchBody(
                     context = client.toContext(
                         locale,
                         visitorData,
-                        if (useLoginForBrowse) dataSyncId else null
+                        null
                     ),
                     query = query,
                     params = params
@@ -257,9 +262,9 @@ class InnerTube {
     ) = withRetry {
         httpClient.get(url) {
             ytClient(client, true)
-            parameter("ver", "2")
             parameter("c", client.clientName)
             parameter("cpn", cpn)
+            parameter("ver", PLAYBACK_TELEMETRY_VER)
 
             if (playlistId != null) {
                 parameter("list", playlistId)
@@ -606,7 +611,7 @@ class InnerTube {
             )
         }
     }
-    
+
     suspend fun getUploadCustomThumbnailLink(
         client: YouTubeClient,
         contentLength: Int
