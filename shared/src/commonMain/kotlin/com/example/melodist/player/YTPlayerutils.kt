@@ -1,6 +1,8 @@
 package com.example.melodist.player
 
 import com.example.melodist.data.repository.AudioQuality
+import com.example.melodist.utils.cipher.FunctionNameExtractor
+import com.example.melodist.utils.cipher.PlayerJsFetcher
 import com.metrolist.innertube.NewPipeExtractor
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.response.PlayerResponse
@@ -68,7 +70,7 @@ object YTPlayerutils {
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
                 val newPipeResponse = YouTube.newPipePlayer(videoId, streamPlayerResponse)
                 val responseToUse = newPipeResponse ?: streamPlayerResponse
-                val clientName = client?.clientName
+                var clientName = client?.clientName
                     ?: FallbackClients.mainClient.clientName
                 Napier.d("Trying playback client $clientName for $videoId; newPipeResponse=${newPipeResponse != null}")
 
@@ -78,7 +80,8 @@ object YTPlayerutils {
                     continue
                 }
 
-                val cacheKey = "$videoId|${format.itag}"
+                clientName = client?.clientName ?: FallbackClients.mainClient.clientName
+                val cacheKey = "$videoId|${format.itag}|$clientName"
                 streamUrl = StreamCache.get(cacheKey)
 
                 if (streamUrl == null) {
@@ -99,7 +102,9 @@ object YTPlayerutils {
                 }
 
                 // TODO: Append pot=streamingDataPoToken for PoToken-enabled clients
-                streamUrl = StreamUrlResolver.applyNTransform(streamUrl)
+                if (StreamUrlResolver.shouldApplyNTransform(client?.clientName)) {
+                    streamUrl = StreamUrlResolver.applyNTransform(streamUrl)
+                }
 
                 streamExpiresInSeconds = streamPlayerResponse.streamingData?.expiresInSeconds
                 if (streamExpiresInSeconds == null) {
@@ -151,8 +156,23 @@ object YTPlayerutils {
         return YouTube.player(videoId, playlistId, client = FallbackClients.mainClient)
     }
 
-    private fun getSignatureTimestampOrNull(videoId: String): Int? {
-        return NewPipeExtractor.getSignatureTimestamp(videoId).getOrNull()
+    private var cachedSignatureTimestamp: Int? = null
+
+    private suspend fun getSignatureTimestampOrNull(videoId: String): Int? {
+        cachedSignatureTimestamp?.let { return it }
+        NewPipeExtractor.getSignatureTimestamp(videoId).getOrNull()?.let {
+            cachedSignatureTimestamp = it
+            return it
+        }
+        val playerJsResult = PlayerJsFetcher.getPlayerJs(forceRefresh = false)
+        if (playerJsResult != null) {
+            val ts = FunctionNameExtractor.extractSignatureTimestamp(playerJsResult.first)
+            if (ts != null) {
+                cachedSignatureTimestamp = ts
+                return ts
+            }
+        }
+        return null
     }
 
     suspend fun forceRefreshForVideo(videoId: String) {

@@ -101,11 +101,11 @@ object CipherDeobfuscator {
         Napier.i("[NTRACE] Player.js fetched: hash=$hash, length=${playerJs.length}")
 
         val analysis = FunctionNameExtractor.analyzePlayerJs(playerJs, knownHash = hash)
-        if (analysis.sigInfo == null) {
-            Napier.e("[NTRACE] No sig function found in player.js")
+        if (analysis.sigInfo == null && analysis.nFuncInfo == null) {
+            Napier.e("[NTRACE] No sig or n function found in player.js")
             return null
         }
-        Napier.i("[NTRACE] analysis: sig=${analysis.sigInfo.name} n=${analysis.nFuncInfo?.name} ts=${analysis.signatureTimestamp}")
+        Napier.i("[NTRACE] analysis: sig=${analysis.sigInfo?.name} n=${analysis.nFuncInfo?.name} ts=${analysis.signatureTimestamp}")
 
         Napier.i("[NTRACE] Creating JsExecutor...")
         val executor = try {

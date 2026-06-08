@@ -9,6 +9,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.head
+import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.isSuccess
 
@@ -34,14 +35,16 @@ object StreamUrlResolver {
             Napier.i("[RESOLVE_URL] URL analysis: hasN=${"n=" in formatUrl} hasPot=${"pot=" in formatUrl} urlLength=${formatUrl.length}")
         }
 
-        if (!formatUrl.isNullOrEmpty()) {
-            return formatUrl
-        }
-
-        val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
-        if (deobfuscatedUrl != null) {
-            Napier.d("Using NewPipe-deobfuscated stream URL for $videoId itag=${format.itag}")
-            return deobfuscatedUrl
+        if (formatUrl != null || format.signatureCipher != null || format.cipher != null) {
+            val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
+            if (deobfuscatedUrl != null) {
+                Napier.d("Using NewPipe-deobfuscated stream URL for $videoId itag=${format.itag}")
+                return deobfuscatedUrl
+            }
+            if (formatUrl != null) {
+                Napier.d("NewPipe deobfuscation failed, falling back to raw URL for $videoId itag=${format.itag}")
+                return formatUrl
+            }
         }
 
         val signatureCipher = format.signatureCipher ?: format.cipher
@@ -76,18 +79,20 @@ object StreamUrlResolver {
         return null
     }
 
+    fun shouldApplyNTransform(clientName: String?): Boolean {
+        return clientName in listOf("WEB_REMIX", "WEB", "WEB_CREATOR", "TVHTML5")
+    }
+
     suspend fun applyNTransform(url: String): String {
-        return if ("n=" in url) {
-            Napier.i("[N-TRANSFORM] Applying n-transform")
-            CipherDeobfuscator.transformNParamInUrl(url)
-        } else {
-            url
-        }
+        Napier.i("[N-TRANSFORM] Skipping n-transform (disabled)")
+        return url
     }
 
     suspend fun validate(url: String): Boolean {
         return try {
-            val response: HttpResponse = validationClient.head(url)
+            val response: HttpResponse = validationClient.head(url) {
+                YouTube.cookie?.let { header("Cookie", it) }
+            }
             response.status.isSuccess()
         } catch (e: Exception) {
             Napier.w("Stream URL validation request failed", e)

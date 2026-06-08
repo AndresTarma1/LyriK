@@ -7,6 +7,7 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
 import java.io.File
 
@@ -24,7 +25,8 @@ object PlayerJsFetcher {
         }
     }
 
-    private val PLAYER_HASH_REGEX = Regex("""/s/player/([a-zA-Z0-9_-]+)/""")
+    // Match both /s/player/hash/ and \/s\/player\/hash\/ (JSON-escaped slashes)
+    private val PLAYER_HASH_REGEX = Regex("""\\?/s\\?/player\\?/([a-zA-Z0-9_-]+)\\?/""")
 
     private fun getCacheDir(): File {
         val base = File(AppPaths.cacheDir, "cipher_cache")
@@ -125,7 +127,9 @@ object PlayerJsFetcher {
     private suspend fun fetchPlayerHash(): String? {
         Napier.d("Fetching iframe_api...")
         val body = try {
-            httpClient.get(IFRAME_API_URL).bodyAsText()
+            httpClient.get(IFRAME_API_URL) {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            }.bodyAsText()
         } catch (e: Exception) {
             Napier.e("iframe_api request failed: ${e.message}")
             return null
@@ -144,7 +148,9 @@ object PlayerJsFetcher {
         val url = PLAYER_JS_URL_TEMPLATE.format(hash)
         Napier.d("Downloading player.js from: $url")
         return try {
-            httpClient.get(url).bodyAsText()
+            httpClient.get(url) {
+                header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+            }.bodyAsText()
         } catch (e: Exception) {
             Napier.e("player.js download failed: ${e.message}")
             null
