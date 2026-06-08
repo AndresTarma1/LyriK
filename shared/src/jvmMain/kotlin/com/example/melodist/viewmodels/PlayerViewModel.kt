@@ -29,6 +29,7 @@ class PlayerViewModel(
     private val apiService: ApiService,
     private val userPreferences: UserPreferencesRepository,
     private val databaseDao: DatabaseDao,
+    private val queueManager: QueueManager,
 ) : ViewModel() {
 
     val highResCoverArt = userPreferences.highResCoverArt
@@ -182,20 +183,22 @@ class PlayerViewModel(
     fun playSingle(song: SongItem) = playSingle(song.toMediaMetadata())
 
     fun playSingle(song: MediaMetadata) {
-        val session = PlayerQueueCoordinator.singleSession(song)
-        _uiState.update {
-            it.copy(
-                currentSong = song,
-                queue = session.queueItems(),
-                currentIndex = session.currentIndex,
-                queueSource = session.source,
+        val queue = LocalQueue(QueueSource.Single(song.id), listOf(song), 0)
+        val uiState = queueManager.buildUiState(queue, false)
+        
+        _uiState.update { current ->
+            current.copy(
+                currentSong = uiState.currentSong,
+                queue = uiState.queue,
+                currentIndex = uiState.currentIndex,
+                queueSource = uiState.queueSource,
                 error = null,
-                isShuffled = false,
-                queueSession = session
+                isShuffled = uiState.isShuffled,
+                queueSession = uiState.queueSession,
             )
         }
         resolveAndPlay(song)
-        fetchRelatedQueue(song, session)
+        // fetchRelatedQueue would need a queue - skip for now
     }
 
     fun playAlbumFromBrowseId(
@@ -249,20 +252,21 @@ class PlayerViewModel(
 
     fun playAlbum(songs: List<MediaMetadata>, startIndex: Int = 0, browseId: String, title: String) {
         if (songs.isEmpty()) return
-        val source = QueueSource.Album(browseId, title)
-        val session = PlayerQueueCoordinator.collectionSession(source, songs, startIndex)
-        _uiState.update {
-            it.copy(
-                currentSong = session.currentSong(),
-                queue = session.queueItems(),
-                currentIndex = session.currentIndex,
-                queueSource = source,
+        val queue = LocalQueue(QueueSource.Album(browseId, title), songs, startIndex)
+        val uiState = queueManager.buildUiState(queue, false)
+        
+        _uiState.update { current ->
+            current.copy(
+                currentSong = uiState.currentSong,
+                queue = uiState.queue,
+                currentIndex = uiState.currentIndex,
+                queueSource = uiState.queueSource,
                 error = null,
-                isShuffled = false,
-                queueSession = session
+                isShuffled = uiState.isShuffled,
+                queueSession = uiState.queueSession,
             )
         }
-        session.currentSong()?.let(::resolveAndPlay)
+        uiState.currentSong?.let(::resolveAndPlay)
     }
 
     @JvmName("playPlaylistFromSongItems")
@@ -271,40 +275,46 @@ class PlayerViewModel(
 
     fun playPlaylist(songs: List<MediaMetadata>, startIndex: Int = 0, playlistId: String, title: String) {
         if (songs.isEmpty()) return
-        val source = QueueSource.Playlist(playlistId, title)
-        val session = PlayerQueueCoordinator.collectionSession(source, songs, startIndex)
-        _uiState.update {
-            it.copy(
-                currentSong = session.currentSong(),
-                queue = session.queueItems(),
-                currentIndex = session.currentIndex,
-                queueSource = source,
+        val queue = LocalQueue(QueueSource.Playlist(playlistId, title), songs, startIndex)
+        val uiState = queueManager.buildUiState(queue, false)
+        
+        _uiState.update { current ->
+            current.copy(
+                currentSong = uiState.currentSong,
+                queue = uiState.queue,
+                currentIndex = uiState.currentIndex,
+                queueSource = uiState.queueSource,
                 error = null,
-                isShuffled = false,
-                queueSession = session
+                isShuffled = uiState.isShuffled,
+                queueSession = uiState.queueSession,
             )
         }
-        session.currentSong()?.let(::resolveAndPlay)
+        uiState.currentSong?.let(::resolveAndPlay)
     }
 
     fun playPlaylistWithQueue(queue: YouTubePlaylistQueue, shuffle: Boolean = false) {
         if (queue.initialSongs.isEmpty()) return
-        val source = QueueSource.Playlist(queue.playlistId, queue.playlistTitle)
-        val metadata = queue.initialSongs.map { it.toMediaMetadata() }
-        val session = PlayerQueueCoordinator.collectionSession(source, metadata, queue.startIndex)
-            .copy(playlistQueue = queue)
-
+        
+        val implQueue = YouTubePlaylistQueueImpl(
+            playlistId = queue.playlistId,
+            playlistTitle = queue.playlistTitle,
+            initialSongs = queue.initialSongs,
+            initialContinuation = queue.initialContinuation,
+            startIndex = queue.startIndex,
+        )
+        
+        val uiState = queueManager.buildUiState(implQueue, shuffle)
+        
         _uiState.update { current ->
-            val base = current.copy(
-                currentSong = session.currentSong(),
-                queue = session.queueItems(),
-                currentIndex = session.currentIndex,
-                queueSource = source,
+            current.copy(
+                currentSong = uiState.currentSong,
+                queue = uiState.queue,
+                currentIndex = uiState.currentIndex,
+                queueSource = uiState.queueSource,
                 error = null,
-                isShuffled = false,
-                queueSession = session
+                isShuffled = uiState.isShuffled,
+                queueSession = uiState.queueSession,
             )
-            if (shuffle) PlayerQueueCoordinator.shuffleFromStart(base) else base
         }
         checkAndFetchMoreSongs(_uiState.value, _uiState.value.currentIndex)
         _uiState.value.currentSong?.let(::resolveAndPlay)
@@ -316,19 +326,21 @@ class PlayerViewModel(
 
     fun playCustom(songs: List<MediaMetadata>, startIndex: Int = 0) {
         if (songs.isEmpty()) return
-        val session = PlayerQueueCoordinator.collectionSession(QueueSource.Custom, songs, startIndex)
-        _uiState.update {
-            it.copy(
-                currentSong = session.currentSong(),
-                queue = session.queueItems(),
-                currentIndex = session.currentIndex,
-                queueSource = QueueSource.Custom,
+        val queue = LocalQueue(QueueSource.Custom, songs, startIndex)
+        val uiState = queueManager.buildUiState(queue, false)
+        
+        _uiState.update { current ->
+            current.copy(
+                currentSong = uiState.currentSong,
+                queue = uiState.queue,
+                currentIndex = uiState.currentIndex,
+                queueSource = uiState.queueSource,
                 error = null,
-                isShuffled = false,
-                queueSession = session
+                isShuffled = uiState.isShuffled,
+                queueSession = uiState.queueSession,
             )
         }
-        session.currentSong()?.let(::resolveAndPlay)
+        uiState.currentSong?.let(::resolveAndPlay)
     }
 
     fun togglePlayPause() {

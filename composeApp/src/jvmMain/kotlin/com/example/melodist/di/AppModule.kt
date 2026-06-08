@@ -37,6 +37,7 @@ import com.example.melodist.db.MusicDatabase
 import com.example.melodist.player.AudioStreamResolver
 import com.example.melodist.download.DownloadService
 import com.example.melodist.player.PlayerService
+import com.example.melodist.player.QueueManager
 import com.example.melodist.player.WindowsMediaSession
 import com.example.melodist.utils.SyncUtils
 import org.koin.dsl.module
@@ -65,11 +66,12 @@ val appModule = module {
     single<AudioStreamResolver> { AudioStreamResolver(get()) }
     single<WindowsMediaSession> { WindowsMediaSession() }
     single<DownloadService> { DownloadService(get(), get()) }
+    single<QueueManager> { QueueManager(get()) }
     single<AppViewModel> { AppViewModel() }
     // ✅ DownloadViewModel singleton — mantiene estado de descargas compartido
     single<DownloadViewModel> { DownloadViewModel(get(), get(), get()) }
-    // ✅ PlayerViewModel singleton pero inicialización pesada diferida al init{} interno
-    single<PlayerViewModel> { PlayerViewModel(get(), get(), get(), get(), get(), get()) }
+    // ✅ PlayerViewModel singleton, pero inicialización pesada diferida al init{} interno
+    single<PlayerViewModel> { PlayerViewModel(get(), get(), get(), get(), get(), get(), get()) }
     single<PlayerCoordinator> { PlayerCoordinatorImpl(get<PlayerViewModel>(), get<DownloadViewModel>()) }
     single<AppLifecycleManager> { AppLifecycleManager(get(), get(), get(), get()) }
     single<JvmConfigLauncher> { JvmConfigLauncher(get()) }
