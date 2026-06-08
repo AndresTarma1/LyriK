@@ -188,7 +188,12 @@ fun SongContextMenu(
                     text = stringResource(Res.string.context_start_radio),
                     icon = Icons.Default.Radio,
                     onClick = {
-                        playerViewModel.playSingle(song)
+                        val endpoint = song.endpoint
+                        if (endpoint != null) {
+                            playerViewModel.playEndpoint(endpoint)
+                        } else {
+                            playerViewModel.playSingle(song)
+                        }
                     }
                 )
 
