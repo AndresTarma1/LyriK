@@ -45,6 +45,7 @@ class PlayerViewModel(
     private var resolveJob: Job? = null
     private var fetchMoreJob: Job? = null
     private var playRequestId = 0L
+    private var currentQueue: Queue? = null
 
     /**
      * ✅ Inicialización diferida de PlayerService y MediaSession.
@@ -184,6 +185,7 @@ class PlayerViewModel(
 
     fun playSingle(song: MediaMetadata) {
         val queue = LocalQueue(QueueSource.Single(song.id), listOf(song), 0)
+        currentQueue = queue
         val uiState = queueManager.buildUiState(queue, false)
         
         _uiState.update { current ->
@@ -198,7 +200,6 @@ class PlayerViewModel(
             )
         }
         resolveAndPlay(song)
-        // fetchRelatedQueue would need a queue - skip for now
     }
 
     fun playAlbumFromBrowseId(
@@ -253,6 +254,7 @@ class PlayerViewModel(
     fun playAlbum(songs: List<MediaMetadata>, startIndex: Int = 0, browseId: String, title: String) {
         if (songs.isEmpty()) return
         val queue = LocalQueue(QueueSource.Album(browseId, title), songs, startIndex)
+        currentQueue = queue
         val uiState = queueManager.buildUiState(queue, false)
         
         _uiState.update { current ->
@@ -276,6 +278,7 @@ class PlayerViewModel(
     fun playPlaylist(songs: List<MediaMetadata>, startIndex: Int = 0, playlistId: String, title: String) {
         if (songs.isEmpty()) return
         val queue = LocalQueue(QueueSource.Playlist(playlistId, title), songs, startIndex)
+        currentQueue = queue
         val uiState = queueManager.buildUiState(queue, false)
         
         _uiState.update { current ->
@@ -302,6 +305,7 @@ class PlayerViewModel(
             initialContinuation = queue.initialContinuation,
             startIndex = queue.startIndex,
         )
+        currentQueue = implQueue
         
         val uiState = queueManager.buildUiState(implQueue, shuffle)
         
@@ -327,6 +331,7 @@ class PlayerViewModel(
     fun playCustom(songs: List<MediaMetadata>, startIndex: Int = 0) {
         if (songs.isEmpty()) return
         val queue = LocalQueue(QueueSource.Custom, songs, startIndex)
+        currentQueue = queue
         val uiState = queueManager.buildUiState(queue, false)
         
         _uiState.update { current ->
@@ -491,7 +496,31 @@ class PlayerViewModel(
             )
         }
 
-        checkAndFetchMoreSongs(_uiState.value, nextIndex)
+        // Use QueueManager for auto-load if we have a queue
+        currentQueue?.let { queue ->
+            viewModelScope.launch(Dispatchers.IO) {
+                val newItems = queueManager.checkAndLoadMore(queue, nextIndex, _uiState.value.queueSession.items.size)
+                if (newItems.isNotEmpty()) {
+                    _uiState.update { currentState ->
+                        val currentSession = currentState.queueSession
+                        val updatedItems = currentSession.items + newItems
+                        val newOrder = currentSession.order + newItems.indices.map { currentSession.items.size + it }
+                        val updatedSession = currentSession.copy(
+                            items = updatedItems,
+                            order = newOrder,
+                        )
+                        currentState.copy(
+                            queueSession = updatedSession,
+                            queue = updatedSession.queueItems()
+                        )
+                    }
+                }
+            }
+        }
+        // Fallback for old-style queues without Queue interface
+        if (currentQueue == null) {
+            checkAndFetchMoreSongs(_uiState.value, nextIndex)
+        }
 
         playAtIndex(nextIndex)
     }
@@ -544,13 +573,61 @@ class PlayerViewModel(
     fun addToQueue(song: SongItem) = addToQueue(song.toMediaMetadata())
 
     fun addToQueue(song: MediaMetadata) {
-        _uiState.update { state -> PlayerQueueCoordinator.append(state, song) }
+        _uiState.update { state ->
+            val newState = PlayerQueueCoordinator.append(state, song)
+            // Rebuild shuffle order if shuffle is enabled
+            if (newState.isShuffled) {
+                val currentIndex = newState.currentIndex
+                val items = newState.queueSession.items
+                val order = newState.queueSession.order
+                val rebuilt = queueManager.rebuildShuffleOrder(
+                    items = items,
+                    order = order,
+                    currentIndex = currentIndex,
+                    newItems = listOf(song),
+                )
+                val updatedSession = newState.queueSession.copy(
+                    items = rebuilt.first,
+                    order = rebuilt.second,
+                )
+                newState.copy(
+                    queueSession = updatedSession,
+                    queue = updatedSession.queueItems(),
+                )
+            } else {
+                newState
+            }
+        }
     }
 
     fun playNext(song: SongItem) = playNext(song.toMediaMetadata())
 
     fun playNext(song: MediaMetadata) {
-        _uiState.update { state -> PlayerQueueCoordinator.insertNext(state, song) }
+        _uiState.update { state ->
+            val newState = PlayerQueueCoordinator.insertNext(state, song)
+            // Rebuild shuffle order if shuffle is enabled
+            if (newState.isShuffled) {
+                val currentIndex = newState.currentIndex
+                val items = newState.queueSession.items
+                val order = newState.queueSession.order
+                val rebuilt = queueManager.rebuildShuffleOrder(
+                    items = items,
+                    order = order,
+                    currentIndex = currentIndex,
+                    newItems = listOf(song),
+                )
+                val updatedSession = newState.queueSession.copy(
+                    items = rebuilt.first,
+                    order = rebuilt.second,
+                )
+                newState.copy(
+                    queueSession = updatedSession,
+                    queue = updatedSession.queueItems(),
+                )
+            } else {
+                newState
+            }
+        }
     }
 
     fun playNextResolved(song: SongItem) {
