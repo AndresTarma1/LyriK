@@ -41,7 +41,6 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.example.melodist.ui.components.MiniPlayer
 import com.example.melodist.ui.components.player.NowPlayingLayout
 import com.example.melodist.ui.components.player.PlaybackQueuePanel
-import com.example.melodist.ui.components.player.LyricsPanel
 import com.example.melodist.viewmodels.PlayerViewModel
 import com.example.melodist.ui.screens.YouTubeBrowseScreenRoute
 import com.example.melodist.ui.screens.*
@@ -214,7 +213,9 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                                 playerViewModel.fetchLyrics()
                                             }
                                             isLyricsVisible = !isLyricsVisible
-                                        }
+                                        },
+                                        showLyrics = isLyricsVisible,
+                                        lyrics = currentLyrics
                                     )
                                 }
                             }
@@ -227,23 +228,6 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                 PlaybackQueuePanel(
                                     state = playerState,
                                     onDismiss = { isQueueVisible = false },
-                                    modifier = Modifier
-                                        .fillMaxHeight()
-                                        .width(animatedWidth)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-                                        .background(MaterialTheme.colorScheme.surface)
-                                )
-                            }
-                        }
-
-                        if (isLyricsVisible) {
-                            Row(modifier = Modifier.fillMaxHeight()) {
-                                Spacer(Modifier.width(12.dp))
-
-                                LyricsPanel(
-                                    lyrics = currentLyrics,
-                                    onDismiss = { isLyricsVisible = false },
                                     modifier = Modifier
                                         .fillMaxHeight()
                                         .width(animatedWidth)

@@ -304,14 +304,14 @@ fun ApplicationScope.App(
                         )
                     }
 
-                    key(appLocale) {
-                        Box(Modifier.fillMaxSize()) {
+                    Box(Modifier.fillMaxSize()) {
+                        key(appLocale) {
                             NavigationDesktop(rootComponent)
-                            SnackbarHost(
-                                hostState = snackbarHostState,
-                                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp)
-                            )
                         }
+                        SnackbarHost(
+                            hostState = snackbarHostState,
+                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 80.dp)
+                        )
                     }
                 }
             }
