@@ -53,7 +53,6 @@ import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.*
 
 
-
 data class TabInfo(
     val config: ScreenConfig,
     val icon: ImageVector
@@ -77,6 +76,8 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val activeConfig = childStack.active.configuration
 
     val playerViewModel: PlayerViewModel = LocalPlayerViewModel.current
+    val snackbarHostState = LocalSnackbarHostState.current
+
 
     val playerState by playerViewModel.uiState.collectAsState()
     val progressState by playerViewModel.progressState.collectAsState()
@@ -87,184 +88,203 @@ fun NavigationDesktop(rootComponent: RootComponent) {
 
     val queueWidth = 420.dp
     val animatedWidth by animateDpAsState(queueWidth)
-
+    
     Surface(
         modifier = Modifier
             .fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        Box(Modifier.fillMaxSize()) {
 
-                NavigationRail(
-                    modifier = Modifier.width(90.dp),
-                    containerColor = Color.Transparent,
-                ) {
-                    Column(
-                        modifier = Modifier.fillMaxHeight(),
-                        horizontalAlignment = Alignment.CenterHorizontally
+            Column(modifier = Modifier.fillMaxSize()) {
+                Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
+
+                    NavigationRail(
+                        modifier = Modifier.width(90.dp),
+                        containerColor = Color.Transparent,
                     ) {
-                        Spacer(Modifier.height(20.dp))
-
-
-                        mainTabs.forEach { tab ->
-                            NavigationRailItem(
-                                selected = activeConfig == tab.config,
-                                onClick = {
-                                    isNowPlayingExpanded = false
-                                    rootComponent.switchTab(tab.config)
-                                },
-                                icon = { Icon(tab.icon, null) },
-                                label = {
-                                    Text(
-                                        when (tab.config) {
-                                            ScreenConfig.Home -> stringResource(Res.string.nav_home)
-                                            ScreenConfig.Search -> stringResource(Res.string.nav_search)
-                                            ScreenConfig.Library -> stringResource(Res.string.nav_library)
-                                            else -> ""
-                                        }
-                                    )
-                                },
-                                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
-                                alwaysShowLabel = false,
-                            )
-                        }
-
-                        Spacer(Modifier.weight(1f))
-
-                        bottomTabs.forEach { tab ->
-                            NavigationRailItem(
-                                selected = activeConfig == tab.config,
-                                onClick = {
-                                    isNowPlayingExpanded = false
-                                    isQueueVisible = false
-                                    rootComponent.switchTab(tab.config)
-                                },
-                                icon = { Icon(tab.icon, null) },
-                                label = {
-                                    Text(
-                                        when (tab.config) {
-                                            ScreenConfig.Account -> stringResource(Res.string.nav_account)
-                                            ScreenConfig.Settings -> stringResource(Res.string.nav_settings)
-                                            else -> ""
-                                        }
-                                    )
-                                },
-                                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
-                                alwaysShowLabel = false,
-                            )
-                        }
-                        Spacer(Modifier.height(16.dp))
-                    }
-                }
-
-                val currentSong = playerState.currentSong
-
-                val bottomPadding = if(currentSong!= null) 0.dp else 16.dp
-
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(end = 16.dp, bottom = bottomPadding) // Margen exterior seguro
-                ) {
-
-                    Row(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxWidth()
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxHeight()
-                                .clip(RoundedCornerShape(16.dp))
-                                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-
+                        Column(
+                            modifier = Modifier.fillMaxHeight(),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Children(
-                                stack = rootComponent.childStack,
-                                animation = stackAnimation(fade())
-                            ) { child ->
-                                ScreenRouter(
-                                    instance = child.instance,
-                                    rootComponent = rootComponent,
+                            Spacer(Modifier.height(20.dp))
+
+
+                            mainTabs.forEach { tab ->
+                                NavigationRailItem(
+                                    selected = activeConfig == tab.config,
+                                    onClick = {
+                                        isNowPlayingExpanded = false
+                                        rootComponent.switchTab(tab.config)
+                                    },
+                                    icon = { Icon(tab.icon, null) },
+                                    label = {
+                                        Text(
+                                            when (tab.config) {
+                                                ScreenConfig.Home -> stringResource(Res.string.nav_home)
+                                                ScreenConfig.Search -> stringResource(Res.string.nav_search)
+                                                ScreenConfig.Library -> stringResource(Res.string.nav_library)
+                                                else -> ""
+                                            }
+                                        )
+                                    },
+                                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                                    alwaysShowLabel = false,
                                 )
                             }
 
-                            androidx.compose.animation.AnimatedVisibility(
-                                visible = isNowPlayingExpanded && currentSong != null,
-                                enter = slideInVertically(
-                                    initialOffsetY = { it }
-                                ) + fadeIn(),
-                                exit = slideOutVertically(
-                                    targetOffsetY = { it }
-                                ) + fadeOut()
-                            ) {
-                                if (currentSong != null) {
-                                    NowPlayingLayout(
-                                        state = playerState,
-                                        song = currentSong,
-                                        onCollapse = { isNowPlayingExpanded = false },
-                                        onNavigate = { route ->
-                                            isNowPlayingExpanded = false
-                                            rootComponent.navigateTo(route.toConfig())
-                                        },
-                                        onToggleLyrics = {
-                                            if (!isLyricsVisible) {
-                                                playerViewModel.fetchLyrics()
+                            Spacer(Modifier.weight(1f))
+
+                            bottomTabs.forEach { tab ->
+                                NavigationRailItem(
+                                    selected = activeConfig == tab.config,
+                                    onClick = {
+                                        isNowPlayingExpanded = false
+                                        isQueueVisible = false
+                                        rootComponent.switchTab(tab.config)
+                                    },
+                                    icon = { Icon(tab.icon, null) },
+                                    label = {
+                                        Text(
+                                            when (tab.config) {
+                                                ScreenConfig.Account -> stringResource(Res.string.nav_account)
+                                                ScreenConfig.Settings -> stringResource(Res.string.nav_settings)
+                                                else -> ""
                                             }
-                                            isLyricsVisible = !isLyricsVisible
-                                        },
-                                        showLyrics = isLyricsVisible,
-                                        lyrics = currentLyrics
+                                        )
+                                    },
+                                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                                    alwaysShowLabel = false,
+                                )
+                            }
+                            Spacer(Modifier.height(16.dp))
+                        }
+                    }
+
+                    val currentSong = playerState.currentSong
+
+                    val bottomPadding = if (currentSong != null) 0.dp else 16.dp
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(end = 16.dp, bottom = bottomPadding) // Margen exterior seguro
+                    ) {
+
+                        Row(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+
+                            ) {
+                                Children(
+                                    stack = rootComponent.childStack,
+                                    animation = stackAnimation(fade())
+                                ) { child ->
+                                    ScreenRouter(
+                                        instance = child.instance,
+                                        rootComponent = rootComponent,
+                                    )
+                                }
+
+                                androidx.compose.animation.AnimatedVisibility(
+                                    visible = isNowPlayingExpanded && currentSong != null,
+                                    enter = slideInVertically(
+                                        initialOffsetY = { it }
+                                    ) + fadeIn(),
+                                    exit = slideOutVertically(
+                                        targetOffsetY = { it }
+                                    ) + fadeOut()
+                                ) {
+                                    if (currentSong != null) {
+                                        NowPlayingLayout(
+                                            state = playerState,
+                                            song = currentSong,
+                                            onCollapse = { isNowPlayingExpanded = false },
+                                            onNavigate = { route ->
+                                                isNowPlayingExpanded = false
+                                                rootComponent.navigateTo(route.toConfig())
+                                            },
+                                            onToggleLyrics = {
+                                                if (!isLyricsVisible) {
+                                                    playerViewModel.fetchLyrics()
+                                                }
+                                                isLyricsVisible = !isLyricsVisible
+                                            },
+                                            showLyrics = isLyricsVisible,
+                                            lyrics = currentLyrics
+                                        )
+                                    }
+                                }
+                            }
+
+                            if (isQueueVisible) {
+                                Row(modifier = Modifier.fillMaxHeight()) {
+                                    Spacer(Modifier.width(12.dp))
+
+                                    PlaybackQueuePanel(
+                                        state = playerState,
+                                        onDismiss = { isQueueVisible = false },
+                                        modifier = Modifier
+                                            .fillMaxHeight()
+                                            .width(animatedWidth)
+                                            .clip(RoundedCornerShape(16.dp))
+                                            .border(
+                                                0.5.dp,
+                                                MaterialTheme.colorScheme.outlineVariant,
+                                                RoundedCornerShape(16.dp)
+                                            )
+                                            .background(MaterialTheme.colorScheme.surface)
                                     )
                                 }
                             }
+
                         }
-
-                        if (isQueueVisible) {
-                            Row(modifier = Modifier.fillMaxHeight()) {
-                                Spacer(Modifier.width(12.dp))
-
-                                PlaybackQueuePanel(
-                                    state = playerState,
-                                    onDismiss = { isQueueVisible = false },
-                                    modifier = Modifier
-                                        .fillMaxHeight()
-                                        .width(animatedWidth)
-                                        .clip(RoundedCornerShape(16.dp))
-                                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-                                        .background(MaterialTheme.colorScheme.surface)
-                                )
-                            }
-                        }
-
                     }
                 }
+                val currentSong = playerState.currentSong
+                AnimatedVisibility(
+                    visible = currentSong != null,
+                    enter = slideInVertically(
+                        initialOffsetY = { it }
+                    ) + fadeIn(),
+                    exit = slideOutVertically(
+                        targetOffsetY = { it }
+                    ) + fadeOut()
+                ) {
+                    MiniPlayer(
+                        progressState = progressState,
+                        onClickExpand = { isNowPlayingExpanded = true },
+                        onToggleNowPlaying = { isNowPlayingExpanded = !isNowPlayingExpanded },
+                        isNowPlayingExpanded = isNowPlayingExpanded,
+                        onToggleQueue = { isQueueVisible = !isQueueVisible },
+                        isQueueVisible = isQueueVisible,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
             }
-            val snackbarHostState = LocalSnackbarHostState.current
-            SnackbarHost(hostState = snackbarHostState)
-            val currentSong = playerState.currentSong
+            val snackbarData = snackbarHostState.currentSnackbarData
             AnimatedVisibility(
-                visible = currentSong != null,
-                enter = slideInVertically(
-                    initialOffsetY = { it }
-                ) + fadeIn(),
-                exit = slideOutVertically(
-                    targetOffsetY = { it }
-                ) + fadeOut()
+                visible = snackbarData != null,
+                enter = fadeIn() + slideInVertically { it },
+                exit = fadeOut() + slideOutVertically { it },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = if (playerState.currentSong != null) 80.dp else 16.dp)
+                    .padding(horizontal = 24.dp)
             ) {
-                MiniPlayer(
-                    progressState = progressState,
-                    onClickExpand = { isNowPlayingExpanded = true },
-                    onToggleNowPlaying = { isNowPlayingExpanded = !isNowPlayingExpanded },
-                    isNowPlayingExpanded = isNowPlayingExpanded,
-                    onToggleQueue = { isQueueVisible = !isQueueVisible },
-                    isQueueVisible = isQueueVisible,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Snackbar(snackbarData = snackbarData!!)
             }
         }
+
     }
 }
 

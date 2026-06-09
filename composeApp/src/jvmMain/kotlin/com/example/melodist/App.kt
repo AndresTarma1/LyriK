@@ -123,7 +123,7 @@ fun ApplicationScope.App(
     windowState: WindowState,
 ) {
     val scope = rememberCoroutineScope()
-//    val snackbarHostState = remember { SnackbarHostState() }
+    val snackbarHostState = remember { SnackbarHostState() }
     val updateInfo by appViewModel.updateInfo.collectAsState()
 
     // Carga de dimensiones iniciales de ventana segura
@@ -239,7 +239,7 @@ fun ApplicationScope.App(
         ) {
             CompositionLocalProvider(
                 LocalArtworkColors provides artworkColors,
-//                LocalSnackbarHostState provides snackbarHostState,
+                LocalSnackbarHostState provides snackbarHostState,
                 LocalPlayerViewModel provides playerViewModel,
                 LocalDownloadViewModel provides downloadViewModel,
                 LocalUserPreferences provides userPreferences,
