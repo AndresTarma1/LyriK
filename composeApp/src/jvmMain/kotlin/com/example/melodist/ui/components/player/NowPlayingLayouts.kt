@@ -1,8 +1,10 @@
 package com.example.melodist.ui.components.player
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
@@ -86,6 +88,7 @@ import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun NowPlayingLayout(
     state: PlayerUiState,
@@ -107,12 +110,7 @@ fun NowPlayingLayout(
     BlurredImageBackground(
         imageUrl = song.thumbnailUrl,
         modifier = Modifier
-            .fillMaxSize()
-            .clickable(
-                interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() },
-                indication = null,
-                onClick = {}
-            ),
+            .fillMaxSize(),
         darkOverlayAlpha = 0.62f,
         gradientFraction = 0.52f
     ) {
@@ -127,12 +125,12 @@ fun NowPlayingLayout(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(
-                        modifier = Modifier
-                            .weight(0.38f)
-                            .fillMaxHeight(),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
+                         modifier = Modifier
+                             .weight(0.3f)
+                             .fillMaxHeight(),
+                         horizontalAlignment = Alignment.CenterHorizontally,
+                         verticalArrangement = Arrangement.Center
+                     ) {
                         CoverArt(
                             url = song.thumbnailUrl,
                             title = song.title,
@@ -145,7 +143,7 @@ fun NowPlayingLayout(
                         SongHeader(
                             state = state,
                             song = song,
-                            textAlign = TextAlign.Start,
+                            textAlign = TextAlign.Center,
                             onNavigate = onNavigate,
                             onCollapse = onCollapse,
                             compact = true
@@ -162,16 +160,22 @@ fun NowPlayingLayout(
 
                     Column(
                         modifier = Modifier
-                            .weight(0.62f)
+                            .weight(0.7f)
                             .fillMaxHeight()
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(top = 4.dp, end = 4.dp),
-                            horizontalArrangement = Arrangement.End,
+                            horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            Text(
+                                "Letras",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
                             IconButton(
                                 onClick = { onToggleLyrics?.invoke() },
                                 modifier = Modifier.size(36.dp).pointerHoverIcon(PointerIcon.Hand)
@@ -196,7 +200,7 @@ fun NowPlayingLayout(
                                     Box(
                                         modifier = Modifier.fillMaxSize(),
                                         contentAlignment = Alignment.Center
-                                    ) { CircularProgressIndicator() }
+                                    ) { LoadingIndicator() }
                                 }
                                 lyrics.isBlank() -> {
                                     Box(
@@ -219,9 +223,11 @@ fun NowPlayingLayout(
                                     ) {
                                         Text(
                                             text = lyrics,
-                                            style = MaterialTheme.typography.bodyLarge,
+                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
+                                            style = MaterialTheme.typography.headlineSmall,
                                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                                            lineHeight = MaterialTheme.typography.bodyLarge.lineHeight
+                                            lineHeight = MaterialTheme.typography.headlineSmall.lineHeight,
+                                            textAlign = TextAlign.Center,
                                         )
                                         Spacer(Modifier.height(64.dp))
                                     }
@@ -229,7 +235,7 @@ fun NowPlayingLayout(
                                         state = scrollState,
                                         modifier = Modifier
                                             .align(Alignment.BottomEnd)
-                                            .width(8.dp)
+                                            .width(12.dp)
                                             .padding(end = 4.dp, bottom = 4.dp)
                                     )
                                 }
@@ -269,43 +275,45 @@ fun NowPlayingLayout(
                 }
             }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.TopEnd),
-                horizontalArrangement = Arrangement.End
-            ) {
-                Box {
-                    IconButton(
-                        onClick = { showMenu = true },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .pointerHoverIcon(PointerIcon.Hand)
-                    ) {
-                        Icon(
-                            Icons.Filled.MoreVert,
-                            contentDescription = stringResource(Res.string.more_options),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+            if (!showLyrics) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopEnd),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .pointerHoverIcon(PointerIcon.Hand)
+                        ) {
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = stringResource(Res.string.more_options),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
 
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.equalizer_menu)) },
-                            onClick = { showMenu = false; showEqualizer = true },
-                            leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(if (showLyrics) "Ocultar letras" else "Letras") },
-                            onClick = {
-                                showMenu = false
-                                onToggleLyrics?.invoke()
-                            },
-                            leadingIcon = { Icon(Icons.Rounded.ClosedCaption, null) }
-                        )
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.equalizer_menu)) },
+                                onClick = { showMenu = false; showEqualizer = true },
+                                leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Letras") },
+                                onClick = {
+                                    showMenu = false
+                                    onToggleLyrics?.invoke()
+                                },
+                                leadingIcon = { Icon(Icons.Rounded.ClosedCaption, null) }
+                            )
+                        }
                     }
                 }
             }
@@ -661,7 +669,7 @@ fun SongHeader(
                     text = label,
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp).basicMarquee()
                 )
             }
         }
@@ -671,10 +679,10 @@ fun SongHeader(
             style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.onSurface,
             fontWeight = FontWeight.Bold,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             textAlign = textAlign,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth().basicMarquee()
         )
 
         Spacer(Modifier.height(if (compact) 4.dp else 6.dp))
