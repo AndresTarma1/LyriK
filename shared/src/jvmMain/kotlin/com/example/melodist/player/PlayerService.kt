@@ -141,6 +141,11 @@ class PlayerService {
         mpvPlayer.setEqualizer(bands)
     }
 
+    fun setCrossfadeEnabled(enabled: Boolean) {
+        if (isMpvDisabled) return
+        mpvPlayer.setGaplessAudio(enabled)
+    }
+
     fun release() {
         tickJob?.cancel()
         if (!isMpvDisabled) {

@@ -41,6 +41,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.example.melodist.ui.components.MiniPlayer
 import com.example.melodist.ui.components.player.NowPlayingLayout
 import com.example.melodist.ui.components.player.PlaybackQueuePanel
+import com.example.melodist.ui.components.player.LyricsPanel
 import com.example.melodist.viewmodels.PlayerViewModel
 import com.example.melodist.ui.screens.YouTubeBrowseScreenRoute
 import com.example.melodist.ui.screens.*
@@ -79,8 +80,10 @@ fun NavigationDesktop(rootComponent: RootComponent) {
 
     val playerState by playerViewModel.uiState.collectAsState()
     val progressState by playerViewModel.progressState.collectAsState()
+    val currentLyrics by playerViewModel.currentLyrics.collectAsState()
     var isNowPlayingExpanded by remember { mutableStateOf(false) }
     var isQueueVisible by remember { mutableStateOf(false) }
+    var isLyricsVisible by remember { mutableStateOf(false) }
 
     val queueWidth = 420.dp
     val animatedWidth by animateDpAsState(queueWidth)
@@ -205,21 +208,19 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                         onNavigate = { route ->
                                             isNowPlayingExpanded = false
                                             rootComponent.navigateTo(route.toConfig())
+                                        },
+                                        onToggleLyrics = {
+                                            if (!isLyricsVisible) {
+                                                playerViewModel.fetchLyrics()
+                                            }
+                                            isLyricsVisible = !isLyricsVisible
                                         }
                                     )
                                 }
                             }
                         }
 
-                        AnimatedVisibility(
-                            visible = isQueueVisible,
-                            enter = slideInHorizontally(
-                                initialOffsetX = { it }
-                            ) + fadeIn(),
-                            exit = slideOutHorizontally(
-                                targetOffsetX = { it }
-                            ) + fadeOut()
-                        ) {
+                        if (isQueueVisible) {
                             Row(modifier = Modifier.fillMaxHeight()) {
                                 Spacer(Modifier.width(12.dp))
 
@@ -236,6 +237,22 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                             }
                         }
 
+                        if (isLyricsVisible) {
+                            Row(modifier = Modifier.fillMaxHeight()) {
+                                Spacer(Modifier.width(12.dp))
+
+                                LyricsPanel(
+                                    lyrics = currentLyrics,
+                                    onDismiss = { isLyricsVisible = false },
+                                    modifier = Modifier
+                                        .fillMaxHeight()
+                                        .width(animatedWidth)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                                        .background(MaterialTheme.colorScheme.surface)
+                                )
+                            }
+                        }
 
                     }
                 }

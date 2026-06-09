@@ -38,9 +38,11 @@ import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.screens.PlaylistActions
 import com.example.melodist.ui.screens.PlaylistScreenState
 import com.example.melodist.ui.utils.circleAwareShape
+import com.example.melodist.data.account.AccountManager
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.pages.PlaylistPage
+import org.jetbrains.jewel.foundation.modifier.onHover
 
 @Composable
 internal fun PlaylistLayout(
@@ -304,8 +306,10 @@ internal fun PlaylistCompactLayout(
 
         MultiSongSelectionBar(
             selectedSongs = selectedSongs,
+            allSongIds = state.songs.map { it.id },
             isLocalPlaylist = actions.isLocalPlaylist,
             onClearSelection = onClearSelection,
+            onSelectAll = { state.songs.forEach { onSelectionChange(it.id, true) } },
             onRemoveFromPlaylist = actions.onRemoveSongFromPlaylist,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -378,8 +382,10 @@ private fun PlaylistSongList(
 
         MultiSongSelectionBar(
             selectedSongs = selectedSongs,
+            allSongIds = state.songs.map { it.id },
             isLocalPlaylist = actions.isLocalPlaylist,
             onClearSelection = onClearSelection,
+            onSelectAll = { state.songs.forEach { onSelectionChange(it.id, true) } },
             onRemoveFromPlaylist = actions.onRemoveSongFromPlaylist,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -445,15 +451,43 @@ internal fun PlaylistInfoPanel(
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
-        MelodistImage(
-            url = playlistPage.playlist.thumbnail,
-            contentDescription = playlistPage.playlist.title,
-            modifier = Modifier.fillMaxSize(),
-            placeholderType = PlaceholderType.PLAYLIST,
-            contentScale = ContentScale.Crop,
-            iconSize = coverSize * 0.35f,
-            isLowRes = false  // ✅ Alta resolución solo en pantalla de detalle
-        )
+        Box(modifier = Modifier.fillMaxSize()) {
+            MelodistImage(
+                url = playlistPage.playlist.thumbnail,
+                contentDescription = playlistPage.playlist.title,
+                modifier = Modifier.fillMaxSize(),
+                placeholderType = PlaceholderType.PLAYLIST,
+                contentScale = ContentScale.Crop,
+                iconSize = coverSize * 0.35f,
+                isLowRes = false
+            )
+            if (AccountManager.isLoggedIn && actions.onEditCover != null) {
+                var hovered by remember { mutableStateOf(false) }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(16.dp))
+                        .onHover { hovered = it }
+                        .pointerHoverIcon(PointerIcon.Hand)
+                        .clickable { actions.onEditCover.invoke() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (hovered) {
+                        Surface(
+                            modifier = Modifier.fillMaxSize(),
+                            color = Color.Black.copy(alpha = 0.4f)
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                null,
+                                tint = Color.White,
+                                modifier = Modifier.size(coverSize * 0.3f).align(Alignment.Center)
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
     Spacer(Modifier.height(20.dp))

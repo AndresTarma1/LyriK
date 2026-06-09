@@ -1,7 +1,5 @@
 package com.example.melodist.ui.screens.library.tabs
 
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -256,7 +254,7 @@ fun LibraryMixedTab(
     }
 
     val gridState = rememberLazyGridState()
-    val reorderableLazyGridState = rememberReorderableLazyGridState(gridState) { from, to -> {
+    val reorderableLazyGridState = rememberReorderableLazyGridState(gridState) { _, _ -> {
     }}
 
     Box(modifier = Modifier.fillMaxSize()) {

@@ -32,6 +32,7 @@ import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Lock
@@ -76,6 +77,7 @@ import com.metrolist.innertube.models.Album
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
+import com.example.melodist.utils.LocalSnackbarHostState
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 import kotlin.time.Duration.Companion.milliseconds
@@ -102,6 +104,7 @@ fun NowPlayingLayout(
     song: MediaMetadata,
     onCollapse: () -> Unit,
     onNavigate: ((Route) -> Unit)? = null,
+    onToggleLyrics: (() -> Unit)? = null,
 ) {
     val playerViewModel = LocalPlayerViewModel.current
     val highRes by playerViewModel.highResCoverArt.collectAsState(false)
@@ -164,30 +167,38 @@ fun NowPlayingLayout(
                     .align(Alignment.TopEnd),
                 horizontalArrangement = Arrangement.End
             ) {
-                Box {
-                    IconButton(
-                        onClick = { showMenu = true },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .pointerHoverIcon(PointerIcon.Hand)
-                    ) {
-                        Icon(
-                            Icons.Filled.MoreVert,
-                            contentDescription = stringResource(Res.string.more_options),
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier
+                                .size(40.dp)
+                                .pointerHoverIcon(PointerIcon.Hand)
+                        ) {
+                            Icon(
+                                Icons.Filled.MoreVert,
+                                contentDescription = stringResource(Res.string.more_options),
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(Res.string.equalizer_menu)) },
+                                onClick = { showMenu = false; showEqualizer = true },
+                                leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("Letras") },
+                                onClick = {
+                                    showMenu = false
+                                    onToggleLyrics?.invoke()
+                                },
+                                leadingIcon = { Icon(Icons.Rounded.ClosedCaption, null) }
+                            )
+                        }
                     }
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(Res.string.equalizer_menu)) },
-                            onClick = { showMenu = false; showEqualizer = true },
-                            leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
-                        )
-                    }
-                }
             }
         }
     }
@@ -208,8 +219,72 @@ fun NowPlayingLayout(
             }
         )
     }
+
 }
 
+
+@Composable
+fun LyricsPanel(
+    lyrics: String?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        modifier = modifier.fillMaxHeight(),
+        color = Color.Transparent,
+        tonalElevation = 2.dp,
+        shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text(
+                        "Letras",
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(36.dp).pointerHoverIcon(PointerIcon.Hand)
+                ) {
+                    Icon(
+                        Icons.Default.Close, "Cerrar letras",
+                        modifier = Modifier.size(22.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+
+            Box(
+                modifier = Modifier.fillMaxSize().padding(20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                when {
+                    lyrics == null -> CircularProgressIndicator()
+                    lyrics.isBlank() -> Text(
+                        "No se encontraron letras para esta canción.",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    else -> Text(
+                        text = lyrics,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+        }
+    }
+}
 
 
 @Composable
@@ -239,6 +314,8 @@ fun PlaybackQueuePanel(
     val queueSongs = remember(state.queue) { state.queue.map { it.toSongItem() } }
 
     val queueLocked by preferencesRepo.queueLocked.collectAsState(initial = false)
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
 
     val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
         playerViewModel.moveQueueItem(from.index, to.index)
@@ -316,6 +393,9 @@ fun PlaybackQueuePanel(
                                 onClick = {
                                     showMenu = false
                                     downloadViewModel.downloadAll(queueSongs)
+                                    scope.launch {
+                                        snackbar.showSnackbar("${queueSongs.size} canciones agregadas a descargas")
+                                    }
                                 },
                                 text = { Text(stringResource(Res.string.download_queue)) },
                                 leadingIcon = {
@@ -470,6 +550,7 @@ fun PlaybackQueuePanel(
                     enabled = queuePlaylistName.isNotBlank(),
                     onClick = {
                         playlistsViewModel.createLocalPlaylist(queuePlaylistName.trim(), queueSongs)
+                        scope.launch { snackbar.showSnackbar("Cola guardada como «${queuePlaylistName.trim()}»") }
                         showSaveQueueDialog = false
                     }
                 ) { Text(stringResource(Res.string.btn_save)) }

@@ -58,6 +58,7 @@ data class PlaylistActions(
     val onDownloadPlaylist: () -> Unit,
     val onPlaySong: (Int) -> Unit,
     val onRemoveSongFromPlaylist: ((String) -> Unit)? = null,
+    val onEditCover: (() -> Unit)? = null,
     val isLocalPlaylist: Boolean = false
 )
 
@@ -90,6 +91,7 @@ fun PlaylistScreenRoute(
             onRemoveSongFromPlaylist = if (successState?.playlistPage?.playlist?.id?.startsWith("LOCAL_") == true) {
                 { songId -> viewModel.removeSongFromPlaylist(songId) }
             } else null,
+            onEditCover = { viewModel.pickAndSetCustomThumbnail() },
             isLocalPlaylist = successState?.playlistPage?.playlist?.id?.startsWith("LOCAL_") == true
         )
     }

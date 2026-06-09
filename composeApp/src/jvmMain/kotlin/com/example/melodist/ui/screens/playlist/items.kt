@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -29,6 +30,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.AddBox
 import androidx.compose.material.icons.outlined.ThumbDown
 import androidx.compose.material.icons.outlined.ThumbUp
 import androidx.compose.material3.Checkbox
@@ -48,6 +51,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import com.example.melodist.ui.components.BoxForContainerContextMenuItem
@@ -58,10 +62,14 @@ import com.example.melodist.ui.components.PlaceholderType
 import com.example.melodist.ui.components.context.SongContextMenu
 import com.example.melodist.download.DownloadState
 import com.example.melodist.utils.LocalDownloadViewModel
+import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.ui.helpers.rememberSongDownloadState
+import com.example.melodist.ui.helpers.rememberSongLikedState
 import com.example.melodist.ui.screens.shared.formatDuration
+import com.example.melodist.utils.LocalSnackbarHostState
 import com.metrolist.innertube.models.SongItem
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
+import kotlinx.coroutines.launch
 import org.jetbrains.jewel.foundation.modifier.onHover
 import org.koin.compose.koinInject
 
@@ -144,14 +152,19 @@ inline fun ListItem(
 @Composable
 internal fun MultiSongSelectionBar(
     selectedSongs: List<SongItem>,
+    allSongIds: List<String> = emptyList(),
     isLocalPlaylist: Boolean,
     onClearSelection: () -> Unit,
+    onSelectAll: (() -> Unit)? = null,
     onRemoveFromPlaylist: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     val downloadViewModel = LocalDownloadViewModel.current
     val playlistsViewModel: LibraryPlaylistsViewModel = koinInject()
     var showPlaylistDialog by remember { mutableStateOf(false) }
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
+    val allSelected = allSongIds.isNotEmpty() && selectedSongs.size == allSongIds.size
 
     if (selectedSongs.isEmpty()) return
 
@@ -172,6 +185,17 @@ internal fun MultiSongSelectionBar(
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
+            if (onSelectAll != null && allSongIds.isNotEmpty()) {
+                if (allSelected) {
+                    IconButton(onClick = onClearSelection) {
+                        Icon(Icons.Default.Clear, "Deseleccionar todo")
+                    }
+                } else {
+                    IconButton(onClick = onSelectAll) {
+                        Icon(Icons.Default.AddBox, "Seleccionar todo")
+                    }
+                }
+            }
             IconButton(onClick = { showPlaylistDialog = true }) {
                 Icon(Icons.AutoMirrored.Filled.PlaylistAdd, "Añadir a playlist")
             }
@@ -181,6 +205,9 @@ internal fun MultiSongSelectionBar(
             if (isLocalPlaylist && onRemoveFromPlaylist != null) {
                 IconButton(onClick = {
                     selectedSongs.forEach { onRemoveFromPlaylist(it.id) }
+                    scope.launch {
+                        snackbar.showSnackbar("${selectedSongs.size} canciones eliminadas de la playlist")
+                    }
                     onClearSelection()
                 }) {
                     Icon(Icons.Default.Delete, "Quitar de playlist", tint = MaterialTheme.colorScheme.error)
@@ -252,6 +279,8 @@ internal fun SongListItem(
     val downloadViewModel = LocalDownloadViewModel.current
     val downloadState by rememberSongDownloadState(song.id, downloadViewModel)
     val showDownloadIndicator = downloadState != null && downloadState !is DownloadState.Cancelled
+    val playerViewModel = LocalPlayerViewModel.current
+    val liked = rememberSongLikedState(song.id, playerViewModel)
 
     var isHovered by remember { mutableStateOf(false) }
     var showContextMenu by remember { mutableStateOf(false) }
@@ -364,8 +393,13 @@ internal fun SongListItem(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    IconButton(onClick = { /* Like */ }, modifier = Modifier.size(36.dp)) {
-                                        Icon(Icons.Outlined.Favorite, null, modifier = Modifier.size(20.dp))
+                                    IconButton(onClick = { playerViewModel.toggleLikeForSong(song) }, modifier = Modifier.size(36.dp)) {
+                                        Icon(
+                                            if (liked) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                                            null,
+                                            modifier = Modifier.size(20.dp),
+                                            tint = if (liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                     IconButton(onClick = openMenuFromButton, modifier = menuButtonModifier.size(36.dp)) {
                                         Icon(Icons.Default.MoreVert, null, modifier = Modifier.size(20.dp))

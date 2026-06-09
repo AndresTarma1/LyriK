@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +41,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupPositionProvider
 import com.example.melodist.download.DownloadState
+import com.example.melodist.utils.LocalSnackbarHostState
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.metrolist.innertube.models.SongItem
 import kotlin.math.roundToInt
@@ -49,6 +51,7 @@ import androidx.compose.material.icons.rounded.ArrowCircleDown
 import androidx.compose.material.icons.rounded.PriorityHigh
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import kotlinx.coroutines.launch
 import org.jetbrains.jewel.foundation.modifier.onHover
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -154,6 +157,8 @@ fun AddToPlaylistDialog(
     val localPlaylists by playlistsViewModel.localPlaylists.collectAsState()
     var newPlaylistName by remember { mutableStateOf("") }
     var isCreatingNew by remember { mutableStateOf(false) }
+    val snackbar = LocalSnackbarHostState.current
+    val scope = rememberCoroutineScope()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -195,6 +200,11 @@ fun AddToPlaylistDialog(
                                 .clip(RoundedCornerShape(8.dp))
                                 .clickable {
                                     songs.forEach { playlistsViewModel.addSongToLocalPlaylist(playlist.id, it) }
+                                    scope.launch {
+                                        snackbar.showSnackbar(
+                                            "Añadido${if (songs.size > 1) "s" else ""} a «${playlist.title}»"
+                                        )
+                                    }
                                     onDismiss()
                                 }
                                 .padding(vertical = 12.dp, horizontal = 8.dp),
@@ -223,6 +233,9 @@ fun AddToPlaylistDialog(
                     onClick = {
                         if (newPlaylistName.isNotBlank()) {
                             playlistsViewModel.createLocalPlaylist(newPlaylistName.trim(), songs)
+                            scope.launch {
+                                snackbar.showSnackbar("Playlist «${newPlaylistName.trim()}» creada con ${songs.size} canciones")
+                            }
                             onDismiss()
                         }
                     },
