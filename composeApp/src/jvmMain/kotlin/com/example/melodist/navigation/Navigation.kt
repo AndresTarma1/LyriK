@@ -47,6 +47,7 @@ import com.example.melodist.ui.screens.*
 import com.example.melodist.ui.screens.home.HomeScreenRoute
 import com.example.melodist.ui.screens.library.LibraryScreenRoute
 import com.example.melodist.utils.LocalPlayerViewModel
+import com.example.melodist.utils.LocalSnackbarHostState
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.*
@@ -241,6 +242,8 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                     }
                 }
             }
+            val snackbarHostState = LocalSnackbarHostState.current
+            SnackbarHost(hostState = snackbarHostState)
             val currentSong = playerState.currentSong
             AnimatedVisibility(
                 visible = currentSong != null,
