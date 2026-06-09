@@ -43,6 +43,7 @@ import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
+import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.pages.ChartsPage
 import com.metrolist.innertube.pages.HomePage
@@ -316,7 +317,7 @@ private fun HomeSectionItem(
     when (item) {
         is SongItem -> SongHomeItem(
             item = item,
-            onClick = { playerViewModel?.playSingle(it as SongItem) },
+            onClick = { playerViewModel?.playEndpoint(WatchEndpoint(videoId = item.id)) },
             modifier = modifier,
         )
 

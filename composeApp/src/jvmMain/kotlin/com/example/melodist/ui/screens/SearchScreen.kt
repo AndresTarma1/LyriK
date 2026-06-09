@@ -88,6 +88,7 @@ import com.metrolist.innertube.models.AlbumItem
 import com.metrolist.innertube.models.ArtistItem
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
+import com.metrolist.innertube.models.WatchEndpoint
 import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.pages.ChartsPage
 import com.metrolist.innertube.pages.ExplorePage
@@ -220,7 +221,7 @@ fun SearchScreen(
                     when (item) {
 
                         is SongItem -> {
-                            playerViewModel.playSingle(item)
+                            playerViewModel.playEndpoint(WatchEndpoint(item.id))
                         }
                         else -> {
                             val route = when (item) {

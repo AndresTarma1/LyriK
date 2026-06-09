@@ -153,12 +153,10 @@ fun YouTubeGridItem(
                 modifier = Modifier
                     .aspectRatio(aspectRatio)
                     .clip(RoundedCornerShape(12.dp))
-                    .onPointerEvent(PointerEventType.Enter) { isHovered = true }
-                    .onPointerEvent(PointerEventType.Exit) { isHovered = false }
+                    .onHover{ isHovered = it }
                     .clickable { onClick(item) }
                     .pointerHoverIcon(PointerIcon.Hand),
                 enabled = contextMenuEnabled,
-                onHoverChange = { isHovered = it },
                 onMenuAction = onContextMenuAction
             ) { menuButtonModifier, openMenuFromButton ->
                 MelodistImage(
@@ -552,7 +550,7 @@ fun YoutubeListItem(
                         is PlaylistItem -> PlaceholderType.PLAYLIST
                         else -> PlaceholderType.SONG
                     },
-                    contentScale = ContentScale.Fit,
+                    contentScale = ContentScale.Crop,
                     iconSize = if (item is PlaylistItem) 28.dp else 24.dp,
                     isLowRes = true
                 )

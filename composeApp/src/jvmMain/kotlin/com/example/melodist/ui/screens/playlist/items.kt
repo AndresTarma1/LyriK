@@ -47,6 +47,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import com.example.melodist.ui.components.BoxForContainerContextMenuItem
@@ -61,6 +62,7 @@ import com.example.melodist.ui.helpers.rememberSongDownloadState
 import com.example.melodist.ui.screens.shared.formatDuration
 import com.metrolist.innertube.models.SongItem
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
+import org.jetbrains.jewel.foundation.modifier.onHover
 import org.koin.compose.koinInject
 
 val ListItemHeight = 72.dp
@@ -81,7 +83,7 @@ inline fun ListItem(
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = if (isActive) {
-            modifier // playing highlight
+            modifier
                 .height(ListItemHeight)
                 .padding(horizontal = 8.dp)
                 .clip(RoundedCornerShape(8.dp))
@@ -320,8 +322,7 @@ internal fun SongListItem(
                                 Box(
                                     modifier = Modifier
                                         .size(ListThumbnailSize)
-                                        .onPointerEvent(PointerEventType.Enter) { isHovered = true }
-                                        .onPointerEvent(PointerEventType.Exit) { isHovered = false }
+                                        .onHover{ isHovered = it }
                                 ) {
                                     MelodistImage(
                                         url = song.thumbnail,
@@ -358,25 +359,19 @@ internal fun SongListItem(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.End
                         ) {
-                            // 1. Iconos de acción (Like, Dislike, Menu)
                             if (isHovered && !selectionMode) {
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                                 ) {
-                                    IconButton(onClick = { /* Dislike */ }, modifier = Modifier.size(36.dp)) {
-                                        Icon(Icons.Outlined.ThumbDown, null, modifier = Modifier.size(20.dp))
-                                    }
                                     IconButton(onClick = { /* Like */ }, modifier = Modifier.size(36.dp)) {
-                                        Icon(Icons.Outlined.ThumbUp, null, modifier = Modifier.size(20.dp))
+                                        Icon(Icons.Outlined.Favorite, null, modifier = Modifier.size(20.dp))
                                     }
                                     IconButton(onClick = openMenuFromButton, modifier = menuButtonModifier.size(36.dp)) {
                                         Icon(Icons.Default.MoreVert, null, modifier = Modifier.size(20.dp))
                                     }
                                 }
                             }
-
-                            // 2. Contenedor FINAL fijo
 
                                 if (selectionMode || isHovered) {
                                     Checkbox(

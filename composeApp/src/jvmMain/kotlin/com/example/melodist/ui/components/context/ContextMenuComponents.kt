@@ -59,6 +59,7 @@ import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.metrolist.innertube.models.SongItem
+import com.metrolist.innertube.models.WatchEndpoint
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -192,7 +193,7 @@ fun SongContextMenu(
                         if (endpoint != null) {
                             playerViewModel.playEndpoint(endpoint)
                         } else {
-                            playerViewModel.playSingle(song)
+                            playerViewModel.playEndpoint(WatchEndpoint(videoId = song.id))
                         }
                     }
                 )

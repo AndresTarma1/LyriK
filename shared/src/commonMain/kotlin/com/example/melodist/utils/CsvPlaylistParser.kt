@@ -56,9 +56,9 @@ object CsvPlaylistParser {
         var i = 0
         while (i < line.length) {
             val c = line[i]
-            when {
-                c == '"' && !inQuotes -> inQuotes = true
-                c == '"' && inQuotes -> {
+            when (c) {
+                '"' if !inQuotes -> inQuotes = true
+                '"' if true -> {
                     if (i + 1 < line.length && line[i + 1] == '"') {
                         current.append('"')
                         i++
@@ -66,7 +66,7 @@ object CsvPlaylistParser {
                         inQuotes = false
                     }
                 }
-                c == ',' && !inQuotes -> {
+                ',' if !inQuotes -> {
                     result.add(current.toString())
                     current.clear()
                 }
