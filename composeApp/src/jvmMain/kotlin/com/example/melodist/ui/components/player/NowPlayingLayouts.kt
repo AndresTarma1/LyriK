@@ -323,7 +323,7 @@ private fun LyricsLayout(
                     modifier = Modifier.padding(bottom = 16.dp, top = 16.dp)
                 )
                 Box(modifier = Modifier.weight(1f)) {
-                    LyricsContent(lyrics = lyrics, textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineSmall)
+                    LyricsContent(lyrics = lyrics, textAlign = TextAlign.Start, style = MaterialTheme.typography.headlineSmall)
                 }
             }
         }

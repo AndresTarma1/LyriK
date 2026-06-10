@@ -39,6 +39,7 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.example.melodist.ui.components.MiniPlayer
+import com.example.melodist.ui.components.dialogs.SnackBar
 import com.example.melodist.ui.components.player.NowPlayingLayout
 import com.example.melodist.ui.components.player.PlaybackQueuePanel
 import com.example.melodist.viewmodels.PlayerViewModel
@@ -78,7 +79,6 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val playerViewModel: PlayerViewModel = LocalPlayerViewModel.current
     val snackbarHostState = LocalSnackbarHostState.current
 
-
     val playerState by playerViewModel.uiState.collectAsState()
     val progressState by playerViewModel.progressState.collectAsState()
     val currentLyrics by playerViewModel.currentLyrics.collectAsState()
@@ -88,14 +88,15 @@ fun NavigationDesktop(rootComponent: RootComponent) {
 
     val queueWidth = 420.dp
     val animatedWidth by animateDpAsState(queueWidth)
-    
+
     Surface(
-        modifier = Modifier
-            .fillMaxSize(),
+        modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
+        // El Box nos permite superponer elementos (como el Snackbar) sin alterar el layout principal
         Box(Modifier.fillMaxSize()) {
 
+            // CONTENIDO PRINCIPAL
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
 
@@ -108,7 +109,6 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Spacer(Modifier.height(20.dp))
-
 
                             mainTabs.forEach { tab ->
                                 NavigationRailItem(
@@ -162,15 +162,13 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                     }
 
                     val currentSong = playerState.currentSong
-
                     val bottomPadding = if (currentSong != null) 0.dp else 16.dp
 
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(end = 16.dp, bottom = bottomPadding) // Margen exterior seguro
+                            .padding(end = 16.dp, bottom = bottomPadding)
                     ) {
-
                         Row(
                             modifier = Modifier
                                 .weight(1f)
@@ -182,7 +180,6 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                     .fillMaxHeight()
                                     .clip(RoundedCornerShape(16.dp))
                                     .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-
                             ) {
                                 Children(
                                     stack = rootComponent.childStack,
@@ -196,12 +193,8 @@ fun NavigationDesktop(rootComponent: RootComponent) {
 
                                 androidx.compose.animation.AnimatedVisibility(
                                     visible = isNowPlayingExpanded && currentSong != null,
-                                    enter = slideInVertically(
-                                        initialOffsetY = { it }
-                                    ) + fadeIn(),
-                                    exit = slideOutVertically(
-                                        targetOffsetY = { it }
-                                    ) + fadeOut()
+                                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
                                 ) {
                                     if (currentSong != null) {
                                         NowPlayingLayout(
@@ -225,7 +218,11 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                 }
                             }
 
-                            if (isQueueVisible) {
+                            AnimatedVisibility(
+                                visible = isQueueVisible,
+                                enter = slideInHorizontally(initialOffsetX = { it }) + fadeIn(),
+                                exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
+                            ) {
                                 Row(modifier = Modifier.fillMaxHeight()) {
                                     Spacer(Modifier.width(12.dp))
 
@@ -236,28 +233,21 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                             .fillMaxHeight()
                                             .width(animatedWidth)
                                             .clip(RoundedCornerShape(16.dp))
-                                            .border(
-                                                0.5.dp,
-                                                MaterialTheme.colorScheme.outlineVariant,
-                                                RoundedCornerShape(16.dp)
-                                            )
+                                            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
                                             .background(MaterialTheme.colorScheme.surface)
                                     )
                                 }
                             }
-
                         }
                     }
                 }
+
+                // El MiniPlayer se queda al final del Column principal ocupando su espacio correspondiente
                 val currentSong = playerState.currentSong
                 AnimatedVisibility(
                     visible = currentSong != null,
-                    enter = slideInVertically(
-                        initialOffsetY = { it }
-                    ) + fadeIn(),
-                    exit = slideOutVertically(
-                        targetOffsetY = { it }
-                    ) + fadeOut()
+                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
                 ) {
                     MiniPlayer(
                         progressState = progressState,
@@ -269,8 +259,13 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
-
             }
+
+            val currentSong = playerState.currentSong
+            SnackBar(
+                currentSong = currentSong,
+                snackbarHostState = snackbarHostState,
+            )
         }
     }
 }

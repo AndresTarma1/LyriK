@@ -199,77 +199,74 @@ fun MiniPlayer(
                         horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
                     ) {
 
-                            IconButton(
-                                onClick = { playerViewModel.toggleShuffle() },
-                                modifier = Modifier.size(36.dp).pointerHoverIcon(PointerIcon.Hand),
-                                colors = IconButtonDefaults.iconButtonColors(
-                                    containerColor = if (state.isShuffled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                    else Color.Transparent,
+                        IconButton(
+                            onClick = { playerViewModel.toggleShuffle() },
+                            modifier = Modifier.size(36.dp).pointerHoverIcon(PointerIcon.Hand),
+                            colors = IconButtonDefaults.iconButtonColors(
+                                containerColor = if (state.isShuffled) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                else Color.Transparent,
+                            )
+                        ) {
+                            Icon(
+                                Icons.Rounded.Shuffle, stringResource(Res.string.mp_shuffle),
+                                modifier = Modifier.size(20.dp),
+                                tint = if (state.isShuffled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+
+
+                        IconButton(
+                            onClick = { playerViewModel.previous() },
+                            modifier = Modifier.size(40.dp).pointerHoverIcon(PointerIcon.Hand)
+                        ) {
+                            Icon(
+                                Icons.Rounded.SkipPrevious, stringResource(Res.string.mp_previous),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+
+
+
+
+                        FilledIconButton(
+                            onClick = { playerViewModel.togglePlayPause() },
+                            modifier = Modifier.size(46.dp).pointerHoverIcon(PointerIcon.Hand),
+                            shape = circleAwareShape(),
+                            colors = IconButtonDefaults.filledIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.onSurface,
+                                contentColor = MaterialTheme.colorScheme.surface
+                            )
+                        ) {
+                            if (isLoading) {
+                                LoadingIndicator(
+                                    modifier = Modifier.fillMaxSize(),
+                                    color = MaterialTheme.colorScheme.surface,
                                 )
-                            ) {
+                            } else {
                                 Icon(
-                                    Icons.Rounded.Shuffle, stringResource(Res.string.mp_shuffle),
-                                    modifier = Modifier.size(20.dp),
-                                    tint = if (state.isShuffled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-
-
-                            IconButton(
-                                onClick = { playerViewModel.previous() },
-                                modifier = Modifier.size(40.dp).pointerHoverIcon(PointerIcon.Hand)
-                            ) {
-                                Icon(
-                                    Icons.Rounded.SkipPrevious, stringResource(Res.string.mp_previous),
-                                    tint = MaterialTheme.colorScheme.onSurface,
+                                    imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                                    contentDescription = if (isPlaying) stringResource(Res.string.tray_pause) else stringResource(
+                                        Res.string.tray_play
+                                    ),
                                     modifier = Modifier.size(32.dp)
                                 )
                             }
+                        }
 
 
 
-
-                            FilledIconButton(
-                                onClick = { playerViewModel.togglePlayPause() },
-                                modifier = Modifier.size(46.dp).pointerHoverIcon(PointerIcon.Hand),
-                                shape = circleAwareShape(),
-                                colors = IconButtonDefaults.filledIconButtonColors(
-                                    containerColor = MaterialTheme.colorScheme.onSurface,
-                                    contentColor = MaterialTheme.colorScheme.surface
-                                )
-                            ) {
-                                if (isLoading) {
-                                    LoadingIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = MaterialTheme.colorScheme.surface,
-                                    )
-                                } else {
-                                    Icon(
-                                        imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
-                                        contentDescription = if (isPlaying) stringResource(Res.string.tray_pause) else stringResource(
-                                            Res.string.tray_play
-                                        ),
-                                        modifier = Modifier.size(32.dp)
-                                    )
-                                }
-                            }
-
-
-
-                            IconButton(
-                                onClick = { playerViewModel.next() },
-                                modifier = Modifier.size(40.dp).pointerHoverIcon(PointerIcon.Hand)
-                            ) {
-                                Icon(
-                                    Icons.Rounded.SkipNext, stringResource(Res.string.mp_next),
-                                    tint = MaterialTheme.colorScheme.onSurface,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-
-
-                        // Botón Repetir
+                        IconButton(
+                            onClick = { playerViewModel.next() },
+                            modifier = Modifier.size(40.dp).pointerHoverIcon(PointerIcon.Hand)
+                        ) {
+                            Icon(
+                                Icons.Rounded.SkipNext, stringResource(Res.string.mp_next),
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
 
                         IconButton(
                             onClick = { playerViewModel.toggleRepeat() },
@@ -292,34 +289,40 @@ fun MiniPlayer(
                         }
 
                     }
+                    var localSliderValue by remember { mutableStateOf(0f) }
+                    var isDragging by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(progressState.positionMs, progressState.durationMs) {
+                        if (!isDragging && progressState.durationMs > 0) {
+                            localSliderValue = progressState.positionMs.toFloat() / progressState.durationMs
+                        }
+                    }
+
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        TimeText(progressState.positionMs, seekValue)
+                        TimeText(
+                            if (isDragging) (localSliderValue * progressState.durationMs).toLong() else progressState.positionMs,
+                            null
+                        )
 
                         Box(modifier = Modifier.weight(1f).height(24.dp), contentAlignment = Alignment.Center) {
-                            var isDragging by remember { mutableStateOf(false) }
-
                             WavySlider(
-                                value = sliderProgress,
+                                value = localSliderValue,
                                 onValueChange = {
                                     isDragging = true
-                                    seekValue = it
+                                    localSliderValue = it
                                 },
                                 onValueChangeFinished = {
+                                    val targetPosition = (localSliderValue * progressState.durationMs).toLong()
+                                    playerViewModel.seekTo(targetPosition)
                                     isDragging = false
-                                    playerViewModel.seekTo((seekValue?.times(progressState.durationMs))?.toLong() ?: 0L)
-                                    seekValue = null
                                 },
                                 waveLength = 102.dp,
                                 waveHeight = if (isPlaying || isDragging) 10.dp else 0.dp,
-                                waveVelocity = if (isPlaying && !isDragging) {
-                                    28.dp to WaveDirection.TAIL
-                                } else {
-                                    0.dp to WaveDirection.TAIL
-                                },
+                                waveVelocity = if (isPlaying && !isDragging) 28.dp to WaveDirection.TAIL else 0.dp to WaveDirection.TAIL,
                                 waveThickness = 8.dp,
                                 trackThickness = 9.dp,
                                 incremental = false,
