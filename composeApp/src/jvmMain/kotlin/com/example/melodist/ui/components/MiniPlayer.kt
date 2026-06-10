@@ -373,7 +373,7 @@ fun MiniPlayer(
 
 
                         IconButton(
-                            onClick = { playerViewModel.setVolume(if (volumeFloat > 0f) 0 else 80) },
+                            onClick = { playerViewModel.toggleMute() },
                             modifier = Modifier.size(40.dp)
                         ) {
                             Icon(

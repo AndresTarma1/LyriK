@@ -121,7 +121,6 @@ class PlayerService {
 
     fun setVolume(value: Int) {
         _volume.value = value
-        _previousVolume = value
         if (isMpvDisabled) return
         mpvPlayer.volume = value.toFloat() / 100f
     }
