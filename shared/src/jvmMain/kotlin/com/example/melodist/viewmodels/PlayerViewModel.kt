@@ -131,7 +131,8 @@ class PlayerViewModel(
         viewModelScope.launch {
             _uiState.map { it.currentSong?.id }
                 .distinctUntilChanged()
-                .collectLatest { _currentLyrics.value = null }
+                .filterNotNull()
+                .collectLatest { fetchLyrics() }
         }
     }
 
