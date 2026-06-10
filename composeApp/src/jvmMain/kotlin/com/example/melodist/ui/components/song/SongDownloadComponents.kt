@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.PopupPositionProvider
 import com.example.melodist.download.DownloadState
 import com.example.melodist.utils.LocalSnackbarHostState
+import com.example.melodist.utils.LocalSnackbarScope
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.metrolist.innertube.models.SongItem
 import kotlin.math.roundToInt
@@ -158,7 +159,7 @@ fun AddToPlaylistDialog(
     var newPlaylistName by remember { mutableStateOf("") }
     var isCreatingNew by remember { mutableStateOf(false) }
     val snackbar = LocalSnackbarHostState.current
-    val scope = rememberCoroutineScope()
+    val scope = LocalSnackbarScope.current
 
     AlertDialog(
         onDismissRequest = onDismiss,

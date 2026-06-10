@@ -65,6 +65,7 @@ import com.example.melodist.ui.themes.MelodistTheme
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.LocalSnackbarHostState
+import com.example.melodist.utils.LocalSnackbarScope
 import com.example.melodist.utils.LocalUserPreferences
 import com.example.melodist.viewmodels.AppViewModel
 import com.example.melodist.viewmodels.DownloadViewModel
@@ -240,6 +241,7 @@ fun ApplicationScope.App(
             CompositionLocalProvider(
                 LocalArtworkColors provides artworkColors,
                 LocalSnackbarHostState provides snackbarHostState,
+                LocalSnackbarScope provides scope,
                 LocalPlayerViewModel provides playerViewModel,
                 LocalDownloadViewModel provides downloadViewModel,
                 LocalUserPreferences provides userPreferences,

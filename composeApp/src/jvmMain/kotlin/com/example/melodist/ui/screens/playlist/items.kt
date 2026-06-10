@@ -55,6 +55,7 @@ import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import com.example.melodist.ui.components.BoxForContainerContextMenuItem
+import com.example.melodist.ui.components.dialogs.ConfirmDestructiveActionDialog
 import com.example.melodist.ui.components.song.DownloadIndicator
 import com.example.melodist.ui.components.song.AddToPlaylistDialog
 import com.example.melodist.ui.components.MelodistImage
@@ -67,7 +68,9 @@ import com.example.melodist.ui.helpers.rememberSongDownloadState
 import com.example.melodist.ui.helpers.rememberSongLikedState
 import com.example.melodist.ui.screens.shared.formatDuration
 import com.example.melodist.utils.LocalSnackbarHostState
+import com.example.melodist.utils.LocalSnackbarScope
 import com.metrolist.innertube.models.SongItem
+import java.util.logging.Logger
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import kotlinx.coroutines.launch
 import org.jetbrains.jewel.foundation.modifier.onHover
@@ -162,11 +165,28 @@ internal fun MultiSongSelectionBar(
     val downloadViewModel = LocalDownloadViewModel.current
     val playlistsViewModel: LibraryPlaylistsViewModel = koinInject()
     var showPlaylistDialog by remember { mutableStateOf(false) }
+    var showRemoveConfirm by remember { mutableStateOf(false) }
     val snackbar = LocalSnackbarHostState.current
-    val scope = rememberCoroutineScope()
+    val scope = LocalSnackbarScope.current
     val allSelected = allSongIds.isNotEmpty() && selectedSongs.size == allSongIds.size
 
     if (selectedSongs.isEmpty()) return
+
+    if (showRemoveConfirm) {
+        ConfirmDestructiveActionDialog(
+            title = "Eliminar canciones",
+            message = "Se eliminarán ${selectedSongs.size} canciones de la playlist. Esta acción no se puede deshacer.",
+            confirmText = "Eliminar",
+            onConfirm = {
+                selectedSongs.forEach { onRemoveFromPlaylist?.invoke(it.id) }
+                scope.launch {
+                    snackbar.showSnackbar("${selectedSongs.size} canciones eliminadas de la playlist")
+                }
+                onClearSelection()
+            },
+            onDismiss = { showRemoveConfirm = false }
+        )
+    }
 
     Surface(
         tonalElevation = 6.dp,
@@ -203,13 +223,7 @@ internal fun MultiSongSelectionBar(
                 Icon(Icons.Default.Download, "Descargar")
             }
             if (isLocalPlaylist && onRemoveFromPlaylist != null) {
-                IconButton(onClick = {
-                    selectedSongs.forEach { onRemoveFromPlaylist(it.id) }
-                    scope.launch {
-                        snackbar.showSnackbar("${selectedSongs.size} canciones eliminadas de la playlist")
-                    }
-                    onClearSelection()
-                }) {
+                IconButton(onClick = { showRemoveConfirm = true }) {
                     Icon(Icons.Default.Delete, "Quitar de playlist", tint = MaterialTheme.colorScheme.error)
                 }
             }

@@ -51,6 +51,7 @@ import com.example.melodist.utils.LocalSnackbarHostState
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import kotlinx.coroutines.*
+import java.util.logging.Logger
 
 
 data class TabInfo(
@@ -271,18 +272,13 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                 }
 
             }
-            val snackbarData = snackbarHostState.currentSnackbarData
-            AnimatedVisibility(
-                visible = snackbarData != null,
-                enter = fadeIn() + slideInVertically { it },
-                exit = fadeOut() + slideOutVertically { it },
+            SnackbarHost(
+                hostState = snackbarHostState,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = if (playerState.currentSong != null) 80.dp else 16.dp)
                     .padding(horizontal = 24.dp)
-            ) {
-                Snackbar(snackbarData = snackbarData!!)
-            }
+            )
         }
 
     }

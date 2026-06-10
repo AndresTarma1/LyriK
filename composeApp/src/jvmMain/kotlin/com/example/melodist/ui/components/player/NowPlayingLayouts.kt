@@ -60,6 +60,7 @@ import com.example.melodist.ui.components.song.AddToPlaylistDialog
 import com.example.melodist.ui.helpers.rememberSongDownloadState
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
+import com.example.melodist.utils.LocalSnackbarScope
 import com.example.melodist.utils.LocalUserPreferences
 import com.example.melodist.utils.isWideThumbnail
 import com.example.melodist.viewmodels.PlayerUiState
@@ -83,6 +84,7 @@ import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import com.example.melodist.ui.components.context.SongContextMenu
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
+import io.github.aakira.napier.Napier
 import org.jetbrains.jewel.foundation.modifier.onHover
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
@@ -368,7 +370,7 @@ fun PlaybackQueuePanel(
 
     val queueLocked by preferencesRepo.queueLocked.collectAsState(initial = false)
     val snackbar = LocalSnackbarHostState.current
-    val scope = rememberCoroutineScope()
+    val scope = LocalSnackbarScope.current
 
     val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
         playerViewModel.moveQueueItem(from.index, to.index)

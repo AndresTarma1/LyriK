@@ -62,6 +62,7 @@ import com.example.melodist.ui.helpers.rememberSongLikedState
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.LocalSnackbarHostState
+import com.example.melodist.utils.LocalSnackbarScope
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
@@ -83,7 +84,6 @@ fun CollectionContextMenu(
     onShuffle: (() -> Unit)? = null,
     onRemoveFromLibrary: (() -> Unit)? = null,
 ) {
-
     if (!expanded) return
     val cursorPositionProvider = rememberCursorPositionProvider()
 
@@ -181,7 +181,7 @@ fun SongContextMenu(
 
     var showPlaylistDialog by remember { mutableStateOf(false) }
     val snackbar = LocalSnackbarHostState.current
-    val scope = rememberCoroutineScope()
+    val scope = LocalSnackbarScope.current
 
     Popup(
         onDismissRequest = onDismiss,
