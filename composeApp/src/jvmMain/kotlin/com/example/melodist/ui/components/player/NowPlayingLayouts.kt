@@ -112,216 +112,60 @@ fun NowPlayingLayout(
     BlurredImageBackground(
         imageUrl = song.thumbnailUrl,
         modifier = Modifier
-            .fillMaxSize(),
+            .fillMaxSize()
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = {}
+            ),
         darkOverlayAlpha = 0.62f,
         gradientFraction = 0.52f
     ) {
-        Box(
+        BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 48.dp, vertical = 28.dp)
+                .padding(horizontal = 24.dp, vertical = 20.dp) // Márgenes más adaptables
         ) {
-            if (showLyrics) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(
-                         modifier = Modifier
-                             .weight(0.3f)
-                             .fillMaxHeight(),
-                         horizontalAlignment = Alignment.CenterHorizontally,
-                         verticalArrangement = Arrangement.Center
-                     ) {
-                        CoverArt(
-                            url = song.thumbnailUrl,
-                            title = song.title,
-                            modifier = Modifier.widthIn(max = 200.dp),
-                            highRes = highRes
-                        )
+            val isCompactHorizontal = maxWidth < 960.dp
+            val isCompactVertical = maxHeight < 640.dp
+            val useCompactLyrics = isCompactHorizontal || isCompactVertical
 
-                        Spacer(Modifier.height(16.dp))
-
-                        SongHeader(
-                            state = state,
-                            song = song,
-                            textAlign = TextAlign.Center,
-                            onNavigate = onNavigate,
-                            onCollapse = onCollapse,
-                            compact = true
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .fillMaxHeight()
-                            .padding(vertical = 32.dp)
-                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+            // --- Capa de Contenido Principal ---
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (showLyrics) {
+                    LyricsLayout(
+                        song = song,
+                        highRes = highRes,
+                        state = state,
+                        lyrics = lyrics,
+                        isCompact = useCompactLyrics,
+                        onNavigate = onNavigate,
+                        onCollapse = onCollapse,
+                        onToggleLyrics = onToggleLyrics
                     )
-
-                    Column(
-                        modifier = Modifier
-                            .weight(0.7f)
-                            .fillMaxHeight()
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 4.dp, end = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                "Letras",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                            IconButton(
-                                onClick = { onToggleLyrics?.invoke() },
-                                modifier = Modifier.size(36.dp).pointerHoverIcon(PointerIcon.Hand)
-                            ) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    "Cerrar letras",
-                                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(end = 16.dp, bottom = 16.dp),
-                            contentAlignment = Alignment.TopStart
-                        ) {
-                            when {
-                                lyrics == null -> {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) { LoadingIndicator() }
-                                }
-                                lyrics.isBlank() -> {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            "No se encontraron letras para esta canción.",
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            textAlign = TextAlign.Center
-                                        )
-                                    }
-                                }
-                                else -> {
-                                    val scrollState = rememberScrollState()
-                                    Column(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .verticalScroll(scrollState)
-                                    ) {
-                                        Text(
-                                            text = lyrics,
-                                            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp),
-                                            style = MaterialTheme.typography.headlineSmall,
-                                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
-                                            lineHeight = MaterialTheme.typography.headlineSmall.lineHeight,
-                                            textAlign = TextAlign.Center,
-                                        )
-                                        Spacer(Modifier.height(64.dp))
-                                    }
-                                    AppVerticalScrollbar(
-                                        state = scrollState,
-                                        modifier = Modifier
-                                            .align(Alignment.BottomEnd)
-                                            .width(12.dp)
-                                            .padding(end = 4.dp, bottom = 4.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            } else {
-                BoxWithConstraints(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    val isCompact = maxHeight < 600.dp
-                    val imageSize = if (isCompact) 280.dp else 420.dp
-
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        CoverArt(
-                            url = song.thumbnailUrl,
-                            title = song.title,
-                            modifier = Modifier.widthIn(max = imageSize),
-                            highRes = highRes
-                        )
-
-                        Spacer(Modifier.height(if (isCompact) 16.dp else 32.dp))
-
-                        SongHeader(
-                            state = state,
-                            song = song,
-                            textAlign = TextAlign.Center,
-                            onNavigate = onNavigate,
-                            onCollapse = onCollapse
-                        )
-                    }
+                } else {
+                    PlaybackMainLayout(
+                        song = song,
+                        highRes = highRes,
+                        state = state,
+                        isCompact = isCompactVertical,
+                        onNavigate = onNavigate,
+                        onCollapse = onCollapse
+                    )
                 }
             }
 
-            if (!showLyrics) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopEnd),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Box {
-                        IconButton(
-                            onClick = { showMenu = true },
-                            modifier = Modifier
-                                .size(40.dp)
-                                .pointerHoverIcon(PointerIcon.Hand)
-                        ) {
-                            Icon(
-                                Icons.Filled.MoreVert,
-                                contentDescription = stringResource(Res.string.more_options),
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(Res.string.equalizer_menu)) },
-                                onClick = { showMenu = false; showEqualizer = true },
-                                leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Letras") },
-                                onClick = {
-                                    showMenu = false
-                                    onToggleLyrics?.invoke()
-                                },
-                                leadingIcon = { Icon(Icons.Rounded.ClosedCaption, null) }
-                            )
-                        }
-                    }
-                }
-            }
+            // --- Capa de Acciones Globales (Siempre accesible arriba a la derecha) ---
+            TopActionOverlay(
+                showMenu = showMenu,
+                onMenuToggle = { showMenu = it },
+                onToggleLyrics = onToggleLyrics,
+                onOpenEqualizer = { showEqualizer = true }
+            )
         }
     }
 
+    // --- Diálogo del Ecualizador ---
     if (showEqualizer) {
         AlertDialog(
             onDismissRequest = { showEqualizer = false },
@@ -334,11 +178,252 @@ fun NowPlayingLayout(
                 )
             },
             confirmButton = {
-                TextButton(onClick = { showEqualizer = false }) { Text(stringResource(Res.string.close_equalizer)) }
+                TextButton(onClick = { showEqualizer = false }) {
+                    Text(stringResource(Res.string.close_equalizer))
+                }
             }
         )
     }
+}
 
+// ==========================================
+// COMPONENTES AUXILIARES EXTRAÍDOS
+// ==========================================
+
+@Composable
+private fun PlaybackMainLayout(
+    song: MediaMetadata,
+    highRes: Boolean,
+    state: PlayerUiState,
+    isCompact: Boolean,
+    onNavigate: ((Route) -> Unit)?,
+    onCollapse: () -> Unit
+) {
+    // Usamos Column si falta altura, o Row si la pantalla es muy ancha pero chata
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CoverArt(
+            url = song.thumbnailUrl,
+            title = song.title,
+            modifier = Modifier
+                .weight(1f, fill = false) // Permite que la portada encoja si falta espacio vertical
+                .sizeIn(maxHeight = if (isCompact) 260.dp else 400.dp, maxWidth = if (isCompact) 260.dp else 400.dp),
+            highRes = highRes
+        )
+
+        Spacer(Modifier.height(if (isCompact) 16.dp else 32.dp))
+
+        SongHeader(
+            state = state,
+            song = song,
+            textAlign = TextAlign.Center,
+            onNavigate = onNavigate,
+            onCollapse = onCollapse
+        )
+
+        // NOTA: Aquí deberías incluir tus controles de reproducción (Play, Pause, Sliders)
+        // para que también respondan a la jerarquía y no queden flotando.
+    }
+}
+
+@Composable
+private fun LyricsLayout(
+    song: MediaMetadata,
+    highRes: Boolean,
+    state: PlayerUiState,
+    lyrics: String?,
+    isCompact: Boolean,
+    onNavigate: ((Route) -> Unit)?,
+    onCollapse: () -> Unit,
+    onToggleLyrics: (() -> Unit)?
+) {
+    if (isCompact) {
+        // Diseño Vertical (Móviles / Ventanas pequeñas)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(end = 48.dp), // Espacio para el botón cerrar global
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                CoverArt(
+                    url = song.thumbnailUrl,
+                    title = song.title,
+                    modifier = Modifier.size(80.dp), // Tamaño controlado para que no rompa el Layout
+                    highRes = highRes
+                )
+                SongHeader(
+                    state = state,
+                    song = song,
+                    textAlign = TextAlign.Start,
+                    onNavigate = onNavigate,
+                    onCollapse = onCollapse,
+                    compact = true
+                )
+            }
+            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+            Text(
+                "Letras",
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                LyricsContent(lyrics = lyrics, textAlign = TextAlign.Start, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+    } else {
+        // Diseño Horizontal / Pantallas Grandes (Tablets, Desktop)
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(40.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(0.4f).fillMaxHeight(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                CoverArt(
+                    url = song.thumbnailUrl,
+                    title = song.title,
+                    modifier = Modifier.sizeIn(maxHeight = 320.dp, maxWidth = 320.dp),
+                    highRes = highRes
+                )
+                Spacer(Modifier.height(24.dp))
+                SongHeader(
+                    state = state,
+                    song = song,
+                    textAlign = TextAlign.Center,
+                    onNavigate = onNavigate,
+                    onCollapse = onCollapse,
+                    compact = false
+                )
+            }
+
+            Box(
+                modifier = Modifier
+                    .width(1.dp)
+                    .fillMaxHeight()
+                    .padding(vertical = 40.dp)
+                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+            )
+
+            Column(
+                modifier = Modifier.weight(0.6f).fillMaxHeight()
+            ) {
+                Text(
+                    "Letras",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
+                    modifier = Modifier.padding(bottom = 16.dp, top = 16.dp)
+                )
+                Box(modifier = Modifier.weight(1f)) {
+                    LyricsContent(lyrics = lyrics, textAlign = TextAlign.Center, style = MaterialTheme.typography.headlineSmall)
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun BoxScope.LyricsContent(
+    lyrics: String?,
+    textAlign: TextAlign,
+    style: androidx.compose.ui.text.TextStyle
+) {
+    when {
+        lyrics == null -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                LoadingIndicator()
+            }
+        }
+        lyrics.isBlank() -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(
+                    "No se encontraron letras para esta canción.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+        else -> {
+            val scrollState = rememberScrollState()
+            Box(modifier = Modifier.fillMaxSize()) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(scrollState)
+                        .padding(end = 16.dp)
+                ) {
+                    Text(
+                        text = lyrics,
+                        modifier = Modifier.fillMaxWidth(),
+                        style = style,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+                        lineHeight = style.lineHeight * 1.2f,
+                        textAlign = textAlign,
+                    )
+                    Spacer(Modifier.height(64.dp))
+                }
+                AppVerticalScrollbar(
+                    state = scrollState,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .width(8.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.TopActionOverlay(
+    showMenu: Boolean,
+    onMenuToggle: (Boolean) -> Unit,
+    onToggleLyrics: (() -> Unit)?,
+    onOpenEqualizer: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .pointerHoverIcon(PointerIcon.Hand)
+    ) {
+        IconButton(
+            onClick = { onMenuToggle(true) },
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                Icons.Filled.MoreVert,
+                contentDescription = stringResource(Res.string.more_options),
+                tint = MaterialTheme.colorScheme.onSurface
+            )
+        }
+
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { onMenuToggle(false) }
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.equalizer_menu)) },
+                onClick = { onMenuToggle(false); onOpenEqualizer() },
+                leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
+            )
+            DropdownMenuItem(
+                text = { Text("Alternar Letras") },
+                onClick = {
+                    onMenuToggle(false)
+                    onToggleLyrics?.invoke()
+                },
+                leadingIcon = { Icon(Icons.Rounded.ClosedCaption, null) }
+            )
+        }
+    }
 }
 
 

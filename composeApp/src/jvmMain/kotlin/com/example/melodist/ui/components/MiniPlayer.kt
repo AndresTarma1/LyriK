@@ -240,10 +240,9 @@ fun MiniPlayer(
                                 )
                             ) {
                                 if (isLoading) {
-                                    CircularProgressIndicator(
+                                    LoadingIndicator(
                                         modifier = Modifier.size(20.dp),
                                         color = MaterialTheme.colorScheme.surface,
-                                        strokeWidth = 2.dp
                                     )
                                 } else {
                                     Icon(
