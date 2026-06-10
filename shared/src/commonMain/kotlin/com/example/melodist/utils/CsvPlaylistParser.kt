@@ -4,47 +4,65 @@ data class CsvSongRow(
     val title: String,
     val artist: String,
     val album: String?,
-    val durationSeconds: Int,
-    val explicit: Boolean,
-    val genres: String?,
+    val isrc: String?,
 )
 
 object CsvPlaylistParser {
 
     fun parse(csvContent: String): List<CsvSongRow> {
-        val lines = csvContent.lines().filter { it.isNotBlank() }
+        val cleaned = csvContent.trim().removePrefix("\uFEFF").removePrefix("\uFFFE")
+        val lines = cleaned.lines().filter { it.isNotBlank() }
         if (lines.isEmpty()) return emptyList()
 
         val headerIndex = findHeaderLine(lines)
-        val dataLines = if (headerIndex >= 0) lines.drop(headerIndex + 1) else lines
+        if (headerIndex < 0) return emptyList()
 
+        val headers = parseCsvLine(lines[headerIndex])
+        val colIndex = mapHeaders(headers)
+
+        val dataLines = lines.drop(headerIndex + 1)
         return dataLines.mapNotNull { line ->
             val fields = parseCsvLine(line)
-            if (fields.size < 2) return@mapNotNull null
-            val title = fields.getOrNull(1)?.trim()?.removeSurrounding("\"") ?: return@mapNotNull null
-            val artist = fields.getOrNull(2)?.trim()?.removeSurrounding("\"") ?: return@mapNotNull null
-            val album = fields.getOrNull(10)?.trim()?.removeSurrounding("\"")?.ifBlank { null }
-            val durationRaw = fields.getOrNull(7)?.trim()?.removeSurrounding("\"") ?: ""
-            val explicitRaw = fields.getOrNull(22)?.trim()?.removeSurrounding("\"") ?: ""
-            val genres = fields.getOrNull(9)?.trim()?.removeSurrounding("\"")?.ifBlank { null }
-
-            CsvSongRow(
+            val title = fields.getOrNull(colIndex.title)?.trim().orEmpty()
+            val artist = fields.getOrNull(colIndex.artist)?.trim().orEmpty()
+            if (title.isBlank() || artist.isBlank()) null
+            else CsvSongRow(
                 title = title,
                 artist = artist,
-                album = album,
-                durationSeconds = parseDuration(durationRaw),
-                explicit = explicitRaw.equals("yes", ignoreCase = true) || explicitRaw.equals("true", ignoreCase = true),
-                genres = genres,
+                album = fields.getOrNull(colIndex.album)?.trim()?.ifBlank { null },
+                isrc = fields.getOrNull(colIndex.isrc)?.trim()?.ifBlank { null },
             )
         }
+    }
+
+    private data class ColumnIndex(
+        val title: Int,
+        val artist: Int,
+        val album: Int,
+        val isrc: Int,
+    )
+
+    private fun mapHeaders(headers: List<String>): ColumnIndex {
+        val normalized = headers.map { it.lowercase().trim().removeSurrounding("\"") }
+        val title = normalized.indexOfFirst { it in listOf("track name", "song", "title", "name") }
+        val artist = normalized.indexOfFirst { it in listOf("artist name", "artist", "artists") }
+        val album = normalized.indexOfFirst { it in listOf("album", "album name") }
+        val isrc = normalized.indexOfFirst { it == "isrc" }
+        return ColumnIndex(
+            title = if (title >= 0) title else 0,
+            artist = if (artist >= 0) artist else 1,
+            album = album,
+            isrc = isrc,
+        )
     }
 
     private fun findHeaderLine(lines: List<String>): Int {
         for ((i, line) in lines.withIndex()) {
             val fields = parseCsvLine(line)
-            if (fields.any { it.trim().equals("Song", ignoreCase = true) } &&
-                fields.any { it.trim().equals("Artist", ignoreCase = true) }
-            ) return i
+            val lower = fields.map { it.lowercase().trim().removeSurrounding("\"") }
+            val hasTrackHeader = lower.any { it in listOf("track name", "song", "title", "name") }
+            val hasArtistHeader = lower.any { it in listOf("artist name", "artist", "artists") }
+            if (hasTrackHeader && hasArtistHeader) return i
         }
         return -1
     }
@@ -56,9 +74,9 @@ object CsvPlaylistParser {
         var i = 0
         while (i < line.length) {
             val c = line[i]
-            when (c) {
-                '"' if !inQuotes -> inQuotes = true
-                '"' if true -> {
+            when {
+                c == '"' && !inQuotes -> inQuotes = true
+                c == '"' && inQuotes -> {
                     if (i + 1 < line.length && line[i + 1] == '"') {
                         current.append('"')
                         i++
@@ -66,7 +84,7 @@ object CsvPlaylistParser {
                         inQuotes = false
                     }
                 }
-                ',' if !inQuotes -> {
+                c == ',' && !inQuotes -> {
                     result.add(current.toString())
                     current.clear()
                 }
@@ -76,15 +94,5 @@ object CsvPlaylistParser {
         }
         result.add(current.toString())
         return result
-    }
-
-    private fun parseDuration(duration: String): Int {
-        if (duration.isBlank()) return -1
-        val parts = duration.split(":").map { it.toIntOrNull() ?: 0 }
-        return when (parts.size) {
-            2 -> parts[0] * 60 + parts[1]
-            3 -> parts[0] * 3600 + parts[1] * 60 + parts[2]
-            else -> -1
-        }
     }
 }

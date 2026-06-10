@@ -11,7 +11,7 @@ plugins {
 
 val melodistJvmArgs = listOf(
     "--add-modules=java.sql",
-    "--add-modules=jcef",
+//    "--add-modules=jcef",
     "--enable-native-access=ALL-UNNAMED",
     "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
     "-XX:+UseG1GC",
@@ -122,15 +122,13 @@ compose.desktop {
 
         jvmArgs(*melodistJvmArgs.toTypedArray())
 
-
-
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "LyriK"
-            packageVersion = "0.1.3"
+            packageVersion = "0.1.4"
 
             windows {
-                msiPackageVersion = "0.1.3"
+                msiPackageVersion = "0.1.4"
                 packageName = "LyriK"
                 iconFile.set(project.file("icons/Music_note_circle.ico"))
                 menu = true

@@ -14,7 +14,7 @@ object AppEnvironment {
 
     fun initialize() {
         AppDirs.ensureDirectories()
-//        redirectStandardStreams()
+        redirectStandardStreams()
         Napier.base(DebugAntilog())
         val tmpDir = AppDirs.tmpDir.also { it.mkdirs() }
 

@@ -449,7 +449,7 @@ private fun AboutCard() {
 
             Surface(shape = circleAwareShape(), color = MaterialTheme.colorScheme.primaryContainer) {
                 Text(
-                    text = stringResource(Res.string.version_prefix) + "0.1.3",
+                    text = stringResource(Res.string.version_prefix) + "0.1.4",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)

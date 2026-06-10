@@ -71,6 +71,8 @@ import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
 import org.koin.compose.koinInject
 import org.jetbrains.compose.resources.stringResource
+import java.awt.Desktop
+import java.net.URI
 
 data class LibraryScreenState(
     val selectedTab: LibraryTab? = null,
@@ -123,6 +125,7 @@ fun LibraryScreenRoute(
     var importNameField by remember { mutableStateOf("") }
     var showDeletePlaylistDialog by remember { mutableStateOf(false) }
     var playlistToDelete by remember { mutableStateOf<String?>(null) }
+    var showCsvTutorial by remember { mutableStateOf(false) }
 
     val state = LibraryScreenState(
         selectedTab = selectedTab,
@@ -189,7 +192,7 @@ fun LibraryScreenRoute(
             },
             onRefreshYtm = viewModel::refreshYtmLibrary,
             onCreatePlaylist = viewModel::createLocalPlaylist,
-            onImportCsv = playlistsViewModel::importCsvFile,
+            onImportCsv = { showCsvTutorial = true },
             onSearchQueryChange = viewModel::setSearchQuery,
             onClearSearch = viewModel::clearSearch,
             onSortOrderChange = viewModel::setSortOrder,
@@ -202,6 +205,36 @@ fun LibraryScreenRoute(
         actions = actions,
         playerViewModel = playerViewModel,
     )
+
+    if (showCsvTutorial) {
+        AlertDialog(
+            onDismissRequest = { showCsvTutorial = false },
+            title = { Text(stringResource(Res.string.csv_tutorial_title)) },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.csv_tutorial_step1))
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(Res.string.csv_tutorial_step2))
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(Res.string.csv_tutorial_step3))
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(Res.string.csv_tutorial_step4))
+                    Spacer(Modifier.height(4.dp))
+                    Text(stringResource(Res.string.csv_tutorial_step5))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showCsvTutorial = false
+                    playlistsViewModel.importCsvFile()
+                    Desktop.getDesktop().browse(URI("https://www.tunemymusic.com/"))
+                }) { Text(stringResource(Res.string.csv_tutorial_btn)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCsvTutorial = false }) { Text(stringResource(Res.string.cancel)) }
+            },
+        )
+    }
 
     when (val csvState = csvImportState) {
         is CsvImportState.Ready -> {
