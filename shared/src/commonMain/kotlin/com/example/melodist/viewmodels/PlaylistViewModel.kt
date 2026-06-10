@@ -1,9 +1,11 @@
 package com.example.melodist.viewmodels
 
 import androidx.lifecycle.viewModelScope
+import com.example.melodist.data.account.AccountManager
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.PlaylistRepository
 import com.example.melodist.data.repository.SongRepository
+import com.example.melodist.platform.ImageFilePicker
 import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
@@ -348,6 +350,27 @@ class PlaylistViewModel(
                     ),
                 )
             }
+        }
+    }
+
+    fun pickAndSetCustomThumbnail() {
+        val playlistId = _currentPlaylistId.value ?: return
+        if (!AccountManager.isLoggedIn) return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = ImageFilePicker.pickImageFile() ?: return@launch
+            YouTube.uploadCustomThumbnailLink(playlistId, result.bytes)
+                .onSuccess { newThumbnailUrl ->
+                    if (newThumbnailUrl != null) {
+                        updateSuccess {
+                            val updated = playlistPage.playlist.copy(thumbnail = newThumbnailUrl)
+                            copy(playlistPage = playlistPage.copy(playlist = updated))
+                        }
+                    }
+                }
+                .onFailure {
+                    Napier.e("Failed to upload playlist thumbnail: ${it.message}")
+                }
         }
     }
 }

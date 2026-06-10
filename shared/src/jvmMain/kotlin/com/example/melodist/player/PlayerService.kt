@@ -121,7 +121,6 @@ class PlayerService {
 
     fun setVolume(value: Int) {
         _volume.value = value
-        _previousVolume = value
         if (isMpvDisabled) return
         mpvPlayer.volume = value.toFloat() / 100f
     }
@@ -139,6 +138,11 @@ class PlayerService {
         if (isMpvDisabled) return
         // Send values to mpv
         mpvPlayer.setEqualizer(bands)
+    }
+
+    fun setCrossfadeEnabled(enabled: Boolean) {
+        if (isMpvDisabled) return
+        mpvPlayer.setGaplessAudio(enabled)
     }
 
     fun release() {

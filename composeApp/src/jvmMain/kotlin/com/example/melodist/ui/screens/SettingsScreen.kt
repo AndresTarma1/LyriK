@@ -68,6 +68,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val equalizerBands by viewModel.equalizerBands.collectAsState()
     val currentLocale by viewModel.locale.collectAsState()
     val youtubeRegion by viewModel.youtubeRegion.collectAsState()
+    val crossfadeEnabled by viewModel.crossfadeEnabled.collectAsState()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -180,6 +181,14 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         shape = RoundedCornerShape(16.dp),
                         state = imagesEnabled,
                         onCheckedChange = { viewModel.setImagesEnabled(it) }
+                    )
+                    SettingsSwitch(
+                        icon = { Icon(Icons.Rounded.Shuffle, null) },
+                        title = { Text(stringResource(Res.string.crossfade)) },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        state = crossfadeEnabled,
+                        onCheckedChange = { viewModel.setCrossfadeEnabled(it) }
                     )
                 }
 

@@ -359,8 +359,10 @@ internal fun AlbumCompactLayout(
 
         MultiSongSelectionBar(
             selectedSongs = selectedSongs,
+            allSongIds = songs.map { it.id },
             isLocalPlaylist = false,
             onClearSelection = onClearSelection,
+            onSelectAll = { songs.forEach { onSelectionChange(it.id, true) } },
             onRemoveFromPlaylist = null,
             modifier = Modifier.align(Alignment.BottomCenter)
         )
@@ -431,8 +433,10 @@ private fun AlbumSongList(
 
         MultiSongSelectionBar(
             selectedSongs = selectedSongs,
+            allSongIds = songs.map { it.id },
             isLocalPlaylist = isLocalPlaylist,
             onClearSelection = onClearSelection,
+            onSelectAll = { songs.forEach { onSelectionChange(it.id, true) } },
             onRemoveFromPlaylist = onRemoveFromPlaylist,
             modifier = Modifier.align(Alignment.BottomCenter)
         )

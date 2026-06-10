@@ -51,9 +51,6 @@ data class PlayerUiState(
     val queue: List<MediaMetadata> = emptyList(),
     val currentIndex: Int = -1,
     val playbackState: PlaybackState = PlaybackState.IDLE,
-    // positionMs y durationMs se mantienen aquí para compatibilidad con
-    // los composables del player, pero ya NO se actualizan en _uiState cada
-    // segundo — se leen desde progressState en los componentes que los necesitan.
     val volume: Int = 100,
     val queueSource: QueueSource? = null,
     val isShuffled: Boolean = false,

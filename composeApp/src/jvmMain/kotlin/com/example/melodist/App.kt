@@ -5,7 +5,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -61,6 +65,7 @@ import com.example.melodist.ui.themes.MelodistTheme
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.LocalSnackbarHostState
+import com.example.melodist.utils.LocalSnackbarScope
 import com.example.melodist.utils.LocalUserPreferences
 import com.example.melodist.viewmodels.AppViewModel
 import com.example.melodist.viewmodels.DownloadViewModel
@@ -236,6 +241,7 @@ fun ApplicationScope.App(
             CompositionLocalProvider(
                 LocalArtworkColors provides artworkColors,
                 LocalSnackbarHostState provides snackbarHostState,
+                LocalSnackbarScope provides scope,
                 LocalPlayerViewModel provides playerViewModel,
                 LocalDownloadViewModel provides downloadViewModel,
                 LocalUserPreferences provides userPreferences,
@@ -304,7 +310,6 @@ fun ApplicationScope.App(
 
                     key(appLocale) {
                         NavigationDesktop(rootComponent)
-                        SnackbarHost(hostState = snackbarHostState)
                     }
                 }
             }

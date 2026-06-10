@@ -2,6 +2,7 @@ package com.example.melodist.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.melodist.data.account.AccountManager
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.db.DatabaseDao
@@ -28,13 +29,16 @@ class PlayerViewModel(
     private val mediaSession: WindowsMediaSession,
     private val apiService: ApiService,
     private val userPreferences: UserPreferencesRepository,
-    private val databaseDao: DatabaseDao,
+    val databaseDao: DatabaseDao,
     private val queueManager: QueueManager,
 ) : ViewModel() {
+    private val log = Logger.getLogger("PlayerViewModel")
 
     val highResCoverArt = userPreferences.highResCoverArt
 
-    private val log = Logger.getLogger("PlayerViewModel")
+    val likedSongIds: StateFlow<Set<String>> = databaseDao.likedSongs()
+        .map { list -> list.map { it.id }.toSet() }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptySet())
 
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
@@ -61,6 +65,12 @@ class PlayerViewModel(
         viewModelScope.launch {
             userPreferences.equalizerBands.collect { bands ->
                 playerService.setEqualizer(bands)
+            }
+        }
+
+        viewModelScope.launch {
+            userPreferences.crossfadeEnabled.collect { enabled ->
+                playerService.setCrossfadeEnabled(enabled)
             }
         }
 
@@ -118,6 +128,12 @@ class PlayerViewModel(
                 }
         }
 
+        viewModelScope.launch {
+            _uiState.map { it.currentSong?.id }
+                .distinctUntilChanged()
+                .filterNotNull()
+                .collectLatest { fetchLyrics() }
+        }
     }
 
     suspend fun downloadThumbToTemp(url: String?): String? = withContext(Dispatchers.IO)  {
@@ -148,6 +164,41 @@ class PlayerViewModel(
 
     fun toggleLike() {
         val song = _uiState.value.currentSong ?: return
+        doToggleLike(song)
+    }
+
+    fun toggleLikeForSong(song: SongItem) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val entity = databaseDao.songById(song.id).firstOrNull()
+            val newLiked: Boolean
+            if (entity != null) {
+                newLiked = !entity.liked
+                databaseDao.insertSong(entity.localToggleLike())
+            } else {
+                newLiked = true
+                databaseDao.insertSong(song.toMediaMetadata().toSongEntity().localToggleLike())
+                song.artists.forEachIndexed { i, artist ->
+                    artist.id?.let { id ->
+                        val artistEntity = ArtistEntity(
+                            id = id,
+                            name = artist.name,
+                            lastUpdateTime = java.time.LocalDateTime.now()
+                        )
+                        databaseDao.insertArtist(artistEntity)
+                        databaseDao.insertSongArtistMap(song.id, id, i)
+                    }
+                }
+                song.album?.let { album ->
+                    databaseDao.insertSongAlbumMap(song.id, album.id, 0)
+                }
+            }
+            if (AccountManager.isLoggedIn) {
+                YouTube.likeVideo(song.id, newLiked)
+            }
+        }
+    }
+
+    private fun doToggleLike(song: MediaMetadata) {
         val newLiked = !song.liked
         val newLikedDate = if (newLiked) java.time.LocalDateTime.now() else null
 
@@ -177,6 +228,10 @@ class PlayerViewModel(
                 song.album?.let { album ->
                     databaseDao.insertSongAlbumMap(song.id, album.id, 0)
                 }
+            }
+
+            if (AccountManager.isLoggedIn) {
+                YouTube.likeVideo(song.id, newLiked)
             }
         }
     }
@@ -836,6 +891,24 @@ class PlayerViewModel(
                     )
                 }
             } catch (_: Exception) {
+            }
+        }
+    }
+
+    private val _currentLyrics = MutableStateFlow<String?>(null)
+    val currentLyrics: StateFlow<String?> = _currentLyrics.asStateFlow()
+
+    fun fetchLyrics() {
+        val song = _uiState.value.currentSong ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            _currentLyrics.value = null
+            try {
+                val nextResult = YouTube.next(WatchEndpoint(videoId = song.id)).getOrNull() ?: return@launch
+                val endpoint = nextResult.lyricsEndpoint ?: return@launch
+                val lyrics = YouTube.lyrics(endpoint).getOrNull()
+                _currentLyrics.value = lyrics
+            } catch (_: Exception) {
+                _currentLyrics.value = null
             }
         }
     }

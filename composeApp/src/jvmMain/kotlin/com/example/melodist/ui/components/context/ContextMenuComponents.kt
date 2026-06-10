@@ -26,6 +26,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Radio
 import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -37,6 +39,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -55,11 +58,15 @@ import androidx.compose.ui.window.rememberCursorPositionProvider
 import com.example.melodist.download.DownloadState
 import com.example.melodist.ui.components.song.AddToPlaylistDialog
 import com.example.melodist.ui.helpers.rememberSongDownloadState
+import com.example.melodist.ui.helpers.rememberSongLikedState
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
+import com.example.melodist.utils.LocalSnackbarHostState
+import com.example.melodist.utils.LocalSnackbarScope
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
+import kotlinx.coroutines.launch
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
@@ -77,7 +84,6 @@ fun CollectionContextMenu(
     onShuffle: (() -> Unit)? = null,
     onRemoveFromLibrary: (() -> Unit)? = null,
 ) {
-
     if (!expanded) return
     val cursorPositionProvider = rememberCursorPositionProvider()
 
@@ -166,6 +172,7 @@ fun SongContextMenu(
     val downloadViewModel = LocalDownloadViewModel.current
     val downloadState by rememberSongDownloadState(song.id, downloadViewModel)
     val playerViewModel = LocalPlayerViewModel.current
+    val liked = rememberSongLikedState(song.id, playerViewModel)
     val playlistsViewModel: LibraryPlaylistsViewModel = koinInject()
 
     // Usamos el provider de JetBrains para que siga al ratón,
@@ -173,6 +180,8 @@ fun SongContextMenu(
     val cursorPositionProvider = rememberCursorPositionProvider()
 
     var showPlaylistDialog by remember { mutableStateOf(false) }
+    val snackbar = LocalSnackbarHostState.current
+    val scope = LocalSnackbarScope.current
 
     Popup(
         onDismissRequest = onDismiss,
@@ -198,6 +207,16 @@ fun SongContextMenu(
                     }
                 )
 
+                ContextMenuItem(
+                    text = if (liked) stringResource(Res.string.context_unlike) else stringResource(Res.string.context_like),
+                    icon = if (liked) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                    iconTint = if (liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                    onClick = {
+                        playerViewModel.toggleLikeForSong(song)
+                        onDismiss()
+                    }
+                )
+
                 val (label, icon, color) = when (downloadState) {
                     is DownloadState.Completed -> Triple(
                         stringResource(Res.string.context_remove_download),
@@ -216,9 +235,18 @@ fun SongContextMenu(
 
                 ContextMenuItem(label, icon, color) {
                     when (downloadState) {
-                        is DownloadState.Completed -> downloadViewModel.removeDownload(song.id)
-                        is DownloadState.Downloading, is DownloadState.Queued -> downloadViewModel.cancelDownload(song.id)
-                        else -> downloadViewModel.downloadSong(song)
+                        is DownloadState.Completed -> {
+                            downloadViewModel.removeDownload(song.id)
+                            scope.launch { snackbar.showSnackbar("Descarga eliminada") }
+                        }
+                        is DownloadState.Downloading, is DownloadState.Queued -> {
+                            downloadViewModel.cancelDownload(song.id)
+                            scope.launch { snackbar.showSnackbar("Descarga cancelada") }
+                        }
+                        else -> {
+                            downloadViewModel.downloadSong(song)
+                            scope.launch { snackbar.showSnackbar("«${song.title}» agregada a descargas") }
+                        }
                     }
                     onDismiss()
                 }
@@ -230,10 +258,12 @@ fun SongContextMenu(
                     )
                     ContextMenuItem(stringResource(Res.string.context_play_next), Icons.AutoMirrored.Filled.PlaylistAdd) {
                         playerViewModel.playNextResolved(song)
+                        scope.launch { snackbar.showSnackbar("«${song.title}» será reproducida después") }
                         onDismiss()
                     }
                     ContextMenuItem(stringResource(Res.string.context_add_queue), Icons.AutoMirrored.Filled.QueueMusic) {
                         playerViewModel.addToQueueResolved(song)
+                        scope.launch { snackbar.showSnackbar("«${song.title}» añadida a la cola") }
                         onDismiss()
                     }
                 }
@@ -267,6 +297,7 @@ fun SongContextMenu(
                             MaterialTheme.colorScheme.error
                         ) {
                             onRemoveFromPlaylist()
+                            scope.launch { snackbar.showSnackbar("«${song.title}» eliminada de la playlist") }
                             onDismiss()
                         }
                     }

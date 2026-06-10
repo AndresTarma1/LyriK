@@ -609,7 +609,6 @@ fun ResultsList(
             val hasItems = when (uiState) {
                 is SearchState.Success -> items.isNotEmpty()
                 is SearchState.SummarySuccess -> summaries.isNotEmpty()
-                else -> false
             }
 
             if (!hasItems) {

@@ -377,7 +377,7 @@ private fun QuickPicksSection(
             YoutubeListItem(
                 item = song,
                 source = source,
-                onItemClick = { playerViewModel?.playSingle(song) },
+                onItemClick = { playerViewModel?.playEndpoint(WatchEndpoint(videoId = song.id)) },
                 modifier = Modifier.fillMaxWidth().height(itemHeight)
             )
         }

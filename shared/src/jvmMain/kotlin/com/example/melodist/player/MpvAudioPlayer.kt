@@ -107,6 +107,12 @@ class MpvAudioPlayer {
             }
         }
 
+    fun setGaplessAudio(enabled: Boolean) {
+        handle?.let {
+            MpvLib.INSTANCE.mpv_set_property_string(it, "gapless-audio", if (enabled) "yes" else "no")
+        }
+    }
+
     fun setEqualizer(bands: List<Float>) {
         if (bands.size != 10) return
         handle?.let { mpv ->
