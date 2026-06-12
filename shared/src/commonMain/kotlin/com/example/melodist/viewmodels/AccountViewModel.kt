@@ -54,6 +54,17 @@ class AccountViewModel : MelodistViewModel() {
         val cookie = _cookieInput.value.trim()
         if (cookie.isBlank()) return
         _cookieWarnings.value = AccountManager.diagnose(cookie)
+        loginInternal(cookie)
+    }
+
+    fun loginWithCookie(cookie: String) {
+        if (cookie.isBlank()) return
+        _cookieInput.value = cookie
+        _cookieWarnings.value = emptyList()
+        loginInternal(cookie)
+    }
+
+    private fun loginInternal(cookie: String) {
         _uiState.value = AccountState.Loading
 
         AccountManager.setCookie(cookie)
