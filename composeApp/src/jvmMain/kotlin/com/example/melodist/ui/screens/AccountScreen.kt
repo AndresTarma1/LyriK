@@ -44,6 +44,13 @@ import com.example.melodist.viewmodels.AccountState
 import com.example.melodist.viewmodels.AccountViewModel
 import com.example.melodist.viewmodels.PlayerViewModel
 import com.metrolist.innertube.models.PlaylistItem
+import com.example.melodist.data.account.BrowserCookieExtractor
+import com.example.melodist.data.account.BrowserLoginHelper
+import com.example.melodist.data.account.BrowserProfile
+import com.example.melodist.data.account.CookieExtractResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 data class AccountScreenState(
     val uiState: AccountState = AccountState.NotLoggedIn,
@@ -59,6 +66,7 @@ data class AccountActions(
     val onRetry: () -> Unit,
     val onRefreshPlaylists: () -> Unit,
     val onNavigate: (Route) -> Unit,
+    val onLoginWithCookie: (String) -> Unit = {},
 )
 
 
@@ -83,6 +91,7 @@ fun AccountScreenRoute(
     val actions = remember(viewModel, onNavigate) {
         AccountActions(
             onCookieInputChange = { viewModel.onCookieInputChange(it) },
+            onLoginWithCookie = { viewModel.loginWithCookie(it) },
             onLogin = {
                 val raw = viewModel.cookieInput.value
                 // Detectar y parsear formato Metrolist: ***INNERTUBE COOKIE*** =xxx
@@ -171,7 +180,8 @@ fun AccountScreen(
                         cookieInput = state.cookieInput,
                         cookieWarnings = state.cookieWarnings,
                         onCookieInputChange = actions.onCookieInputChange,
-                        onLogin = actions.onLogin
+                        onLogin = actions.onLogin,
+                        onLoginWithCookie = actions.onLoginWithCookie
                     )
                     is AccountState.Loading -> LoadingSection()
                     is AccountState.LoggedIn -> LoggedInSection(
@@ -204,8 +214,33 @@ private fun LoginSection(
     cookieWarnings: List<String> = emptyList(),
     onCookieInputChange: (String) -> Unit,
     onLogin: () -> Unit,
+    onLoginWithCookie: (String) -> Unit = {},
 ) {
+    val scope = rememberCoroutineScope()
     var showCookie by remember { mutableStateOf(false) }
+    var browsers by remember { mutableStateOf<List<BrowserProfile>>(emptyList()) }
+    var showAdvanced by remember { mutableStateOf(false) }
+    var browserLoginStep by remember { mutableStateOf<String?>(null) }
+
+    val hasBrowser = remember { BrowserLoginHelper.findBrowserExecutable() != null }
+
+    LaunchedEffect(Unit) {
+        browsers = withContext(Dispatchers.IO) {
+            BrowserCookieExtractor.detectBrowsers()
+        }
+    }
+
+    fun handleCookieResult(result: CookieExtractResult) {
+        browserLoginStep = null
+        when (result) {
+            is CookieExtractResult.Success -> {
+                onLoginWithCookie(result.cookie)
+            }
+            is CookieExtractResult.Error -> {
+                browserLoginStep = "Error: ${result.message}"
+            }
+        }
+    }
 
     Box(
         modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
@@ -231,6 +266,166 @@ private fun LoginSection(
                 textAlign = TextAlign.Center
             )
 
+            // ── Browser sign in ─────────────────────────────────────────
+            if (hasBrowser) {
+                Card(
+                    onClick = {
+                        scope.launch {
+                            browserLoginStep = "Opening browser..."
+                            val result = BrowserLoginHelper.loginWithBrowser { status ->
+                                browserLoginStep = status
+                            }
+                            handleCookieResult(result)
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(20.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = MaterialTheme.shapes.small,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(48.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    Icons.Default.OpenInBrowser,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Sign in with browser",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                            Text(
+                                "Opens a browser window. Sign in to YouTube Music, then close it.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                            )
+                        }
+                        Icon(
+                            Icons.AutoMirrored.Filled.Login,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
+
+            if (browserLoginStep != null) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(12.dp))
+                        Text(browserLoginStep ?: "", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
+            // ── Import from browser ─────────────────────────────────────
+            if (browsers.isNotEmpty()) {
+                TextButton(onClick = { showAdvanced = !showAdvanced }) {
+                    Icon(
+                        if (showAdvanced) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                        null, Modifier.size(18.dp)
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text("Import from existing browser session")
+                }
+
+                AnimatedVisibility(visible = showAdvanced) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "Pick a browser where you're already signed in to YouTube Music.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        browsers.forEach { browser ->
+                            Card(
+                                onClick = {
+                                    scope.launch {
+                                        browserLoginStep = "Reading cookies from ${browser.name}..."
+                                        val result = withContext(Dispatchers.IO) {
+                                            BrowserCookieExtractor.extractYouTubeCookies(browser)
+                                        }
+                                        handleCookieResult(result)
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth().pointerHoverIcon(PointerIcon.Hand)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = MaterialTheme.shapes.small,
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        modifier = Modifier.size(40.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(
+                                                Icons.Default.Language,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                            )
+                                        }
+                                    }
+                                    Spacer(Modifier.width(16.dp))
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(browser.name, style = MaterialTheme.typography.titleMedium)
+                                        Text(
+                                            browser.userDataDir.absolutePath,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1
+                                        )
+                                    }
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Login,
+                                        contentDescription = "Import",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Divider ─────────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                HorizontalDivider(modifier = Modifier.weight(1f))
+                Text(
+                    " or paste cookie manually ",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                HorizontalDivider(modifier = Modifier.weight(1f))
+            }
+
+            // ── Manual cookie paste (existing) ─────────────────────────
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
