@@ -88,7 +88,7 @@ import kotlin.random.Random
  */
 object YouTube {
     private val innerTube = InnerTube()
-    private const val ENABLE_NEWPIPE_STREAM_INFO_EXTRACTOR = false
+    private const val ENABLE_NEWPIPE_STREAM_INFO_EXTRACTOR = true
 
     var locale: YouTubeLocale
         get() = innerTube.locale

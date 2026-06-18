@@ -51,6 +51,12 @@ class PlayerService {
         startPositionTicker()
     }
 
+    /**
+     * Loads and initiates playback of the specified audio URL.
+     *
+     * Resets the playback position and duration. If loading fails, the playback state is
+     * set to ERROR and the error is logged.
+     */
     fun play(url: String) {
         init()
         if (isMpvDisabled) {
@@ -59,22 +65,36 @@ class PlayerService {
             _duration.value = 0L
             return
         }
-        scope.launch {
-            try {
-                _playbackState.value = PlaybackState.LOADING
-                isTransitioning = false
-                endNotified = false
-                prevPlayingPos = 0L
-                _position.value = 0L
-                _duration.value = 0L
-                mpvPlayer.openUri(url)
-            } catch (e: Exception) {
-                _playbackState.value = PlaybackState.ERROR
-                log.severe("Error al reproducir: ${e.message}")
-            }
+        try {
+            _playbackState.value = PlaybackState.LOADING
+            isTransitioning = false
+            endNotified = false
+            prevPlayingPos = 0L
+            _position.value = 0L
+            _duration.value = 0L
+            // openUri is non-blocking (it launches its own IO job) and arms the load-result
+            // synchronously, so a subsequent awaitPlaybackStarted() observes THIS load, not a
+            // stale result from the previous track.
+            mpvPlayer.openUri(url)
+        } catch (e: Exception) {
+            _playbackState.value = PlaybackState.ERROR
+            log.severe("Error al reproducir: ${e.message}")
         }
     }
 
+    /**
+     * Waits for playback to start within a specified timeout.
+     *
+     * @return `true` if playback started within the timeout, `false` otherwise.
+     */
+    suspend fun awaitPlaybackStarted(timeoutMs: Long = 6000): Boolean {
+        if (isMpvDisabled) return false
+        return mpvPlayer.awaitPlaybackStarted(timeoutMs)
+    }
+
+    /**
+     * Pauses playback and updates the playback state to `PAUSED`.
+     */
     fun pause() {
         isTransitioning = false
         endNotified = false

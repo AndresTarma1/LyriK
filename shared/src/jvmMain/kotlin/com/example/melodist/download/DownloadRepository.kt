@@ -8,6 +8,7 @@ import com.example.melodist.db.entities.SongEntity
 import com.example.melodist.player.AudioStreamResolver
 import com.example.melodist.player.PlaybackData
 import com.example.melodist.player.YTPlayerutils
+import com.example.melodist.player.YtDlpResolver
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import kotlinx.coroutines.*
@@ -445,8 +446,13 @@ class DownloadRepository(
     }
 
     /**
-     * Intenta primero la descarga por rangos y, si el servidor rechaza `Range`
-     * con 403/416, cae a una descarga completa sin fragmentar.
+     * Downloads audio with fallback strategies if range requests are rejected by the server.
+     *
+     * When the total size is known, attempts chunked range-based download. If the server rejects
+     * range requests (HTTP 403 or 416), refreshes the stream URL and retries as a single request.
+     * If that also fails with range rejection, falls back to yt-dlp-based URL resolution. When
+     * total size is unknown, attempts single-request download directly and uses yt-dlp fallback
+     * if range rejection occurs.
      */
     private suspend fun downloadWithFallback(
         streamUrl: String,
@@ -455,29 +461,64 @@ class DownloadRepository(
         totalBytes: Long?,
     ) {
         if (totalBytes == null || totalBytes <= 0) {
-            downloadSingleRequest(streamUrl, partFile, songId)
+            try {
+                downloadSingleRequest(streamUrl, partFile, songId)
+            } catch (e: Exception) {
+                if (!isRangeOrForbidden(e)) throw e
+                downloadViaYtDlp(songId, partFile, e)
+            }
             return
         }
 
         try {
             downloadChunked(streamUrl, partFile, songId, totalBytes)
         } catch (e: Exception) {
-            val message = e.message.orEmpty()
-            val rangeRejected = message.contains("403") || message.contains("416")
+            if (!isRangeOrForbidden(e)) throw e
 
-            if (!rangeRejected) throw e
-
-            log.warning("Range rechazado para $songId, reintentando sin fragmentar: $message")
+            log.warning("Range rechazado para $songId, reintentando sin fragmentar: ${e.message}")
             if (partFile.exists()) partFile.delete()
 
-            val refreshedStream = runCatching { streamResolver.resolveAudioStream(songId) }
-                .getOrNull()
-
+            val refreshedStream = runCatching { streamResolver.resolveAudioStream(songId) }.getOrNull()
             val fallbackUrl = refreshedStream?.streamUrl ?: streamUrl
-            downloadSingleRequest(fallbackUrl, partFile, songId)
+            try {
+                downloadSingleRequest(fallbackUrl, partFile, songId)
+            } catch (e2: Exception) {
+                if (!isRangeOrForbidden(e2)) throw e2
+                downloadViaYtDlp(songId, partFile, e2)
+            }
         }
     }
 
+    /**
+     * Resolves a working download URL using yt-dlp when the standard in-process stream fails,
+     * then downloads it via HTTP single-request.
+     *
+     * Deletes any existing partial file before attempting download. If yt-dlp cannot resolve
+     * a URL, the original cause exception is thrown instead.
+     *
+     * @throws Exception The original cause if yt-dlp cannot resolve a download URL.
+     */
+    private suspend fun downloadViaYtDlp(songId: String, partFile: File, cause: Exception) {
+        log.warning("In-process stream failed for $songId; resolving download URL via yt-dlp")
+        if (partFile.exists()) partFile.delete()
+        val ytUrl = YtDlpResolver.resolveAudioUrl(songId, streamResolver.currentAudioQuality())
+            ?: throw cause
+        downloadSingleRequest(ytUrl, partFile, songId)
+    }
+
+    /**
+     * Determines whether an exception represents a range or forbidden HTTP error.
+     *
+     * @return `true` if the exception message contains a 403 (Forbidden) or 416 (Range Not Satisfiable) error code, `false` otherwise.
+     */
+    private fun isRangeOrForbidden(e: Exception): Boolean {
+        val m = e.message.orEmpty()
+        return m.contains("403") || m.contains("416")
+    }
+
+    /**
+     * Applies HTTP headers required for downloading audio streams.
+     */
     private fun applyDownloadHeaders(connection: HttpURLConnection) {
         connection.instanceFollowRedirects = true
         connection.setRequestProperty("User-Agent", USER_AGENT)

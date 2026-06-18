@@ -6,19 +6,25 @@ import java.net.URLEncoder
 object CipherDeobfuscator {
     private const val TAG = "CipherDeobfuscator"
 
-    private var jsExecutor: JsExecutor? = null
     private var currentPlayerHash: String? = null
 
+    /**
+     * Deobfuscates a YouTube-style signature cipher with automatic retry on failure.
+     *
+     * If initial deobfuscation fails, retries using freshly fetched player JavaScript.
+     *
+     * @param signatureCipher The encoded signature cipher from YouTube.
+     * @param videoId The YouTube video ID.
+     * @return The deobfuscated URL string, or `null` if deobfuscation fails even after retry.
+     */
     suspend fun deobfuscateStreamUrl(signatureCipher: String, videoId: String): String? {
         Napier.i("[CIPHER] deobfuscateStreamUrl videoId=$videoId")
-
         return try {
             deobfuscateInternal(signatureCipher, videoId, isRetry = false)
         } catch (e: Exception) {
             Napier.e(e) { "[CIPHER] Failed, retrying with fresh JS: ${e.message}" }
             try {
                 PlayerJsFetcher.invalidateCache()
-                jsExecutor = null
                 currentPlayerHash = null
                 deobfuscateInternal(signatureCipher, videoId, isRetry = true)
             } catch (retryE: Exception) {
@@ -28,6 +34,11 @@ object CipherDeobfuscator {
         }
     }
 
+    /**
+     * Deobfuscates a signature cipher and appends the solved signature to the base URL.
+     *
+     * @return The URL with the deobfuscated signature appended, or `null` if required components are missing or signature solving fails.
+     */
     private suspend fun deobfuscateInternal(signatureCipher: String, videoId: String, isRetry: Boolean): String? {
         val params = parseQueryParams(signatureCipher)
         val obfuscatedSig = params["s"] ?: return null
@@ -36,41 +47,40 @@ object CipherDeobfuscator {
 
         Napier.i("[CIPHER] Parsed: sigLen=${obfuscatedSig.length}, url=${baseUrl.take(60)}...")
 
-        val executor = getOrCreateExecutor(forceRefresh = isRetry) ?: return null
+        if (!ensurePrepared(forceRefresh = isRetry)) return null
 
-        val deobfuscatedSig = executor.deobfuscateSignature(obfuscatedSig)
+        val deobfuscatedSig = EjsCipherSolver.solve("sig", obfuscatedSig) ?: run {
+            Napier.e("[CIPHER] sig solve returned null")
+            return null
+        }
         val separator = if ("?" in baseUrl) "&" else "?"
+        // n-transform is applied centrally by the caller (YTPlayerutils) so it runs exactly once.
         return "$baseUrl${separator}$sigParam=${URLEncoder.encode(deobfuscatedSig, "UTF-8")}"
     }
 
+    /**
+     * Transforms the n query parameter in a URL using the cipher solver.
+     *
+     * @param url The URL to transform.
+     * @return The URL with the n parameter transformed by the cipher solver, or the original URL if the parameter is not found or transformation fails.
+     */
     suspend fun transformNParamInUrl(url: String): String {
-        Napier.i("[NTRACE] transformNParamInUrl called, urlLength=${url.length}")
         try {
-            val nMatch = Regex("[?&]n=([^&]+)").find(url)
-            if (nMatch == null) {
-                Napier.i("[NTRACE] No n param found, skipping")
+            val nMatch = Regex("[?&]n=([^&]+)").find(url) ?: run {
+                Napier.d("[NTRACE] No n param found, skipping")
                 return url
             }
-            Napier.i("[NTRACE] n param found")
+            val nValue = java.net.URLDecoder.decode(nMatch.groupValues[1], "UTF-8")
 
-            val nValueEncoded = nMatch.groupValues[1]
-            val nValue = java.net.URLDecoder.decode(nValueEncoded, "UTF-8")
-            Napier.i("[NTRACE] nValue=$nValue")
-
-            val executor = getOrCreateExecutor(forceRefresh = false)
-            if (executor == null) {
-                Napier.e("[NTRACE] getOrCreateExecutor returned null")
-                return url
-            }
-            Napier.i("[NTRACE] Executor obtained, nFunctionAvailable=${executor.nFunctionAvailable}")
-
-            if (!executor.nFunctionAvailable) {
-                Napier.e("[NTRACE] nFunctionAvailable=false, returning original URL")
+            if (!ensurePrepared(forceRefresh = false)) {
+                Napier.e("[NTRACE] player not prepared, returning original URL")
                 return url
             }
 
-            val transformedN = executor.transformN(nValue)
-            Napier.i("[NTRACE] Transform result: $transformedN")
+            val transformedN = EjsCipherSolver.solve("n", nValue) ?: run {
+                Napier.e("[NTRACE] n solve returned null, returning original URL")
+                return url
+            }
 
             val result = url.replaceFirst(
                 Regex("([?&])n=[^&]+"),
@@ -84,44 +94,39 @@ object CipherDeobfuscator {
         }
     }
 
-    private suspend fun getOrCreateExecutor(forceRefresh: Boolean): JsExecutor? {
-        Napier.i("[NTRACE] getOrCreateExecutor forceRefresh=$forceRefresh existing=${jsExecutor != null}")
-        if (!forceRefresh && jsExecutor != null) return jsExecutor
+    /**
+     * Ensures the EJS cipher solver is prepared with the current player.js.
+     *
+     * @param forceRefresh If `true`, refetch player.js and reinitialize the solver even if already prepared.
+     * @return `true` if the solver is ready, `false` if fetching player.js or initialization failed.
+     */
+    private suspend fun ensurePrepared(forceRefresh: Boolean): Boolean {
+        if (!forceRefresh && currentPlayerHash != null) return true
 
-        jsExecutor?.close()
-        jsExecutor = null
-
-        Napier.i("[NTRACE] Fetching player.js...")
+        Napier.i("[CIPHER] Fetching player.js (forceRefresh=$forceRefresh)...")
         val result = PlayerJsFetcher.getPlayerJs(forceRefresh = forceRefresh)
         if (result == null) {
-            Napier.e("[NTRACE] PlayerJsFetcher.getPlayerJs() returned null")
-            return null
+            Napier.e("[CIPHER] PlayerJsFetcher.getPlayerJs() returned null")
+            return false
         }
         val (playerJs, hash) = result
-        Napier.i("[NTRACE] Player.js fetched: hash=$hash, length=${playerJs.length}")
-
-        val analysis = FunctionNameExtractor.analyzePlayerJs(playerJs, knownHash = hash)
-        if (analysis.sigInfo == null && analysis.nFuncInfo == null) {
-            Napier.e("[NTRACE] No sig or n function found in player.js")
-            return null
-        }
-        Napier.i("[NTRACE] analysis: sig=${analysis.sigInfo?.name} n=${analysis.nFuncInfo?.name} ts=${analysis.signatureTimestamp}")
-
-        Napier.i("[NTRACE] Creating JsExecutor...")
-        val executor = try {
-            JsExecutor.create(playerJs = playerJs, sigInfo = analysis.sigInfo, nFuncInfo = analysis.nFuncInfo)
+        return try {
+            EjsCipherSolver.prepare(playerJs, hash)
+            currentPlayerHash = hash
+            Napier.i("[CIPHER] Solver ready for player hash=$hash")
+            true
         } catch (e: Exception) {
-            Napier.e("[NTRACE] JsExecutor.create failed: ${e::class.simpleName}: ${e.message}")
-            return null
+            Napier.e("[CIPHER] EJS prepare failed: ${e.message}")
+            false
         }
-
-        Napier.i("[NTRACE] JsExecutor created: sigAvail=${executor.sigFunctionAvailable} nAvail=${executor.nFunctionAvailable} nName=${executor.discoveredNFuncName}")
-
-        jsExecutor = executor
-        currentPlayerHash = hash
-        return executor
     }
 
+    /**
+     * Parses a query string into decoded key-value pairs.
+     *
+     * @param query A URL-encoded query string (e.g., "key1=value1&key2=value2").
+     * @return A map of URL-decoded query parameters.
+     */
     private fun parseQueryParams(query: String): Map<String, String> {
         val result = mutableMapOf<String, String>()
         for (pair in query.split("&")) {
@@ -135,14 +140,14 @@ object CipherDeobfuscator {
         return result
     }
 
+    /**
+     * Returns debug information about the cipher deobfuscator's state.
+     *
+     * @return A map containing the current player hash.
+     */
     fun getDebugInfo(): Map<String, Any?> {
         return mapOf(
-            "hasExecutor" to (jsExecutor != null),
             "playerHash" to currentPlayerHash,
-            "nFunctionAvailable" to jsExecutor?.nFunctionAvailable,
-            "sigFunctionAvailable" to jsExecutor?.sigFunctionAvailable,
-            "discoveredNFuncName" to jsExecutor?.discoveredNFuncName,
-            "usingHardcodedMode" to jsExecutor?.usingHardcodedMode,
         )
     }
 }

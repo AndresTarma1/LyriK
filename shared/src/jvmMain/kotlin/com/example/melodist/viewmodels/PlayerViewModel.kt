@@ -238,6 +238,14 @@ class PlayerViewModel(
 
     fun playSingle(song: SongItem) = playSingle(song.toMediaMetadata())
 
+    /**
+     * Queues a single song and begins playback immediately.
+     *
+     * The related queue (for autoplay/next) loads in the background and does not
+     * block playback initiation.
+     *
+     * @param song The song to play.
+     */
     fun playSingle(song: MediaMetadata) {
         val queue = LocalQueue(QueueSource.Single(song.id), listOf(song), 0)
         currentQueue = queue
@@ -254,9 +262,24 @@ class PlayerViewModel(
                 queueSession = uiState.queueSession,
             )
         }
+        // Play immediately; the radio queue (for autoplay/next) loads in the background and never
+        // blocks or fails playback — tapping a song must not depend on its radio endpoint.
         resolveAndPlay(song)
+        fetchRelatedQueue(song, _uiState.value.queueSession)
     }
 
+    /**
+     * Fetches an album by browse ID and begins playback.
+     *
+     * If songs are found, plays the album starting from the specified index. If [shuffle] is true,
+     * the queue is shuffled before playback. If no songs are found, invokes [onEmpty].
+     *
+     * @param browseId The album's browse identifier.
+     * @param title The album title.
+     * @param startIndex The queue position at which to start playback.
+     * @param shuffle Whether to shuffle the queue.
+     * @param onEmpty Callback invoked if the album contains no songs.
+     */
     fun playAlbumFromBrowseId(
         browseId: String,
         playlistId: String? = null,
@@ -420,13 +443,33 @@ class PlayerViewModel(
         playerService.setVolume(value)
     }
 
+    /**
+     * Toggles between muted and unmuted audio output.
+     */
     fun toggleMute() {
         playerService.toggleMute()
     }
 
-    fun playEndpoint(endpoint: WatchEndpoint, shuffle: Boolean = false) {
+    /**
+     * Plays an endpoint with optional instant preview while loading the queue.
+     *
+     * Displays [previewSong] immediately in the miniplayer while fetching the full queue from the endpoint.
+     * If queue fetching succeeds, the fetched queue replaces the preview. If fetching fails and
+     * [previewSong] was provided, playback falls back to playing that song alone.
+     *
+     * @param previewSong An optional song to display immediately. If queue loading fails, this song is played as a single track.
+     */
+    fun playEndpoint(endpoint: WatchEndpoint, shuffle: Boolean = false, previewSong: MediaMetadata? = null) {
         viewModelScope.launch {
-            _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
+            // Show the miniplayer instantly with the clicked song instead of waiting for the
+            // network queue build (YouTube.next). The real queue replaces it when it arrives.
+            _uiState.update {
+                it.copy(
+                    currentSong = previewSong ?: it.currentSong,
+                    playbackState = PlaybackState.LOADING,
+                    error = null,
+                )
+            }
             val result = withContext(Dispatchers.IO) {
                 YouTube.next(endpoint).getOrNull()
             }
@@ -452,6 +495,10 @@ class PlayerViewModel(
                     if (shuffle) PlayerQueueCoordinator.shuffleFromStart(base) else base
                 }
                 _uiState.value.currentSong?.let(::resolveAndPlay)
+            } else if (previewSong != null) {
+                // Radio/queue fetch failed — still play the song solo instead of erroring out.
+                log.warning("next() failed for ${endpoint.videoId}; playing single song")
+                playSingle(previewSong)
             } else {
                 _uiState.update { it.copy(playbackState = PlaybackState.IDLE, error = "No se pudieron cargar las canciones de la lista.") }
             }
@@ -761,6 +808,14 @@ class PlayerViewModel(
         resolveAndPlay(song)
     }
 
+    /**
+     * Plays the given song, resolving its audio source through multiple fallback strategies.
+     *
+     * Checks for a cached file first. If unavailable, resolves a stream URL and confirms playback
+     * has started. If playback fails to start, falls back to resolving via yt-dlp. Uses request ID
+     * tracking to ignore results from stale playback attempts. On success, caches song metadata and
+     * logs the playback event. Updates UI state with loading and error information as needed.
+     */
     private fun resolveAndPlay(song: MediaMetadata) {
         resolveJob?.cancel()
         playRequestId += 1
@@ -789,6 +844,28 @@ class PlayerViewModel(
 
                     if (streamUrl.isNotEmpty()) {
                         playerService.play(streamUrl)
+                        // The resolved stream can pass HTTP validation yet 403 in mpv (e.g. spc-gated
+                        // IOS URLs). If playback doesn't actually start, fall back to yt-dlp, which
+                        // handles the hard videos our in-process pipeline can't.
+                        val started = playerService.awaitPlaybackStarted()
+                        if (!started && requestId == playRequestId) {
+                            Napier.w("Stream did not start for ${song.id}; trying yt-dlp fallback")
+                            // Keep the miniplayer in a loading state while yt-dlp resolves (it can
+                            // take a couple seconds), instead of showing a stalled/idle player.
+                            _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
+                            val ytUrl = withContext(Dispatchers.IO) {
+                                YtDlpResolver.resolveAudioUrl(
+                                    song.id,
+                                    streamResolver.currentAudioQuality(),
+                                )
+                            }
+                            if (requestId != playRequestId) return@launch
+                            if (ytUrl != null) {
+                                playerService.play(ytUrl)
+                            } else {
+                                _uiState.update { it.copy(error = "No se pudo reproducir \"${song.title}\"") }
+                            }
+                        }
                     } else if (requestId == playRequestId) {
                         _uiState.update { it.copy(error = "No se pudo obtener el audio para \"${song.title}\"") }
                     }

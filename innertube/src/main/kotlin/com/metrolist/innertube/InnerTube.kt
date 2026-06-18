@@ -217,6 +217,15 @@ class InnerTube {
         }
     }
 
+    /**
+     * Retrieves player data for a video.
+     *
+     * @param videoId The video to retrieve player data for.
+     * @param playlistId Optional playlist ID for context.
+     * @param signatureTimestamp Optional timestamp for signature validation when supported by the client.
+     * @param poToken Optional token for integrity verification when supported by the client.
+     * @return The player endpoint response.
+     */
     suspend fun player(
         client: YouTubeClient,
         videoId: String,
@@ -226,6 +235,7 @@ class InnerTube {
     ) = withRetry {
         httpClient.post("player") {
             ytClient(client, setLogin = true)
+            client.apiKey?.let { parameter("key", it) }
             setBody(
                 PlayerBody(
                     context = client.toContext(locale, visitorData, dataSyncId).let {
