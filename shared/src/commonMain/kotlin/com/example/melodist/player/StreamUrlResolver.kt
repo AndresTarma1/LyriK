@@ -22,6 +22,14 @@ object StreamUrlResolver {
             requestTimeoutMillis = 8000
         }
     }
+    /**
+     * Resolves a stream URL for a given YouTube video format.
+     *
+     * @param format The streaming format to resolve a URL for.
+     * @param videoId The YouTube video ID.
+     * @param playerResponse The player response data.
+     * @return A stream URL for the given format, or `null` if resolution fails.
+     */
     suspend fun resolveUrl(
         format: PlayerResponse.StreamingData.Format,
         videoId: String,
@@ -79,13 +87,29 @@ object StreamUrlResolver {
     }
 
     // Every googlevideo stream URL carries a throttling n-param regardless of client,
-    // so attempt the transform unconditionally (it's a no-op when no n is present).
+    /**
+ * Determines whether to apply the n-parameter transformation to stream URLs.
+ *
+ * @return `true` to indicate the transformation should be applied.
+ */
     fun shouldApplyNTransform(clientName: String?): Boolean = true
 
+    /**
+     * Transforms the `n` parameter in a stream URL.
+     *
+     * @param url The stream URL to transform.
+     * @return The stream URL with the `n` parameter transformed.
+     */
     suspend fun applyNTransform(url: String): String {
         return CipherDeobfuscator.transformNParamInUrl(url)
     }
 
+    /**
+     * Checks whether a stream URL is likely playable.
+     *
+     * @param url The stream URL to validate.
+     * @return `true` if the URL appears playable or if validation fails due to a network error, `false` if the server rejects it.
+     */
     suspend fun validate(url: String): Boolean {
         // Ranged GET with the same headers mpv sends, to reject URLs the CDN won't serve
         // (403/throttled) before handing them to the player.

@@ -446,8 +446,13 @@ class DownloadRepository(
     }
 
     /**
-     * Intenta primero la descarga por rangos y, si el servidor rechaza `Range`
-     * con 403/416, cae a una descarga completa sin fragmentar.
+     * Downloads audio with fallback strategies if range requests are rejected by the server.
+     *
+     * When the total size is known, attempts chunked range-based download. If the server rejects
+     * range requests (HTTP 403 or 416), refreshes the stream URL and retries as a single request.
+     * If that also fails with range rejection, falls back to yt-dlp-based URL resolution. When
+     * total size is unknown, attempts single-request download directly and uses yt-dlp fallback
+     * if range rejection occurs.
      */
     private suspend fun downloadWithFallback(
         streamUrl: String,
@@ -485,9 +490,13 @@ class DownloadRepository(
     }
 
     /**
-     * Last-resort download path for videos the in-process pipeline can't serve (hard/spc-gated):
-     * use yt-dlp ONLY to obtain a working URL, then download it over plain HTTP like any other
-     * stream — yt-dlp never downloads the file itself.
+     * Resolves a working download URL using yt-dlp when the standard in-process stream fails,
+     * then downloads it via HTTP single-request.
+     *
+     * Deletes any existing partial file before attempting download. If yt-dlp cannot resolve
+     * a URL, the original cause exception is thrown instead.
+     *
+     * @throws Exception The original cause if yt-dlp cannot resolve a download URL.
      */
     private suspend fun downloadViaYtDlp(songId: String, partFile: File, cause: Exception) {
         log.warning("In-process stream failed for $songId; resolving download URL via yt-dlp")
@@ -497,11 +506,19 @@ class DownloadRepository(
         downloadSingleRequest(ytUrl, partFile, songId)
     }
 
+    /**
+     * Determines whether an exception represents a range or forbidden HTTP error.
+     *
+     * @return `true` if the exception message contains a 403 (Forbidden) or 416 (Range Not Satisfiable) error code, `false` otherwise.
+     */
     private fun isRangeOrForbidden(e: Exception): Boolean {
         val m = e.message.orEmpty()
         return m.contains("403") || m.contains("416")
     }
 
+    /**
+     * Applies HTTP headers required for downloading audio streams.
+     */
     private fun applyDownloadHeaders(connection: HttpURLConnection) {
         connection.instanceFollowRedirects = true
         connection.setRequestProperty("User-Agent", USER_AGENT)

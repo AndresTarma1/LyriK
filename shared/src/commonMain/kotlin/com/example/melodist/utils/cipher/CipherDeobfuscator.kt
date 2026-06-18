@@ -8,6 +8,15 @@ object CipherDeobfuscator {
 
     private var currentPlayerHash: String? = null
 
+    /**
+     * Deobfuscates a YouTube-style signature cipher with automatic retry on failure.
+     *
+     * If initial deobfuscation fails, retries using freshly fetched player JavaScript.
+     *
+     * @param signatureCipher The encoded signature cipher from YouTube.
+     * @param videoId The YouTube video ID.
+     * @return The deobfuscated URL string, or `null` if deobfuscation fails even after retry.
+     */
     suspend fun deobfuscateStreamUrl(signatureCipher: String, videoId: String): String? {
         Napier.i("[CIPHER] deobfuscateStreamUrl videoId=$videoId")
         return try {
@@ -25,6 +34,11 @@ object CipherDeobfuscator {
         }
     }
 
+    /**
+     * Deobfuscates a signature cipher and appends the solved signature to the base URL.
+     *
+     * @return The URL with the deobfuscated signature appended, or `null` if required components are missing or signature solving fails.
+     */
     private suspend fun deobfuscateInternal(signatureCipher: String, videoId: String, isRetry: Boolean): String? {
         val params = parseQueryParams(signatureCipher)
         val obfuscatedSig = params["s"] ?: return null
@@ -44,6 +58,12 @@ object CipherDeobfuscator {
         return "$baseUrl${separator}$sigParam=${URLEncoder.encode(deobfuscatedSig, "UTF-8")}"
     }
 
+    /**
+     * Transforms the n query parameter in a URL using the cipher solver.
+     *
+     * @param url The URL to transform.
+     * @return The URL with the n parameter transformed by the cipher solver, or the original URL if the parameter is not found or transformation fails.
+     */
     suspend fun transformNParamInUrl(url: String): String {
         try {
             val nMatch = Regex("[?&]n=([^&]+)").find(url) ?: run {
@@ -74,7 +94,12 @@ object CipherDeobfuscator {
         }
     }
 
-    /** Fetches player.js (cached) and prepares the EJS solver for it. */
+    /**
+     * Ensures the EJS cipher solver is prepared with the current player.js.
+     *
+     * @param forceRefresh If `true`, refetch player.js and reinitialize the solver even if already prepared.
+     * @return `true` if the solver is ready, `false` if fetching player.js or initialization failed.
+     */
     private suspend fun ensurePrepared(forceRefresh: Boolean): Boolean {
         if (!forceRefresh && currentPlayerHash != null) return true
 
@@ -96,6 +121,12 @@ object CipherDeobfuscator {
         }
     }
 
+    /**
+     * Parses a query string into decoded key-value pairs.
+     *
+     * @param query A URL-encoded query string (e.g., "key1=value1&key2=value2").
+     * @return A map of URL-decoded query parameters.
+     */
     private fun parseQueryParams(query: String): Map<String, String> {
         val result = mutableMapOf<String, String>()
         for (pair in query.split("&")) {
@@ -109,6 +140,11 @@ object CipherDeobfuscator {
         return result
     }
 
+    /**
+     * Returns debug information about the cipher deobfuscator's state.
+     *
+     * @return A map containing the current player hash.
+     */
     fun getDebugInfo(): Map<String, Any?> {
         return mapOf(
             "playerHash" to currentPlayerHash,

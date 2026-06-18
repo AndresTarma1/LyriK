@@ -24,6 +24,14 @@ data class YouTubeClient(
     val useWebPoTokens: Boolean = false,
     val apiKey: String? = null,
 ) {
+    /**
+     * Constructs a Context object from this client's configuration and the provided parameters.
+     *
+     * @param locale The locale information to derive geographic and language settings from.
+     * @param visitorData Optional visitor identification data.
+     * @param dataSyncId Optional user identifier. Populates the context only if this client supports login.
+     * @return A Context configured with this client's properties, the provided locale and visitor data, and optionally the user identifier.
+     */
     fun toContext(locale: YouTubeLocale, visitorData: String?, dataSyncId: String?) = Context(
         client = Context.Client(
             clientName = clientName,

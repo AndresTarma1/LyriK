@@ -28,10 +28,9 @@ val melodistJvmArgs = listOf(
 val melodistDevJvmArgs = melodistJvmArgs
 
 /**
- * Locate a JetBrains Runtime that bundles JCEF (Chromium). PoToken generation
- * (BotGuard) runs inside JCEF, and only the `jbr_jcef` variant ships the `jcef` module
- * — the plain `jbr` variant does NOT, so `--add-modules=jcef` would fail there.
- * We can't express "must have jcef" via the toolchain spec, so we discover it on disk.
+ * Locates a JetBrains Runtime that includes the JCEF module.
+ *
+ * @return The JCEF-capable runtime directory, or `null` if none is found.
  */
 fun findJcefCapableJbr(): File? {
     val userHome = File(System.getProperty("user.home"))

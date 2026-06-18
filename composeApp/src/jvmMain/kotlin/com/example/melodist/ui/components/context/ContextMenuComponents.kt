@@ -157,6 +157,17 @@ fun CollectionContextMenu(
 }
 
 
+/**
+ * Displays a context menu for a song with actions to control playback, downloads, playlists, and library management.
+ *
+ * The menu includes options to start radio playback, like/unlike, download or manage downloads, add to playlists,
+ * and optionally add to queue or remove from library or playlist. Availability of certain actions depends on the
+ * parameters and the current download state.
+ *
+ * @param isLocalPlaylist Indicates whether the menu is displayed in the context of a local playlist,
+ *                        enabling the removal from playlist option.
+ * @param showQueueActions When true, displays options to add the song to the queue or play it next.
+ */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun SongContextMenu(

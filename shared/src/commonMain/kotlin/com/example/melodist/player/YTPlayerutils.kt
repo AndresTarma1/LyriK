@@ -10,6 +10,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 object YTPlayerutils {
+    /**
+     * Resolves playback data and stream URL for a video at the specified audio quality.
+     *
+     * @return A `Result` containing the resolved playback data and stream URL.
+     */
     suspend fun playerResponseForPlayback(
         videoId: String,
         playlistId: String? = null,
@@ -191,6 +196,11 @@ object YTPlayerutils {
 
     private var cachedSignatureTimestamp: Int? = null
 
+    /**
+     * Computes and caches the signature timestamp for the YouTube player.
+     *
+     * @return The signature timestamp in days since Unix epoch.
+     */
     private fun getSignatureTimestampOrNull(videoId: String): Int? {
         // signatureTimestamp = days since Unix epoch (SimpMusic approach)
         // YouTube's player uses this to verify the client is up-to-date
@@ -201,6 +211,11 @@ object YTPlayerutils {
         return ts
     }
 
+    /**
+     * Invalidates the cached stream URLs for a video.
+     *
+     * @param videoId The ID of the video.
+     */
     suspend fun forceRefreshForVideo(videoId: String) {
         StreamCache.invalidateForVideo(videoId)
     }

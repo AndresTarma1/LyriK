@@ -20,7 +20,12 @@ class MpvAudioPlayer {
     @Volatile
     private var loadResult: CompletableDeferred<Boolean> = CompletableDeferred<Boolean>().apply { complete(false) }
 
-    /** Helper: llama a mpv_get_property_string y libera la memoria nativa con mpv_free. */
+    /**
+     * Retrieves an mpv property value as a string.
+     *
+     * @param name The name of the mpv property to retrieve.
+     * @return The property value as a string, or `null` if the handle is not initialized or the property is unavailable.
+     */
     private fun getMpvPropertyString(name: String): String? {
         val ptr = handle?.let { MpvLib.INSTANCE.mpv_get_property_string(it, name) } ?: return null
         return try {
@@ -30,6 +35,15 @@ class MpvAudioPlayer {
         }
     }
 
+    /**
+     * Initializes the mpv audio playback instance with audio-only configuration and Windows WASAPI output.
+     *
+     * If the mpv instance is already initialized, this method returns immediately. Otherwise, it creates
+     * a new mpv instance and configures it for stereo audio playback with video rendering disabled,
+     * native Windows audio output, and optimized buffering parameters.
+     *
+     * @throws Exception if mpv initialization fails.
+     */
     fun init() {
         if (handle != null) return
         try {
@@ -63,6 +77,13 @@ class MpvAudioPlayer {
             throw e
         }
     }
+    /**
+     * Initiates playback of the given URI.
+     *
+     * Cancels any previously pending load operation. The outcome is available via `awaitPlaybackStarted()`.
+     *
+     * @param uri The URI to load.
+     */
     fun openUri(uri: String) {
         handle?.let { h ->
             openUriJob?.cancel()
@@ -95,18 +116,25 @@ class MpvAudioPlayer {
     }
 
     /**
-     * Polls mpv (from AFTER the loadfile) to decide whether THIS file actually started.
-     * Everything is anchored to mpv's current `path` matching [uri] (via the stream's unique
-     * `id=` token) so the previous track's lingering state — gapless `audio-out-params`, an
-     * un-reset `time-pos` — can never produce a false positive. Returns false when the open
-     * fails (mpv goes idle, e.g. on a 403), which triggers the yt-dlp fallback upstream.
+     * Determines whether playback of the specified URI has started in mpv.
+     *
+     * Verifies that mpv is playing the requested file and that audio has begun playback by polling
+     * mpv state up to the specified timeout.
+     *
+     * @param uri The URI to verify.
+     * @param timeoutMs The maximum time in milliseconds to wait for playback to start.
+     * @return `true` if playback started, `false` if the file failed to load or the timeout was exceeded.
      */
     private suspend fun detectPlaybackStarted(uri: String, timeoutMs: Long = 8000): Boolean {
         val streamId = Regex("[?&]id=([^&]+)").find(uri)?.groupValues?.get(1)
         fun isCurrentFile(): Boolean {
             val path = getMpvPropertyString("path") ?: return false
             if (streamId != null) return path.contains(streamId)
-            // Local file / non-googlevideo: tolerant compare (mpv may normalize separators).
+            /**
+ * Normalizes a path by converting backslashes to forward slashes and removing trailing slashes.
+ *
+ * @return The normalized path.
+ */
             fun norm(s: String) = s.replace('\\', '/').trimEnd('/')
             return norm(path).equals(norm(uri), ignoreCase = true) ||
                 norm(path).endsWith(norm(uri).substringAfterLast('/'))
@@ -128,12 +156,19 @@ class MpvAudioPlayer {
         return isCurrentFile() && (getMpvPropertyString("time-pos")?.toDoubleOrNull() ?: 0.0) > 0.3
     }
 
-    /** Suspends until the most recent [openUri] load is known to have started (true) or failed (false). */
+    /**
+     * Determines whether the most recent URI load successfully started playback.
+     *
+     * @return `true` if playback started, `false` if it failed or the wait timed out.
+     */
     suspend fun awaitPlaybackStarted(timeoutMs: Long = 10000): Boolean {
         val r = loadResult
         return withTimeoutOrNull(timeoutMs) { r.await() } ?: false
     }
 
+    /**
+     * Resumes playback.
+     */
     fun play() {
         handle?.let {
             MpvLib.INSTANCE.mpv_set_property_string(it, "pause", "no")

@@ -42,6 +42,14 @@ object JcefBotGuardExecutor {
 
     private data class JsResult(val ok: Boolean, val data: Map<String, String>, val error: String?)
 
+    /**
+     * Initializes the JCEF browser and loads the provided HTML content.
+     *
+     * If already initialized, this method returns immediately.
+     *
+     * @param htmlContent The HTML content to load into the browser.
+     * @throws PoTokenException if CEF startup fails or the page does not load within 30 seconds.
+     */
     @Synchronized
     fun ensureInitialized(htmlContent: String) {
         if (initialized) return
@@ -146,7 +154,15 @@ object JcefBotGuardExecutor {
         Napier.i("[JCEF] BotGuard executor initialized")
     }
 
-    /** Runs BotGuard; stores webPoSignalOutput in the page and returns the botguardResponse. */
+    /**
+     * Executes BotGuard to obtain an attestation response from the challenge.
+     *
+     * Stores the resulting webPoSignalOutput on the page for subsequent use by the minter.
+     *
+     * @param challengeJson The challenge data in JSON format.
+     * @return The BotGuard response string, or null if not present in the result.
+     * @throws PoTokenException If BotGuard execution fails.
+     */
     suspend fun runBotGuard(challengeJson: String): String? {
         val js = { reqId: String ->
             """
@@ -188,7 +204,12 @@ object JcefBotGuardExecutor {
         if (!result.ok) throw PoTokenException("createMinter failed: ${result.error}")
     }
 
-    /** Mints a poToken bound to [identifierJsArray]; returns the bytes as a CSV string. */
+    /**
+     * Mints a poToken in the page using the provided identifier array.
+     *
+     * @param identifierJsArray A JavaScript array (as a string) identifying the entity to bind the token to.
+     * @return The token bytes as a comma-separated string, or `null` if minting fails.
+     */
     suspend fun mintToken(identifierJsArray: String): String? {
         val js = { reqId: String ->
             """
@@ -210,6 +231,15 @@ object JcefBotGuardExecutor {
         return result.data["token"]
     }
 
+    /**
+     * Executes JavaScript in the JCEF browser and waits for the result.
+     *
+     * The operation times out after 60 seconds if no result is received.
+     *
+     * @param jsBuilder A lambda that takes a request ID and returns the JavaScript code to execute.
+     * @return The result from JavaScript execution.
+     * @throws PoTokenException If the browser is not initialized.
+     */
     private suspend fun exec(jsBuilder: (String) -> String): JsResult {
         val b = browser ?: throw PoTokenException("JCEF browser not initialized")
         val reqId = "q" + reqCounter.incrementAndGet()
@@ -236,10 +266,19 @@ object JcefBotGuardExecutor {
         """.trimIndent()
     }
 
+    /**
+     * Builds a JavaScript snippet that reports an error back to Kotlin via `cefQuery`.
+     *
+     * @param reqId The request ID to correlate the error with the originating call.
+     * @return A JavaScript string that encodes the error message and sends it to the message router.
+     */
     private fun queryError(reqId: String): String {
         return "window.cefQuery({ request: JSON.stringify({ reqId: '$reqId', ok: 'false', error: String((e && e.message) || e) }), persistent: false, onSuccess: function(){}, onFailure: function(){} });"
     }
 
+    /**
+     * Shuts down the JCEF browser and releases associated resources.
+     */
     fun dispose() {
         browser?.close(true)
         client?.dispose()
@@ -249,5 +288,10 @@ object JcefBotGuardExecutor {
     }
 }
 
-private fun kotlinx.serialization.json.JsonPrimitive.contentOrNull(): String? =
+/**
+     * Retrieves the content of a JSON primitive.
+     *
+     * @return The content string, or `null` if the primitive is a JSON null value.
+     */
+    private fun kotlinx.serialization.json.JsonPrimitive.contentOrNull(): String? =
     if (this is kotlinx.serialization.json.JsonNull) null else content

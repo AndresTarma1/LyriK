@@ -27,6 +27,9 @@ object EjsCipherSolver {
     private var loaded = false
     private var preparedHash: String? = null
 
+    /**
+     * Initializes the JavaScript solver engine with required solver assets on first call.
+     */
     @Synchronized
     private fun ensureLoaded() {
         if (loaded) return
@@ -63,7 +66,12 @@ object EjsCipherSolver {
         Napier.i("[EJS] Prepared player hash=$hash")
     }
 
-    /** @param type "sig" or "n". Returns the solved value, or null on failure. */
+    /**
+     * Solves a cipher challenge using the previously prepared player representation.
+     *
+     * @param type The challenge type, typically "sig" or "n".
+     * @return The solved value as a string, or null if solving fails or the player was not prepared.
+     */
     @Synchronized
     fun solve(type: String, challenge: String): String? {
         if (preparedHash == null) {
@@ -92,6 +100,13 @@ object EjsCipherSolver {
         }
     }
 
+    /**
+     * Loads text assets from the classpath.
+     *
+     * @param path The relative path to the asset.
+     * @return The text content of the asset.
+     * @throws CipherException If the asset is not found.
+     */
     private fun readAsset(path: String): String {
         val fullPath = "com/example/melodist/utils/cipher/assets/$path"
         val resource = javaClass.classLoader?.getResource(fullPath)

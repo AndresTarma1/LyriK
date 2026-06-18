@@ -18,10 +18,9 @@ class PoTokenException(message: String) : Exception(message)
  */
 expect object PoTokenGenerator {
     /**
-     * @param videoId   identifier the *streaming* (stream URL `pot=`) poToken is bound to.
-     * @param sessionId identifier the *player request* poToken is bound to
-     *                  (visitorData when logged out, dataSyncId when logged in).
-     * @return both tokens, or null if generation failed (caller should fall back).
-     */
+ * Generates WEB/WEB_REMIX poTokens for web client requests.
+ *
+ * @return A [PoTokenResult] with both tokens, or `null` if generation failed.
+ */
     suspend fun getWebClientPoToken(videoId: String, sessionId: String): PoTokenResult?
 }
