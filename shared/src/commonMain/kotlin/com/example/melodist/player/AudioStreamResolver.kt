@@ -12,6 +12,13 @@ class AgeRestrictedException(message: String) : Exception(message)
 class AudioStreamResolver(
     private val userPreferences: UserPreferencesRepository,
 ) {
+    /**
+     * Resolves audio stream data for a video using the user's current audio quality preference.
+     *
+     * @param videoId The ID of the video to resolve the audio stream for.
+     * @return The playback data for the video.
+     * @throws Exception If the audio stream cannot be resolved.
+     */
     suspend fun resolveAudioStream(videoId: String): PlaybackData {
         val quality = userPreferences.audioQuality.first()
         return YTPlayerutils.playerResponseForPlayback(videoId = videoId, audioQuality = quality).fold(
@@ -20,6 +27,10 @@ class AudioStreamResolver(
         )
     }
 
-    /** Current user-selected audio quality (Baja/Normal/Alta), e.g. for the yt-dlp fallback. */
+    /**
+ * Retrieves the current user-selected audio quality preference.
+ *
+ * @return The user's current audio quality preference.
+ */
     suspend fun currentAudioQuality(): AudioQuality = userPreferences.audioQuality.first()
 }

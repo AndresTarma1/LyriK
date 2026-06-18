@@ -47,6 +47,13 @@ actual object PoTokenGenerator {
         }
     }
 
+    /**
+     * Generates PoTokens for video streaming authentication.
+     *
+     * @param videoId The ID of the video to bind the streaming data token to.
+     * @param sessionId The session ID to bind the player request token to.
+     * @return A [PoTokenResult] containing the generated tokens, or `null` if generation fails.
+     */
     actual suspend fun getWebClientPoToken(videoId: String, sessionId: String): PoTokenResult? {
         Napier.i("[PoToken] Generating PoToken for videoId=$videoId sessionId=${sessionId.take(8)}...")
         return try {
@@ -90,11 +97,21 @@ actual object PoTokenGenerator {
         }
     }
 
+    /**
+     * Mints a PoToken from an identifier and encodes it as base64.
+     *
+     * @return The base64-encoded PoToken, or `null` if minting fails.
+     */
     private suspend fun mintBase64(identifier: String): String? {
         val csv = JcefBotGuardExecutor.mintToken(newUint8Array(identifier.toByteArray())) ?: return null
         return poTokenBytesToBase64(csv)
     }
 
+    /**
+     * Fetches and parses the BotGuard challenge from the WAA Create endpoint.
+     *
+     * @return The parsed challenge data as a JSON string.
+     */
     private suspend fun fetchAndParseChallenge(): String {
         val response = httpClient.post("$WAA_URL/Create") {
             contentType(ContentType.parse("application/json+protobuf"))
@@ -110,6 +127,14 @@ actual object PoTokenGenerator {
         return parseChallengeData(response)
     }
 
+    /**
+     * Parses and restructures a BotGuard challenge response into a standardized JSON format.
+     *
+     * Extracts specific challenge fields (messageId, interpreterHash, program, globalName, clientExperimentsStateBlob)
+     * from the raw challenge data. Handles both scrambled and unscrambled payloads by descrambling when necessary.
+     *
+     * @return A JSON string containing the restructured challenge data with messageId, interpreterJavascript, interpreterHash, program, globalName, and clientExperimentsStateBlob fields.
+     */
     private fun parseChallengeData(rawChallengeData: String): String {
         val scrambled = Json.parseToJsonElement(rawChallengeData).jsonArray
 
@@ -156,6 +181,11 @@ actual object PoTokenGenerator {
         )
     }
 
+    /**
+     * Fetches an integrity token from the WAA GenerateIT endpoint.
+     *
+     * @return The decoded integrity token bytes.
+     */
     private suspend fun fetchIntegrityToken(botguardResponse: String): ByteArray {
         val response = httpClient.post("$WAA_URL/GenerateIT") {
             contentType(ContentType.parse("application/json+protobuf"))
@@ -172,13 +202,23 @@ actual object PoTokenGenerator {
         return base64ToByteArray(arr[0].jsonPrimitive.content)
     }
 
-    //region Utility functions
+    /**
+     * Unscrambles the given challenge string.
+     *
+     * @return The unscrambled challenge.
+     */
 
     private fun descramble(scrambledChallenge: String): String {
         val bytes = base64ToByteArray(scrambledChallenge)
         return String(bytes.map { (it.toInt() + 97).toByte() }.toByteArray(), Charsets.UTF_8)
     }
 
+    /**
+     * Decodes a URL-safe Base64 string to bytes.
+     *
+     * @param base64 A Base64 string with URL-safe characters (`-` for `+`, `_` for `/`, `.` for `=`).
+     * @return The decoded byte array.
+     */
     private fun base64ToByteArray(base64: String): ByteArray {
         val normalized = base64
             .replace('-', '+')
@@ -187,10 +227,20 @@ actual object PoTokenGenerator {
         return Base64.getDecoder().decode(normalized)
     }
 
+    /**
+     * Converts a byte array into a JavaScript Uint8Array constructor string.
+     *
+     * @return A JavaScript `new Uint8Array([...])` expression as a string.
+     */
     private fun newUint8Array(bytes: ByteArray): String {
         return "new Uint8Array([" + bytes.joinToString(separator = ",") { it.toUByte().toString() } + "])"
     }
 
+    /**
+     * Encodes PoToken bytes as a URL-safe base64 string.
+     *
+     * @return A URL-safe base64 string.
+     */
     private fun poTokenBytesToBase64(poTokenCsv: String): String {
         return Base64.getEncoder().encodeToString(
             poTokenCsv.split(",")
@@ -201,6 +251,13 @@ actual object PoTokenGenerator {
             .replace("/", "_")
     }
 
+    /**
+     * Loads a text asset from the embedded resources.
+     *
+     * @param path The relative path to the asset within the assets directory.
+     * @return The content of the asset as a string.
+     * @throws CipherException if the asset is not found.
+     */
     private fun readAsset(path: String): String {
         val fullPath = "com/example/melodist/utils/cipher/assets/$path"
         val resource = javaClass.classLoader?.getResource(fullPath)

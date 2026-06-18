@@ -36,12 +36,26 @@ var jsc = (function (meriyah, astring) {
     }
     return structure === obj;
   }
+  /**
+   * Checks whether a value is included in the provided list.
+   * @return {boolean} `true` if the value is in the provided list, `false` otherwise.
+   */
   function isOneOf(value, ...of) {
     return of.includes(value);
   }
+  /**
+   * Extracts an arrow function expression from JavaScript source code.
+   * @param {string} data - The JavaScript source code.
+   * @return {Object} The arrow function expression AST node.
+   */
   function generateArrowFunction(data) {
     return meriyah.parse(data).body[0].expression;
   }
+  /**
+   * Evaluates a chain of property accesses and method calls with optional-chaining semantics.
+   * @param {Array} ops - An array where index 0 is the initial value, followed by pairs of [operation_type, operation_function]. Operation types are 'access', 'optionalAccess', 'call', and 'optionalCall'.
+   * @returns The result of the chain, or `undefined` if any optional operation is performed on a null or undefined value.
+   */
   function _optionalChain$1(ops) {
     let lastAccessLHS = undefined;
     let value = ops[0];
@@ -105,6 +119,11 @@ var jsc = (function (meriyah, astring) {
       optional: false,
     },
   };
+  /**
+   * Extracts a solver function from an AST node if it matches a specific structure pattern.
+   * @param {Object} node - The AST node to examine.
+   * @return {Function|null} A solver function if the node matches the required pattern, `null` otherwise.
+   */
   function extract(node) {
     if (!matchesStructure(node, identifier)) {
       return null;
@@ -169,6 +188,11 @@ var jsc = (function (meriyah, astring) {
     }
     return null;
   }
+  /**
+   * Creates a solver function for YouTube signature and n parameter extraction.
+   * @param {object} expression - An AST node representing the function that generates the URL object.
+   * @returns {object} An AST expression node for the solver arrow function.
+   */
   function createSolver(expression) {
     return generateArrowFunction(
       `\n({sig, n}) => {\n  const url = (${astring.generate(expression)})("https://youtube.com/watch?v=yt-dlp-wins", "s", sig ? encodeURIComponent(sig) : undefined);\n  url.set("n", n);\n  const proto = Object.getPrototypeOf(url);\n  const keys = Object.keys(proto).concat(Object.getOwnPropertyNames(proto));\n  for (const key of keys) {\n    if (!["constructor", "set", "get", "clone"].includes(key)) {\n      url[key]();\n      break;\n    }\n  }\n  const s = url.get("s");\n  return {\n    sig: s ? decodeURIComponent(s) : null,\n    n: url.get("n") ?? null,\n  };\n}\n`,
@@ -177,6 +201,11 @@ var jsc = (function (meriyah, astring) {
   const setupNodes = meriyah.parse(
     `\nif (typeof globalThis.XMLHttpRequest === "undefined") {\n    globalThis.XMLHttpRequest = { prototype: {} };\n}\nif (typeof URL === "undefined") {\n    globalThis.location = {\n        hash: "",\n        host: "www.youtube.com",\n        hostname: "www.youtube.com",\n        href: "https://www.youtube.com/watch?v=yt-dlp-wins",\n        origin: "https://www.youtube.com",\n        password: "",\n        pathname: "/watch",\n        port: "",\n        protocol: "https:",\n        search: "?v=yt-dlp-wins",\n        username: "",\n    };\n} else {\n    globalThis.location = new URL("https://www.youtube.com/watch?v=yt-dlp-wins");\n}\nif (typeof globalThis.document === "undefined") {\n    globalThis.document = Object.create(null);\n}\nif (typeof globalThis.navigator === "undefined") {\n    globalThis.navigator = Object.create(null);\n}\nif (typeof globalThis.self === "undefined") {\n    globalThis.self = globalThis;\n}\nif (typeof globalThis.window === "undefined") {\n    globalThis.window = globalThis;\n}\n`,
   ).body;
+  /**
+   * Evaluates a chain of property accesses and function calls with optional-chaining semantics.
+   * @param {Array} ops - Alternating array of operation names ('access', 'optionalAccess', 'call', 'optionalCall') and operation functions.
+   * @returns {*} The result of the final operation, or `undefined` if any optional operation encounters a null or undefined value.
+   */
   function _optionalChain(ops) {
     let lastAccessLHS = undefined;
     let value = ops[0];
@@ -198,6 +227,11 @@ var jsc = (function (meriyah, astring) {
     }
     return value;
   }
+  /**
+   * Preprocesses player code for solver injection and execution.
+   * @param {string} data - The raw player JavaScript source code.
+   * @returns {string} The preprocessed JavaScript source code.
+   */
   function preprocessPlayer(data) {
     const program = meriyah.parse(data);
     const plainStatements = modifyPlayer(program);
@@ -222,6 +256,11 @@ var jsc = (function (meriyah, astring) {
     program.body.splice(0, 0, ...setupNodes);
     return astring.generate(program);
   }
+  /**
+   * Isolates a function body from a parsed program and normalizes its statements.
+   * @param {Object} program - A parsed AST program.
+   * @returns {Array} The normalized function body statements.
+   */
   function modifyPlayer(program) {
     const body = program.body;
     const block = (() => {
@@ -267,6 +306,11 @@ var jsc = (function (meriyah, astring) {
     });
     return block.body;
   }
+  /**
+   * Extracts solver candidates from statements and organizes them by parameter type.
+   * @param {Array} statements - AST statement nodes to search for solver candidates.
+   * @return {Object} An object with `n` and `sig` arrays, each containing solver expressions.
+   */
   function getSolutions(statements) {
     const found = { n: [], sig: [] };
     for (const statement of statements) {
@@ -278,6 +322,12 @@ var jsc = (function (meriyah, astring) {
     }
     return found;
   }
+  /**
+   * Creates an arrow function AST node that invokes a result expression with an object and returns a specified property.
+   * @param {Object} result - An AST node representing the function expression to invoke.
+   * @param {Object} ident - An AST node representing the identifier to use as parameter and property accessor.
+   * @return {Object} An `ArrowFunctionExpression` AST node.
+   */
   function makeSolver(result, ident) {
     return {
       type: 'ArrowFunctionExpression',
@@ -314,16 +364,39 @@ var jsc = (function (meriyah, astring) {
       generator: false,
     };
   }
+  /**
+   * Executes prepared code to extract solver functions.
+   * @param {string} code - The prepared solver code that populates the result object.
+   * @return {Object} An object with `n` and `sig` properties, each containing a solver function or `null`.
+   */
   function getFromPrepared(code) {
     const resultObj = { n: null, sig: null };
     Function('_result', code)(resultObj);
     return resultObj;
   }
+  /**
+   * Creates a solver that selects the unique solution from multiple generator functions.
+   * @param {Array} generators - An array of candidate generator functions.
+   * @return {Object} An arrow function expression that returns the sole successful result from the generators, throwing if zero or multiple results are found.
+   */
   function multiTry(generators) {
     return generateArrowFunction(
       `\n(_input) => {\n  const _results = new Set();\n  const errors = [];\n  for (const _generator of ${astring.generate({ type: 'ArrayExpression', elements: generators })}) {\n    try {\n      _results.add(_generator(_input));\n    } catch (e) {\n      errors.push(e);\n    }\n  }\n  if (!_results.size) {\n    throw \`no solutions: \${errors.join(", ")}\`;\n  }\n  if (_results.size !== 1) {\n    throw \`invalid solutions: \${[..._results].map(x => JSON.stringify(x)).join(", ")}\`;\n  }\n  return _results.values().next().value;\n}\n`,
     );
   }
+  /**
+   * Processes solver requests against JavaScript player code and returns results for each challenge.
+   * 
+   * Accepts either raw player code or pre-processed player code. Extracts solver functions for each request type and executes them against provided challenges. Returns responses containing either results or errors.
+   * 
+   * @param {Object} input - The request object.
+   * @param {string} input.type - Either `'player'` (raw player code) or `'preprocessed_player'` (pre-processed code).
+   * @param {string} [input.player] - Raw player JavaScript; required if `type === 'player'`.
+   * @param {string} [input.preprocessed_player] - Pre-processed player code; required if `type !== 'player'`.
+   * @param {Array} input.requests - Array of requests; each contains `type` (`'n'` or `'sig'`) and `challenges` (array of strings to solve).
+   * @param {boolean} [input.output_preprocessed] - If true and `type === 'player'`, include preprocessed code in output.
+   * @returns {Object} Object with `type: 'result'` and `responses` array; optionally includes `preprocessed_player` if requested.
+   */
   function main(input) {
     const preprocessedPlayer =
       input.type === 'player'

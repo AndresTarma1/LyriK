@@ -238,6 +238,14 @@ class PlayerViewModel(
 
     fun playSingle(song: SongItem) = playSingle(song.toMediaMetadata())
 
+    /**
+     * Queues a single song and begins playback immediately.
+     *
+     * The related queue (for autoplay/next) loads in the background and does not
+     * block playback initiation.
+     *
+     * @param song The song to play.
+     */
     fun playSingle(song: MediaMetadata) {
         val queue = LocalQueue(QueueSource.Single(song.id), listOf(song), 0)
         currentQueue = queue
@@ -260,6 +268,18 @@ class PlayerViewModel(
         fetchRelatedQueue(song, _uiState.value.queueSession)
     }
 
+    /**
+     * Fetches an album by browse ID and begins playback.
+     *
+     * If songs are found, plays the album starting from the specified index. If [shuffle] is true,
+     * the queue is shuffled before playback. If no songs are found, invokes [onEmpty].
+     *
+     * @param browseId The album's browse identifier.
+     * @param title The album title.
+     * @param startIndex The queue position at which to start playback.
+     * @param shuffle Whether to shuffle the queue.
+     * @param onEmpty Callback invoked if the album contains no songs.
+     */
     fun playAlbumFromBrowseId(
         browseId: String,
         playlistId: String? = null,
@@ -423,10 +443,22 @@ class PlayerViewModel(
         playerService.setVolume(value)
     }
 
+    /**
+     * Toggles between muted and unmuted audio output.
+     */
     fun toggleMute() {
         playerService.toggleMute()
     }
 
+    /**
+     * Plays an endpoint with optional instant preview while loading the queue.
+     *
+     * Displays [previewSong] immediately in the miniplayer while fetching the full queue from the endpoint.
+     * If queue fetching succeeds, the fetched queue replaces the preview. If fetching fails and
+     * [previewSong] was provided, playback falls back to playing that song alone.
+     *
+     * @param previewSong An optional song to display immediately. If queue loading fails, this song is played as a single track.
+     */
     fun playEndpoint(endpoint: WatchEndpoint, shuffle: Boolean = false, previewSong: MediaMetadata? = null) {
         viewModelScope.launch {
             // Show the miniplayer instantly with the clicked song instead of waiting for the
@@ -776,6 +808,14 @@ class PlayerViewModel(
         resolveAndPlay(song)
     }
 
+    /**
+     * Plays the given song, resolving its audio source through multiple fallback strategies.
+     *
+     * Checks for a cached file first. If unavailable, resolves a stream URL and confirms playback
+     * has started. If playback fails to start, falls back to resolving via yt-dlp. Uses request ID
+     * tracking to ignore results from stale playback attempts. On success, caches song metadata and
+     * logs the playback event. Updates UI state with loading and error information as needed.
+     */
     private fun resolveAndPlay(song: MediaMetadata) {
         resolveJob?.cancel()
         playRequestId += 1

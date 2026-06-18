@@ -51,6 +51,12 @@ class PlayerService {
         startPositionTicker()
     }
 
+    /**
+     * Loads and initiates playback of the specified audio URL.
+     *
+     * Resets the playback position and duration. If loading fails, the playback state is
+     * set to ERROR and the error is logged.
+     */
     fun play(url: String) {
         init()
         if (isMpvDisabled) {
@@ -76,12 +82,19 @@ class PlayerService {
         }
     }
 
-    /** True if mpv actually started playing the last [play] URL within [timeoutMs]. */
+    /**
+     * Waits for playback to start within a specified timeout.
+     *
+     * @return `true` if playback started within the timeout, `false` otherwise.
+     */
     suspend fun awaitPlaybackStarted(timeoutMs: Long = 6000): Boolean {
         if (isMpvDisabled) return false
         return mpvPlayer.awaitPlaybackStarted(timeoutMs)
     }
 
+    /**
+     * Pauses playback and updates the playback state to `PAUSED`.
+     */
     fun pause() {
         isTransitioning = false
         endNotified = false

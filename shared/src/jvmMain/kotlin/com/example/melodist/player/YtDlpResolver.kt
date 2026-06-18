@@ -22,9 +22,10 @@ object YtDlpResolver {
     private val log = Logger.getLogger("YtDlpResolver")
 
     /**
-     * yt-dlp `-f` selector per user quality. YouTube audio itags by bitrate: 249/139 (~50k),
-     * 250 (~70k)/140 (~128k), 251 (~160k). We cap by average bitrate so the choice respects
-     * the user's Baja/Normal/Alta setting and falls back gracefully.
+     * Returns a yt-dlp format selector string for the specified audio quality.
+     *
+     * @param quality The desired audio quality level.
+     * @return A yt-dlp `-f` format selector string.
      */
     private fun formatSelector(quality: AudioQuality): String = when (quality) {
         AudioQuality.LOW -> "worstaudio/bestaudio[abr<=70]/bestaudio"
@@ -32,7 +33,13 @@ object YtDlpResolver {
         AudioQuality.HIGH -> "bestaudio"
     }
 
-    /** Resolves a direct audio stream URL for [videoId], or null if yt-dlp is unavailable/fails. */
+    /**
+     * Resolves a direct audio stream URL for the given video ID.
+     *
+     * Requires yt-dlp to be available either as a bundled executable or on the system PATH.
+     *
+     * @return A direct audio stream URL, or `null` if yt-dlp is unavailable or resolution fails.
+     */
     suspend fun resolveAudioUrl(
         videoId: String,
         quality: AudioQuality = AudioQuality.NORMAL,
@@ -75,6 +82,14 @@ object YtDlpResolver {
     /** Bundled binary (shipped next to libmpv) takes precedence over a system PATH install. */
     private val ytDlpPath: String? by lazy { locateYtDlp() }
 
+    /**
+     * Determines the absolute path to the yt-dlp executable.
+     * 
+     * Prefers bundled executables in known resource directories, then falls back 
+     * to a system-wide lookup.
+     *
+     * @return The absolute path to yt-dlp, or `null` if not found.
+     */
     private fun locateYtDlp(): String? {
         val userDir = File(System.getProperty("user.dir"))
         val rootDir = userDir.parentFile ?: userDir
@@ -93,6 +108,12 @@ object YtDlpResolver {
         return resolveOnPath("yt-dlp")?.also { log.info("Using system yt-dlp: $it") }
     }
 
+    /**
+     * Locates an executable on the system PATH.
+     *
+     * @param name The name of the executable to locate.
+     * @return The absolute path to the executable if found, `null` otherwise.
+     */
     private fun resolveOnPath(name: String): String? = try {
         val which = if (System.getProperty("os.name").startsWith("Windows", true)) "where" else "which"
         val proc = ProcessBuilder(which, name).redirectErrorStream(true).start()
