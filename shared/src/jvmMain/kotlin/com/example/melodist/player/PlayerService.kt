@@ -49,6 +49,16 @@ class PlayerService {
         }
         mpvPlayer.init()
         startPositionTicker()
+
+        // Natural end-of-track, reported by mpv's END_FILE(EOF) event (authoritative).
+        scope.launch {
+            mpvPlayer.ended.collect {
+                if (!endNotified) {
+                    endNotified = true
+                    _playbackState.value = PlaybackState.ENDED
+                }
+            }
+        }
     }
 
     /**
@@ -182,36 +192,10 @@ class PlayerService {
                             _playbackState.value == PlaybackState.LOADING
 
                     if (shouldPoll) {
-                        val dur = mpvPlayer.getDuration()
-                        _duration.value = dur
-
-                        val pos = mpvPlayer.getCurrentPosition()
-                        _position.value = pos
-
-                        val endThresholdMs = 200L
-                        // Detecta si mpv reseteó time-pos a 0 después de que la canción terminó
-                        val posReset = prevPlayingPos > endThresholdMs && pos <= 100 &&
-                                _playbackState.value == PlaybackState.PLAYING
-
-                        val looksEnded =
-                            !endNotified &&
-                            _playbackState.value != PlaybackState.LOADING &&
-                            (
-                                (dur > endThresholdMs && pos >= (dur - endThresholdMs)) ||
-                                posReset
-                            )
-
-                        // Guarda la posición para detectar reseteo en la próxima iteración
-                        if (pos > 0 && _playbackState.value == PlaybackState.PLAYING) {
-                            prevPlayingPos = pos
-                        }
-
-                        if (looksEnded) {
-                            endNotified = true
-                            _playbackState.value = PlaybackState.ENDED
-                            delay(500.milliseconds)
-                            continue
-                        }
+                        // Progress only (end-of-track now comes from mpv's END_FILE event, not a
+                        // pos≈dur heuristic). 250ms keeps the seek bar smooth.
+                        _duration.value = mpvPlayer.getDuration()
+                        _position.value = mpvPlayer.getCurrentPosition()
 
                         if (!isTransitioning) {
                             val playing = mpvPlayer.isPlaying.value
@@ -226,8 +210,7 @@ class PlayerService {
                 } catch (e: Throwable) {
                     // silent catch for background ticker
                 }
-                val pollInterval = 1000L
-                delay(pollInterval.milliseconds)
+                delay(250.milliseconds)
             }
         }
     }

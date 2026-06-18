@@ -48,6 +48,7 @@ class PlayerViewModel(
 
     private var resolveJob: Job? = null
     private var fetchMoreJob: Job? = null
+    private var prefetchJob: Job? = null
     private var playRequestId = 0L
     private var currentQueue: Queue? = null
 
@@ -790,6 +791,13 @@ class PlayerViewModel(
         _uiState.update { state -> PlayerQueueCoordinator.move(state, fromIndex, toIndex) }
     }
 
+    /** Re-attempts playback of the current song (for a "retry" action on a playback error). */
+    fun retry() {
+        val song = _uiState.value.currentSong ?: return
+        _uiState.update { it.copy(error = null) }
+        resolveAndPlay(song)
+    }
+
     fun playAtIndex(index: Int) {
         val state = _uiState.value
         if (index < 0 || index >= state.queueSession.order.size) return
@@ -836,6 +844,10 @@ class PlayerViewModel(
 
                 if (cachedFile != null) {
                     playerService.play(cachedFile.absolutePath)
+                } else if (YtDlpResolver.needsYtDlp(song.id)) {
+                    // Known-hard video (all in-process clients 403 this session): skip straight to
+                    // yt-dlp instead of repeating the slow resolve + mpv-failure cycle.
+                    playViaYtDlp(song, requestId)
                 } else {
                     val streamUrl = withContext(Dispatchers.IO) {
                         streamResolver.resolveAudioStream(song.id)
@@ -849,22 +861,9 @@ class PlayerViewModel(
                         // handles the hard videos our in-process pipeline can't.
                         val started = playerService.awaitPlaybackStarted()
                         if (!started && requestId == playRequestId) {
+                            YtDlpResolver.markNeedsYtDlp(song.id)
                             Napier.w("Stream did not start for ${song.id}; trying yt-dlp fallback")
-                            // Keep the miniplayer in a loading state while yt-dlp resolves (it can
-                            // take a couple seconds), instead of showing a stalled/idle player.
-                            _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
-                            val ytUrl = withContext(Dispatchers.IO) {
-                                YtDlpResolver.resolveAudioUrl(
-                                    song.id,
-                                    streamResolver.currentAudioQuality(),
-                                )
-                            }
-                            if (requestId != playRequestId) return@launch
-                            if (ytUrl != null) {
-                                playerService.play(ytUrl)
-                            } else {
-                                _uiState.update { it.copy(error = "No se pudo reproducir \"${song.title}\"") }
-                            }
+                            playViaYtDlp(song, requestId)
                         }
                     } else if (requestId == playRequestId) {
                         _uiState.update { it.copy(error = "No se pudo obtener el audio para \"${song.title}\"") }
@@ -881,6 +880,9 @@ class PlayerViewModel(
                         playTime = 0L,
                     )
                 }
+
+                // Warm the next track's stream cache so skipping to it is near-instant.
+                prefetchNext()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -888,6 +890,44 @@ class PlayerViewModel(
                 if (requestId == playRequestId) {
                     _uiState.update { it.copy(error = e.message) }
                 }
+            }
+        }
+    }
+
+    /**
+     * Pre-resolves the next track's stream URL in the background so [next] is near-instant
+     * (it warms the same StreamCache entry [resolveAndPlay] will hit). Skips cached files and
+     * known yt-dlp-only videos (re-resolving those in-process is pointless).
+     */
+    private fun prefetchNext() {
+        val state = _uiState.value
+        val nextIdx = PlayerQueueCoordinator.nextIndex(state) ?: return
+        val nextSong = state.queueSession.order.getOrNull(nextIdx)
+            ?.let(state.queueSession.items::getOrNull) ?: return
+        if (YtDlpResolver.needsYtDlp(nextSong.id)) return
+        prefetchJob?.cancel()
+        prefetchJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                if (DownloadService.getCachedFile(nextSong.id) != null) return@launch
+                streamResolver.resolveAudioStream(nextSong.id) // result discarded; StreamCache warmed
+            } catch (_: Exception) {
+                // best-effort prefetch
+            }
+        }
+    }
+
+    /** Resolves [song] via yt-dlp and plays it; keeps the miniplayer in LOADING meanwhile. */
+    private suspend fun playViaYtDlp(song: MediaMetadata, requestId: Long) {
+        _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
+        val ytUrl = withContext(Dispatchers.IO) {
+            YtDlpResolver.resolveAudioUrl(song.id, streamResolver.currentAudioQuality())
+        }
+        if (requestId != playRequestId) return
+        if (ytUrl != null) {
+            playerService.play(ytUrl)
+        } else {
+            _uiState.update {
+                it.copy(playbackState = PlaybackState.ERROR, error = "No se pudo reproducir \"${song.title}\"")
             }
         }
     }

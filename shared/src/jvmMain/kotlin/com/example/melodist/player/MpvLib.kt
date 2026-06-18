@@ -15,7 +15,37 @@ interface MpvLib : Library {
     fun mpv_get_property_string(handle: Pointer, name: String): Pointer
     fun mpv_free(data: Pointer)
 
+    // --- Event API ---
+    /** Subscribe to change events for [name]; events carry [replyUserdata] back. */
+    fun mpv_observe_property(handle: Pointer, replyUserdata: Long, name: String, format: Int): Int
+    /** Blocks up to [timeout] seconds (negative = forever) for the next event. Returns a pointer
+     *  to a static mpv_event owned by mpv (valid until the next mpv_wait_event on this handle). */
+    fun mpv_wait_event(handle: Pointer, timeout: Double): Pointer?
+    /** Interrupts a blocking mpv_wait_event (used to unblock the event thread on shutdown). */
+    fun mpv_wakeup(handle: Pointer)
+
     companion object {
+        // mpv_event_id (client.h)
+        const val MPV_EVENT_NONE = 0
+        const val MPV_EVENT_SHUTDOWN = 1
+        const val MPV_EVENT_END_FILE = 7
+        const val MPV_EVENT_FILE_LOADED = 8
+        const val MPV_EVENT_PLAYBACK_RESTART = 21
+        const val MPV_EVENT_PROPERTY_CHANGE = 22
+
+        // mpv_end_file_reason
+        const val MPV_END_FILE_REASON_EOF = 0
+        const val MPV_END_FILE_REASON_STOP = 2
+        const val MPV_END_FILE_REASON_QUIT = 3
+        const val MPV_END_FILE_REASON_ERROR = 4
+        const val MPV_END_FILE_REASON_REDIRECT = 5
+
+        // mpv_format
+        const val MPV_FORMAT_NONE = 0
+        const val MPV_FORMAT_FLAG = 3
+        const val MPV_FORMAT_INT64 = 4
+        const val MPV_FORMAT_DOUBLE = 5
+
         private val log = Logger.getLogger("MpvLib")
 
         val INSTANCE: MpvLib by lazy {

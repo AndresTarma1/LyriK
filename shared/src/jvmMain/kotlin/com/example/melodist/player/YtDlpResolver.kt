@@ -21,6 +21,14 @@ import java.util.logging.Logger
 object YtDlpResolver {
     private val log = Logger.getLogger("YtDlpResolver")
 
+    // Videos that the in-process pipeline couldn't play this session (all clients 403). Remembering
+    // them lets the caller skip the slow in-process + mpv-failure cycle on repeat plays and go
+    // straight to yt-dlp. Session-only (cleared on restart, in case YouTube/clients change).
+    private val knownYtDlpOnly = java.util.Collections.synchronizedSet(mutableSetOf<String>())
+
+    fun markNeedsYtDlp(videoId: String) { knownYtDlpOnly.add(videoId) }
+    fun needsYtDlp(videoId: String): Boolean = knownYtDlpOnly.contains(videoId)
+
     /**
      * Returns a yt-dlp format selector string for the specified audio quality.
      *

@@ -2,7 +2,10 @@ package com.example.melodist.player
 
 import com.sun.jna.Pointer
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.logging.Logger
 
@@ -14,11 +17,20 @@ class MpvAudioPlayer {
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var openUriJob: Job? = null
 
-    // Result of the most recent openUri load: true once the NEW file is actually progressing,
-    // false if it failed to open (e.g. 403). Resolved by the openUri coroutine itself so the
-    // check keys off the new load, not the previous track's lingering state.
+    // Emitted when the current track finishes naturally (mpv END_FILE with reason EOF).
+    private val _ended = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val ended: SharedFlow<Unit> = _ended.asSharedFlow()
+
+    // Result of the most recent openUri load: completed by the mpv event loop — true on the first
+    // PLAYBACK_RESTART (the new file is decoding/playing), false on END_FILE/ERROR (e.g. a 403).
+    // Event-driven instead of polling, and immune to the previous track's lingering state.
     @Volatile
     private var loadResult: CompletableDeferred<Boolean> = CompletableDeferred<Boolean>().apply { complete(false) }
+
+    @Volatile
+    private var eventThread: Thread? = null
+    @Volatile
+    private var eventLoopRunning = false
 
     /**
      * Retrieves an mpv property value as a string.
@@ -71,11 +83,60 @@ class MpvAudioPlayer {
                 MpvLib.INSTANCE.mpv_set_property_string(it, "demuxer-max-back-bytes", "2097152") // 2 MiB
 
                 MpvLib.INSTANCE.mpv_set_property_string(it, "cache-pause", "yes")
+
+                startEventLoop(it)
             }
         } catch (e: Exception) {
             log.severe("MpvAudioPlayer init failed: ${e.message}")
             throw e
         }
+    }
+
+    /**
+     * Background thread draining mpv's event queue. Core events (END_FILE, PLAYBACK_RESTART) are
+     * delivered without observing any property, so this needs no mpv_observe_property. It drives:
+     *  - load success/failure ([loadResult]) — replaces the old polling-based detection,
+     *  - the natural end-of-track signal ([ended]) — replaces the heuristic pos≈dur check,
+     *  - the real playing state ([_isPlaying]).
+     */
+    private fun startEventLoop(h: Pointer) {
+        if (eventThread != null) return
+        eventLoopRunning = true
+        eventThread = Thread({
+            while (eventLoopRunning) {
+                val evPtr = try {
+                    MpvLib.INSTANCE.mpv_wait_event(h, -1.0)
+                } catch (e: Throwable) {
+                    null
+                } ?: continue
+                when (evPtr.getInt(0)) { // event_id @ offset 0
+                    MpvLib.MPV_EVENT_SHUTDOWN -> eventLoopRunning = false
+
+                    MpvLib.MPV_EVENT_PLAYBACK_RESTART -> {
+                        // New file is decoding/playing (also fires after seeks — harmless).
+                        _isPlaying.value = true
+                        loadResult.takeIf { !it.isCompleted }?.complete(true)
+                    }
+
+                    MpvLib.MPV_EVENT_END_FILE -> {
+                        // data @ offset 16 -> mpv_event_end_file; reason is its first int.
+                        val reason = evPtr.getPointer(16)?.getInt(0) ?: -1
+                        when (reason) {
+                            MpvLib.MPV_END_FILE_REASON_ERROR -> {
+                                _isPlaying.value = false
+                                loadResult.takeIf { !it.isCompleted }?.complete(false)
+                            }
+                            MpvLib.MPV_END_FILE_REASON_EOF -> {
+                                _isPlaying.value = false
+                                loadResult.takeIf { !it.isCompleted }?.complete(true)
+                                _ended.tryEmit(Unit)
+                            }
+                            // STOP/REDIRECT/QUIT: file was replaced or app closing — ignore.
+                        }
+                    }
+                }
+            }
+        }, "mpv-events").apply { isDaemon = true; start() }
     }
     /**
      * Initiates playback of the given URI.
@@ -87,79 +148,31 @@ class MpvAudioPlayer {
     fun openUri(uri: String) {
         handle?.let { h ->
             openUriJob?.cancel()
-            // Unblock any pending await from a superseded load, then arm a fresh result.
+            // Unblock any pending await from a superseded load, then arm a fresh result that the
+            // event loop will complete (PLAYBACK_RESTART => true, END_FILE/ERROR => false).
             loadResult.takeIf { !it.isCompleted }?.complete(false)
-            val result = CompletableDeferred<Boolean>()
-            loadResult = result
+            loadResult = CompletableDeferred()
+            // Until the new file actually starts, report not-playing so the UI stays in LOADING
+            // rather than flipping to PLAYING on the previous track's lingering state.
+            _isPlaying.value = false
             openUriJob = scope.launch {
-
-                withContext(Dispatchers.IO){
+                withContext(Dispatchers.IO) {
                     // Use the dedicated `user-agent` property: putting User-Agent inside
                     // `http-header-fields` does NOT override ffmpeg's default "Lavf/..." UA,
                     // which googlevideo rejects with 403.
                     MpvLib.INSTANCE.mpv_set_property_string(h, "user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0")
                     MpvLib.INSTANCE.mpv_set_property_string(h, "referrer", "https://music.youtube.com")
                     MpvLib.INSTANCE.mpv_command(h, arrayOf("loadfile", uri, "replace", null))
+                    MpvLib.INSTANCE.mpv_set_property_string(h, "pause", "no")
                 }
-
-                MpvLib.INSTANCE.mpv_set_property_string(h, "pause", "no")
-                // Don't flip _isPlaying optimistically: the position ticker turns LOADING into
-                // PLAYING whenever isPlaying is true, which would hide the loading state (and lie
-                // about playback) when the load actually fails. Reflect the real result instead.
-                _isPlaying.value = false
-
-                val started = detectPlaybackStarted(uri)
-                _isPlaying.value = started
-                if (!result.isCompleted) result.complete(started)
             }
         }
     }
 
     /**
-     * Determines whether playback of the specified URI has started in mpv.
-     *
-     * Verifies that mpv is playing the requested file and that audio has begun playback by polling
-     * mpv state up to the specified timeout.
-     *
-     * @param uri The URI to verify.
-     * @param timeoutMs The maximum time in milliseconds to wait for playback to start.
-     * @return `true` if playback started, `false` if the file failed to load or the timeout was exceeded.
-     */
-    private suspend fun detectPlaybackStarted(uri: String, timeoutMs: Long = 8000): Boolean {
-        val streamId = Regex("[?&]id=([^&]+)").find(uri)?.groupValues?.get(1)
-        fun isCurrentFile(): Boolean {
-            val path = getMpvPropertyString("path") ?: return false
-            if (streamId != null) return path.contains(streamId)
-            /**
- * Normalizes a path by converting backslashes to forward slashes and removing trailing slashes.
- *
- * @return The normalized path.
- */
-            fun norm(s: String) = s.replace('\\', '/').trimEnd('/')
-            return norm(path).equals(norm(uri), ignoreCase = true) ||
-                norm(path).endsWith(norm(uri).substringAfterLast('/'))
-        }
-
-        val start = System.currentTimeMillis()
-        while (System.currentTimeMillis() - start < timeoutMs) {
-            delay(150)
-            handle ?: return false
-            val idle = getMpvPropertyString("idle-active") == "yes"
-            // Idle after we committed to loading => our file failed/ended (404/403/EOF).
-            if (idle && System.currentTimeMillis() - start > 600) return false
-            if (isCurrentFile()) {
-                val pos = getMpvPropertyString("time-pos")?.toDoubleOrNull() ?: -1.0
-                val cache = getMpvPropertyString("demuxer-cache-time")?.toDoubleOrNull() ?: -1.0
-                if (pos > 0.3 || cache > 0.3) return true
-            }
-        }
-        return isCurrentFile() && (getMpvPropertyString("time-pos")?.toDoubleOrNull() ?: 0.0) > 0.3
-    }
-
-    /**
-     * Determines whether the most recent URI load successfully started playback.
-     *
-     * @return `true` if playback started, `false` if it failed or the wait timed out.
+     * Suspends until the most recent [openUri] load is known to have started (true) or failed
+     * (false). Resolved by the mpv event loop; [timeoutMs] guards against a load that never
+     * produces an event (e.g. a stuck connection).
      */
     suspend fun awaitPlaybackStarted(timeoutMs: Long = 10000): Boolean {
         val r = loadResult
@@ -261,7 +274,11 @@ class MpvAudioPlayer {
 
     fun dispose() {
         openUriJob?.cancel()
+        eventLoopRunning = false
         handle?.let {
+            MpvLib.INSTANCE.mpv_wakeup(it) // unblock the event thread's mpv_wait_event
+            eventThread?.join(1000)
+            eventThread = null
             MpvLib.INSTANCE.mpv_terminate_destroy(it)
             handle = null
         }
