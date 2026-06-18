@@ -226,7 +226,7 @@ class InnerTube {
     ) = withRetry {
         httpClient.post("player") {
             ytClient(client, setLogin = true)
-            parameter("key", client.apiKey ?: "AIzaSyC9XL3ZjWddXya6X74dJoCTL-WEYFDNX3")
+            client.apiKey?.let { parameter("key", it) }
             setBody(
                 PlayerBody(
                     context = client.toContext(locale, visitorData, dataSyncId).let {
