@@ -11,7 +11,7 @@ plugins {
 
 val melodistJvmArgs = listOf(
     "--add-modules=java.sql",
-//    "--add-modules=jcef",
+    "--add-modules=jcef",
     "--enable-native-access=ALL-UNNAMED",
     "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
     "-XX:+UseG1GC",
@@ -27,9 +27,34 @@ val melodistJvmArgs = listOf(
 
 val melodistDevJvmArgs = melodistJvmArgs
 
+/**
+ * Locate a JetBrains Runtime that bundles JCEF (Chromium). PoToken generation
+ * (BotGuard) runs inside JCEF, and only the `jbr_jcef` variant ships the `jcef` module
+ * — the plain `jbr` variant does NOT, so `--add-modules=jcef` would fail there.
+ * We can't express "must have jcef" via the toolchain spec, so we discover it on disk.
+ */
+fun findJcefCapableJbr(): File? {
+    val userHome = File(System.getProperty("user.home"))
+    val searchDirs = listOf(File(userHome, ".jdks"), File(userHome, ".gradle/jdks"))
+    val candidates = searchDirs.flatMap { it.listFiles()?.toList() ?: emptyList() }
+    return candidates.firstOrNull { dir ->
+        dir.isDirectory && File(dir, "bin/java.exe").exists() &&
+            (dir.name.contains("jcef", ignoreCase = true) ||
+                File(dir, "bin/jcef_helper.exe").exists())
+    }
+}
+
+val jcefJbrHome: File? = findJcefCapableJbr()
+if (jcefJbrHome != null) {
+    logger.lifecycle("Using JCEF-capable JBR for run/package: ${jcefJbrHome.absolutePath}")
+} else {
+    logger.warn("No JCEF-capable JBR (jbr_jcef) found under ~/.jdks — poToken generation will fail at runtime. Install a 'JetBrains Runtime with JCEF' build.")
+}
+
 tasks.withType<JavaExec>().configureEach {
     if (name.contains("run", ignoreCase = true)) {
         jvmArgs(*melodistDevJvmArgs.toTypedArray())
+        jcefJbrHome?.let { executable = File(it, "bin/java.exe").absolutePath }
     }
 }
 
@@ -119,6 +144,9 @@ kotlin {
 compose.desktop {
     application {
         mainClass = "com.example.melodist.MainKt"
+
+        // Package with the JCEF-capable JBR so the bundled runtime includes the jcef module.
+        jcefJbrHome?.let { javaHome = it.absolutePath }
 
         jvmArgs(*melodistJvmArgs.toTypedArray())
 

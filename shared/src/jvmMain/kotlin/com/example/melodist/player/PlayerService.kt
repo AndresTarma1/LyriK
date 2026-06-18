@@ -59,20 +59,27 @@ class PlayerService {
             _duration.value = 0L
             return
         }
-        scope.launch {
-            try {
-                _playbackState.value = PlaybackState.LOADING
-                isTransitioning = false
-                endNotified = false
-                prevPlayingPos = 0L
-                _position.value = 0L
-                _duration.value = 0L
-                mpvPlayer.openUri(url)
-            } catch (e: Exception) {
-                _playbackState.value = PlaybackState.ERROR
-                log.severe("Error al reproducir: ${e.message}")
-            }
+        try {
+            _playbackState.value = PlaybackState.LOADING
+            isTransitioning = false
+            endNotified = false
+            prevPlayingPos = 0L
+            _position.value = 0L
+            _duration.value = 0L
+            // openUri is non-blocking (it launches its own IO job) and arms the load-result
+            // synchronously, so a subsequent awaitPlaybackStarted() observes THIS load, not a
+            // stale result from the previous track.
+            mpvPlayer.openUri(url)
+        } catch (e: Exception) {
+            _playbackState.value = PlaybackState.ERROR
+            log.severe("Error al reproducir: ${e.message}")
         }
+    }
+
+    /** True if mpv actually started playing the last [play] URL within [timeoutMs]. */
+    suspend fun awaitPlaybackStarted(timeoutMs: Long = 6000): Boolean {
+        if (isMpvDisabled) return false
+        return mpvPlayer.awaitPlaybackStarted(timeoutMs)
     }
 
     fun pause() {

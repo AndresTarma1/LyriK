@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.example.melodist.models.toMediaMetadata
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
@@ -199,10 +200,11 @@ fun SongContextMenu(
                     icon = Icons.Default.Radio,
                     onClick = {
                         val endpoint = song.endpoint
+                        val preview = song.toMediaMetadata()
                         if (endpoint != null) {
-                            playerViewModel.playEndpoint(endpoint)
+                            playerViewModel.playEndpoint(endpoint, previewSong = preview)
                         } else {
-                            playerViewModel.playEndpoint(WatchEndpoint(videoId = song.id))
+                            playerViewModel.playEndpoint(WatchEndpoint(videoId = song.id), previewSong = preview)
                         }
                     }
                 )

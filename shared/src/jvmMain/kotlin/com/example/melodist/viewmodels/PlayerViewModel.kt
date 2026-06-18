@@ -254,7 +254,10 @@ class PlayerViewModel(
                 queueSession = uiState.queueSession,
             )
         }
+        // Play immediately; the radio queue (for autoplay/next) loads in the background and never
+        // blocks or fails playback — tapping a song must not depend on its radio endpoint.
         resolveAndPlay(song)
+        fetchRelatedQueue(song, _uiState.value.queueSession)
     }
 
     fun playAlbumFromBrowseId(
@@ -424,9 +427,17 @@ class PlayerViewModel(
         playerService.toggleMute()
     }
 
-    fun playEndpoint(endpoint: WatchEndpoint, shuffle: Boolean = false) {
+    fun playEndpoint(endpoint: WatchEndpoint, shuffle: Boolean = false, previewSong: MediaMetadata? = null) {
         viewModelScope.launch {
-            _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
+            // Show the miniplayer instantly with the clicked song instead of waiting for the
+            // network queue build (YouTube.next). The real queue replaces it when it arrives.
+            _uiState.update {
+                it.copy(
+                    currentSong = previewSong ?: it.currentSong,
+                    playbackState = PlaybackState.LOADING,
+                    error = null,
+                )
+            }
             val result = withContext(Dispatchers.IO) {
                 YouTube.next(endpoint).getOrNull()
             }
@@ -452,6 +463,10 @@ class PlayerViewModel(
                     if (shuffle) PlayerQueueCoordinator.shuffleFromStart(base) else base
                 }
                 _uiState.value.currentSong?.let(::resolveAndPlay)
+            } else if (previewSong != null) {
+                // Radio/queue fetch failed — still play the song solo instead of erroring out.
+                log.warning("next() failed for ${endpoint.videoId}; playing single song")
+                playSingle(previewSong)
             } else {
                 _uiState.update { it.copy(playbackState = PlaybackState.IDLE, error = "No se pudieron cargar las canciones de la lista.") }
             }
@@ -789,6 +804,28 @@ class PlayerViewModel(
 
                     if (streamUrl.isNotEmpty()) {
                         playerService.play(streamUrl)
+                        // The resolved stream can pass HTTP validation yet 403 in mpv (e.g. spc-gated
+                        // IOS URLs). If playback doesn't actually start, fall back to yt-dlp, which
+                        // handles the hard videos our in-process pipeline can't.
+                        val started = playerService.awaitPlaybackStarted()
+                        if (!started && requestId == playRequestId) {
+                            Napier.w("Stream did not start for ${song.id}; trying yt-dlp fallback")
+                            // Keep the miniplayer in a loading state while yt-dlp resolves (it can
+                            // take a couple seconds), instead of showing a stalled/idle player.
+                            _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
+                            val ytUrl = withContext(Dispatchers.IO) {
+                                YtDlpResolver.resolveAudioUrl(
+                                    song.id,
+                                    streamResolver.currentAudioQuality(),
+                                )
+                            }
+                            if (requestId != playRequestId) return@launch
+                            if (ytUrl != null) {
+                                playerService.play(ytUrl)
+                            } else {
+                                _uiState.update { it.copy(error = "No se pudo reproducir \"${song.title}\"") }
+                            }
+                        }
                     } else if (requestId == playRequestId) {
                         _uiState.update { it.copy(error = "No se pudo obtener el audio para \"${song.title}\"") }
                     }

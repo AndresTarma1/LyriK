@@ -56,6 +56,12 @@ kotlin {
 
             // Source: https://mvnrepository.com/artifact/org.graalvm.js/js
             implementation("org.graalvm.js:js:25.0.3")
+
+            // JCEF (Chromium) API only — used to mint BotGuard poTokens. The actual native
+            // implementation is provided at runtime by the JetBrains Runtime's `jcef` module
+            // (see --add-modules=jcef in composeApp), so this stays compileOnly to avoid
+            // shipping/clashing native binaries.
+            compileOnly("me.friwi:jcef-api:jcef-1770317+cef-132.3.1+g144febe+chromium-132.0.6834.83")
         }
     }
 }

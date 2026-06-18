@@ -8,22 +8,20 @@ import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
-import io.ktor.client.request.head
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.statement.HttpResponse
-import io.ktor.http.isSuccess
+import io.ktor.http.HttpHeaders
 
 object StreamUrlResolver {
-    private val validationClient by lazy {
-        HttpClient(CIO) {
-            expectSuccess = false
-            install(HttpTimeout) {
-                connectTimeoutMillis = 3000
-                requestTimeoutMillis = 5000
-            }
+
+    private val validateClient = HttpClient(CIO) {
+        expectSuccess = false
+        install(HttpTimeout) {
+            connectTimeoutMillis = 5000
+            requestTimeoutMillis = 8000
         }
     }
-
     suspend fun resolveUrl(
         format: PlayerResponse.StreamingData.Format,
         videoId: String,
@@ -38,11 +36,12 @@ object StreamUrlResolver {
         if (formatUrl != null || format.signatureCipher != null || format.cipher != null) {
             val deobfuscatedUrl = NewPipeExtractor.getStreamUrl(format, videoId)
             if (deobfuscatedUrl != null) {
-                Napier.d("Using NewPipe-deobfuscated stream URL for $videoId itag=${format.itag}")
+                // Keep the n-param intact; YTPlayerutils transforms it via the EJS solver.
+                Napier.d("Using NewPipe-deobfuscated stream URL for $videoId itag=${format.itag} (hasN=${"n=" in deobfuscatedUrl})")
                 return deobfuscatedUrl
             }
             if (formatUrl != null) {
-                Napier.d("NewPipe deobfuscation failed, falling back to raw URL for $videoId itag=${format.itag}")
+                Napier.d("NewPipe deobfuscation failed, falling back to raw URL for $videoId itag=${format.itag} (hasN=${"n=" in formatUrl})")
                 return formatUrl
             }
         }
@@ -79,24 +78,29 @@ object StreamUrlResolver {
         return null
     }
 
-    fun shouldApplyNTransform(clientName: String?): Boolean {
-        return clientName in listOf("WEB_REMIX", "WEB", "WEB_CREATOR", "TVHTML5")
-    }
+    // Every googlevideo stream URL carries a throttling n-param regardless of client,
+    // so attempt the transform unconditionally (it's a no-op when no n is present).
+    fun shouldApplyNTransform(clientName: String?): Boolean = true
 
     suspend fun applyNTransform(url: String): String {
-        Napier.i("[N-TRANSFORM] Skipping n-transform (disabled)")
-        return url
+        return CipherDeobfuscator.transformNParamInUrl(url)
     }
 
     suspend fun validate(url: String): Boolean {
+        // Ranged GET with the same headers mpv sends, to reject URLs the CDN won't serve
+        // (403/throttled) before handing them to the player.
         return try {
-            val response: HttpResponse = validationClient.head(url) {
-                YouTube.cookie?.let { header("Cookie", it) }
+            val response: HttpResponse = validateClient.get(url) {
+                header(HttpHeaders.Range, "bytes=0-2047")
+                header(HttpHeaders.UserAgent, "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0")
+                header("Referer", "https://music.youtube.com")
             }
-            response.status.isSuccess()
+            val ok = response.status.value == 200 || response.status.value == 206
+            if (!ok) Napier.w("Stream URL not playable (status=${response.status.value})")
+            ok
         } catch (e: Exception) {
-            Napier.w("Stream URL validation request failed", e)
-            false
+            Napier.w("Stream URL validation request failed: ${e.message}; assuming playable")
+            true // network hiccup shouldn't reject an otherwise-good URL
         }
     }
 }

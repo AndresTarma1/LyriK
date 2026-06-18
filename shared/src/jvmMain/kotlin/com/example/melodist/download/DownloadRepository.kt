@@ -8,6 +8,7 @@ import com.example.melodist.db.entities.SongEntity
 import com.example.melodist.player.AudioStreamResolver
 import com.example.melodist.player.PlaybackData
 import com.example.melodist.player.YTPlayerutils
+import com.example.melodist.player.YtDlpResolver
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.SongItem
 import kotlinx.coroutines.*
@@ -455,27 +456,50 @@ class DownloadRepository(
         totalBytes: Long?,
     ) {
         if (totalBytes == null || totalBytes <= 0) {
-            downloadSingleRequest(streamUrl, partFile, songId)
+            try {
+                downloadSingleRequest(streamUrl, partFile, songId)
+            } catch (e: Exception) {
+                if (!isRangeOrForbidden(e)) throw e
+                downloadViaYtDlp(songId, partFile, e)
+            }
             return
         }
 
         try {
             downloadChunked(streamUrl, partFile, songId, totalBytes)
         } catch (e: Exception) {
-            val message = e.message.orEmpty()
-            val rangeRejected = message.contains("403") || message.contains("416")
+            if (!isRangeOrForbidden(e)) throw e
 
-            if (!rangeRejected) throw e
-
-            log.warning("Range rechazado para $songId, reintentando sin fragmentar: $message")
+            log.warning("Range rechazado para $songId, reintentando sin fragmentar: ${e.message}")
             if (partFile.exists()) partFile.delete()
 
-            val refreshedStream = runCatching { streamResolver.resolveAudioStream(songId) }
-                .getOrNull()
-
+            val refreshedStream = runCatching { streamResolver.resolveAudioStream(songId) }.getOrNull()
             val fallbackUrl = refreshedStream?.streamUrl ?: streamUrl
-            downloadSingleRequest(fallbackUrl, partFile, songId)
+            try {
+                downloadSingleRequest(fallbackUrl, partFile, songId)
+            } catch (e2: Exception) {
+                if (!isRangeOrForbidden(e2)) throw e2
+                downloadViaYtDlp(songId, partFile, e2)
+            }
         }
+    }
+
+    /**
+     * Last-resort download path for videos the in-process pipeline can't serve (hard/spc-gated):
+     * use yt-dlp ONLY to obtain a working URL, then download it over plain HTTP like any other
+     * stream — yt-dlp never downloads the file itself.
+     */
+    private suspend fun downloadViaYtDlp(songId: String, partFile: File, cause: Exception) {
+        log.warning("In-process stream failed for $songId; resolving download URL via yt-dlp")
+        if (partFile.exists()) partFile.delete()
+        val ytUrl = YtDlpResolver.resolveAudioUrl(songId, streamResolver.currentAudioQuality())
+            ?: throw cause
+        downloadSingleRequest(ytUrl, partFile, songId)
+    }
+
+    private fun isRangeOrForbidden(e: Exception): Boolean {
+        val m = e.message.orEmpty()
+        return m.contains("403") || m.contains("416")
     }
 
     private fun applyDownloadHeaders(connection: HttpURLConnection) {

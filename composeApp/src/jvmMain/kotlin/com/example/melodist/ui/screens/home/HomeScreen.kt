@@ -24,6 +24,7 @@ import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.melodist.models.toMediaMetadata
 import com.example.melodist.navigation.Route
 import com.example.melodist.ui.components.ChipRowSkeleton
 import com.example.melodist.ui.components.HorizontalGridLikeRow
@@ -317,7 +318,7 @@ private fun HomeSectionItem(
     when (item) {
         is SongItem -> SongHomeItem(
             item = item,
-            onClick = { playerViewModel?.playEndpoint(WatchEndpoint(videoId = item.id)) },
+            onClick = { playerViewModel?.playSingle(item) },
             modifier = modifier,
         )
 
@@ -377,7 +378,7 @@ private fun QuickPicksSection(
             YoutubeListItem(
                 item = song,
                 source = source,
-                onItemClick = { playerViewModel?.playEndpoint(WatchEndpoint(videoId = song.id)) },
+                onItemClick = { playerViewModel?.playSingle(song) },
                 modifier = Modifier.fillMaxWidth().height(itemHeight)
             )
         }

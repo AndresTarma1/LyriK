@@ -1,12 +1,13 @@
 package com.example.melodist.player
 
 import com.example.melodist.data.repository.AudioQuality
-import com.example.melodist.utils.cipher.FunctionNameExtractor
-import com.example.melodist.utils.cipher.PlayerJsFetcher
-import com.metrolist.innertube.NewPipeExtractor
+import com.example.melodist.utils.cipher.PoTokenResult
 import com.metrolist.innertube.YouTube
+import com.metrolist.innertube.NewPipeExtractor
 import com.metrolist.innertube.models.response.PlayerResponse
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 object YTPlayerutils {
     suspend fun playerResponseForPlayback(
@@ -29,16 +30,20 @@ object YTPlayerutils {
             }
         }
 
-        // TODO: PoToken generation for WEB_REMIX client
-        // 1. Ensure dataSyncId/visitorData is available (fetch if null)
-        // 2. Generate PoToken via PoTokenGenerator.getWebClientPoToken(videoId, sessionId)
-        // 3. Pass poToken.playerRequestPoToken to YouTube.player() below
-        // 4. After URL resolution, append pot=streamingDataPoToken to stream URLs
-        //    for clients with useWebPoTokens=true
-        
+        // PoToken/JCEF generation is intentionally DISABLED: the embedded Chromium (JCEF) used a
+        // lot of RAM and stuttered the UI thread, and the yt-dlp fallback already covers the
+        // videos that would otherwise need a streaming poToken. We resolve with poToken-free
+        // clients here and let YtDlpResolver handle anything that fails to actually play.
+        val poTokenResult: PoTokenResult? = null
 
         val mainPlayerResponse =
-            YouTube.player(videoId, playlistId, FallbackClients.mainClient, signatureTimestamp).getOrThrow()
+            YouTube.player(
+                videoId,
+                playlistId,
+                FallbackClients.mainClient,
+                signatureTimestamp,
+                poTokenResult?.playerRequestPoToken,
+            ).getOrThrow()
         Napier.d("Resolving playback stream for $videoId with quality=$audioQuality signatureTimestamp=$signatureTimestamp")
         val audioConfig = mainPlayerResponse.playerConfig?.audioConfig
         val videoDetails = mainPlayerResponse.videoDetails
@@ -62,13 +67,27 @@ object YTPlayerutils {
                     Napier.d("Skipping playback client ${fallbackClient.clientName} for $videoId because login is required")
                     continue
                 }
-                streamPlayerResponse =
-                    YouTube.player(videoId, playlistId, fallbackClient, signatureTimestamp).getOrNull()
+                val clientPoToken =
+                    if (fallbackClient.useWebPoTokens) poTokenResult?.playerRequestPoToken else null
+                val result = YouTube.player(videoId, playlistId, fallbackClient, signatureTimestamp, clientPoToken)
+                streamPlayerResponse = result.getOrNull()
+                if (streamPlayerResponse == null) {
+                    Napier.w("Player response null for ${fallbackClient.clientName} for $videoId: ${result.exceptionOrNull()?.message}")
+                }
                 fallbackClient
             }
 
+            // With poTokens disabled, web clients (useWebPoTokens) 403 on the CDN and would load
+            // player.js for sig/n. Skip their stream resolution entirely — WEB_REMIX still served
+            // as the metadata source above; non-web clients + yt-dlp cover playback.
+            if ((client ?: FallbackClients.mainClient).useWebPoTokens) {
+                continue
+            }
+
             if (streamPlayerResponse?.playabilityStatus?.status == "OK") {
-                val newPipeResponse = YouTube.newPipePlayer(videoId, streamPlayerResponse)
+                val newPipeResponse = withContext(Dispatchers.IO) {
+                    YouTube.newPipePlayer(videoId, streamPlayerResponse)
+                }
                 val responseToUse = newPipeResponse ?: streamPlayerResponse
                 var clientName = client?.clientName
                     ?: FallbackClients.mainClient.clientName
@@ -85,7 +104,9 @@ object YTPlayerutils {
                 streamUrl = StreamCache.get(cacheKey)
 
                 if (streamUrl == null) {
-                    streamUrl = StreamUrlResolver.resolveUrl(format, videoId, responseToUse)
+                    streamUrl = withContext(Dispatchers.IO) {
+                        StreamUrlResolver.resolveUrl(format, videoId, responseToUse)
+                    }
                     if (streamUrl != null) {
                         val ttl = minOf(
                             streamPlayerResponse.streamingData?.expiresInSeconds?.times(1000L)
@@ -101,15 +122,27 @@ object YTPlayerutils {
                     continue
                 }
 
-                // TODO: Append pot=streamingDataPoToken for PoToken-enabled clients
-                if (StreamUrlResolver.shouldApplyNTransform(client?.clientName)) {
+                // Append pot=streamingDataPoToken for PoToken-enabled clients (WEB_REMIX, WEB, TVHTML5).
+                val effectiveClient = client ?: FallbackClients.mainClient
+                val streamingPot = poTokenResult?.streamingDataPoToken
+                if (effectiveClient.useWebPoTokens && streamingPot != null && "pot=" !in streamUrl) {
+                    streamUrl += if ("?" in streamUrl) "&pot=$streamingPot" else "?pot=$streamingPot"
+                    Napier.d("Appended pot= to stream URL for $videoId client=${effectiveClient.clientName}")
+                }
+
+                // n-transform only for web clients (same as Metrolist). Non-web clients (VISIONOS,
+                // IOS, ANDROID_VR, ...) get URLs whose n is absent or already handled by NewPipe;
+                // transforming those with the web player's n-function would break them.
+                val needsNTransform = effectiveClient.useWebPoTokens ||
+                    effectiveClient.clientName in listOf("WEB", "WEB_REMIX", "WEB_CREATOR", "TVHTML5")
+                if (needsNTransform) {
                     streamUrl = StreamUrlResolver.applyNTransform(streamUrl)
                 }
 
                 streamExpiresInSeconds = streamPlayerResponse.streamingData?.expiresInSeconds
                 if (streamExpiresInSeconds == null) {
-                    Napier.w("Missing stream expiry for $videoId using client $clientName")
-                    continue
+                    Napier.w("Missing stream expiry for $videoId using client $clientName; defaulting to 6h")
+                    streamExpiresInSeconds = 21600 // 6 hours default
                 }
 
                 if (clientIndex == FallbackClients.streamFallbackClients.size - 1) {
@@ -158,21 +191,14 @@ object YTPlayerutils {
 
     private var cachedSignatureTimestamp: Int? = null
 
-    private suspend fun getSignatureTimestampOrNull(videoId: String): Int? {
+    private fun getSignatureTimestampOrNull(videoId: String): Int? {
+        // signatureTimestamp = days since Unix epoch (SimpMusic approach)
+        // YouTube's player uses this to verify the client is up-to-date
         cachedSignatureTimestamp?.let { return it }
-        NewPipeExtractor.getSignatureTimestamp(videoId).getOrNull()?.let {
-            cachedSignatureTimestamp = it
-            return it
-        }
-        val playerJsResult = PlayerJsFetcher.getPlayerJs(forceRefresh = false)
-        if (playerJsResult != null) {
-            val ts = FunctionNameExtractor.extractSignatureTimestamp(playerJsResult.first)
-            if (ts != null) {
-                cachedSignatureTimestamp = ts
-                return ts
-            }
-        }
-        return null
+        val ts = (System.currentTimeMillis() / 86400000L).toInt()
+        cachedSignatureTimestamp = ts
+        Napier.d("Computed signatureTimestamp=$ts for $videoId (days since epoch)")
+        return ts
     }
 
     suspend fun forceRefreshForVideo(videoId: String) {
