@@ -60,6 +60,13 @@ class PlayerViewModel(
     @Volatile
     var allowInternalSync: Boolean = false
 
+    /**
+     * True while the user is a Listen Together guest: they can't control shared playback, so the
+     * local play/pause toggle is repurposed to mute/unmute their own output instead.
+     */
+    @Volatile
+    var listenTogetherGuestMode: Boolean = false
+
     private var resolveJob: Job? = null
     private var fetchMoreJob: Job? = null
     private var prefetchJob: Job? = null
@@ -442,6 +449,12 @@ class PlayerViewModel(
     }
 
     fun togglePlayPause() {
+        // As a Listen Together guest, the host owns playback — the play/pause control mutes
+        // the local output instead. Remote-applied actions (allowInternalSync) bypass this.
+        if (listenTogetherGuestMode && !allowInternalSync) {
+            toggleMute()
+            return
+        }
         val state = _uiState.value
         if (state.currentSong == null || state.queue.isEmpty() || state.currentIndex !in state.queue.indices) {
             mediaSession.resetToIdle()

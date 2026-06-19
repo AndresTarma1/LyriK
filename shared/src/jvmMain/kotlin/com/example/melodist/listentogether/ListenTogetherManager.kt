@@ -80,6 +80,8 @@ class ListenTogetherManager(
 
     private fun refreshObservation() {
         val pvm = player
+        // Guests can't control shared playback; their play/pause becomes mute/unmute.
+        pvm?.listenTogetherGuestMode = pvm != null && isInRoom && !isHost
         if (pvm != null && isInRoom && isHost) startHostObservation(pvm) else stopHostObservation()
     }
 
@@ -137,6 +139,18 @@ class ListenTogetherManager(
                     client.sendPlaybackAction(PlaybackActions.SEEK, trackId = trackId, position = positionMs)
                 }
             }
+            // Queue contents (additions/removals). Skipping within the same queue doesn't change
+            // the id list, so this only fires on real queue edits.
+            launch {
+                pvm.uiState.map { state -> state.queue.map { it.id } }.distinctUntilChanged().collect { ids ->
+                    if (!isHost || isApplyingRemote || ids.isEmpty()) return@collect
+                    client.sendPlaybackAction(
+                        action = PlaybackActions.SYNC_QUEUE,
+                        queue = pvm.uiState.value.queue.map { it.toTrackInfo() },
+                        queueTitle = "Listen Together",
+                    )
+                }
+            }
         }
     }
 
@@ -151,14 +165,14 @@ class ListenTogetherManager(
         when (event) {
             is ListenTogetherEvent.RoomCreated -> refreshObservation()
             is ListenTogetherEvent.JoinApproved -> applyFullState(
-                event.state.currentTrack, event.state.isPlaying, event.state.position,
+                event.state.currentTrack, event.state.isPlaying, event.state.position, event.state.queue,
             )
             is ListenTogetherEvent.Reconnected -> if (!event.isHost) {
-                applyFullState(event.state.currentTrack, event.state.isPlaying, event.state.position)
+                applyFullState(event.state.currentTrack, event.state.isPlaying, event.state.position, event.state.queue)
             }
             is ListenTogetherEvent.HostChanged -> refreshObservation()
             is ListenTogetherEvent.SyncStateReceived -> if (!isHost) {
-                applyFullState(event.state.currentTrack, event.state.isPlaying, event.state.position)
+                applyFullState(event.state.currentTrack, event.state.isPlaying, event.state.position, event.state.queue)
             }
             is ListenTogetherEvent.UserJoined -> if (isHost) {
                 // Send current track to the newcomer.
@@ -185,26 +199,34 @@ class ListenTogetherManager(
     private fun handlePlaybackSync(action: PlaybackActionPayload) {
         val pvm = player ?: return
         when (action.action) {
-            PlaybackActions.CHANGE_TRACK -> action.trackInfo?.let { loadTrack(it, action.position) }
+            PlaybackActions.CHANGE_TRACK -> action.trackInfo?.let { loadTrack(it, action.queue, action.position, autoplay = true) }
             PlaybackActions.PLAY -> applyPlay(action.position)
             PlaybackActions.PAUSE -> applyPause(action.position)
             PlaybackActions.SEEK -> applySeek(action.position)
             PlaybackActions.SKIP_NEXT -> withRemote { pvm.next() }
             PlaybackActions.SKIP_PREV -> withRemote { pvm.previous() }
+            PlaybackActions.SYNC_QUEUE -> applyQueueSync(action.queue)
             else -> Unit
         }
     }
 
-    private fun applyFullState(track: TrackInfo?, isPlaying: Boolean, position: Long) {
+    private fun applyFullState(track: TrackInfo?, isPlaying: Boolean, position: Long, queue: List<TrackInfo>) {
         if (isHost) return
         track ?: return
-        loadTrack(track, position, autoplay = isPlaying)
+        loadTrack(track, queue, position, autoplay = isPlaying)
     }
 
-    private fun loadTrack(track: TrackInfo, position: Long, autoplay: Boolean = true) {
+    /** Guest: load the full queue (so skip/next works) positioned on [currentTrack]. */
+    private fun loadTrack(currentTrack: TrackInfo, queue: List<TrackInfo>, position: Long, autoplay: Boolean) {
         val pvm = player ?: return
-        Napier.i("$TAG Guest load track ${track.title} @ $position")
-        withRemote { pvm.playSingle(track.toMediaMetadata()) }
+        Napier.i("$TAG Guest load ${currentTrack.title} @ $position (queue=${queue.size})")
+        if (queue.isNotEmpty()) {
+            val items = queue.map { it.toMediaMetadata() }
+            val index = items.indexOfFirst { it.id == currentTrack.id }.coerceAtLeast(0)
+            withRemote { pvm.playCustom(items, index) }
+        } else {
+            withRemote { pvm.playSingle(currentTrack.toMediaMetadata()) }
+        }
         // The stream resolves asynchronously; seek (and optionally pause) once it's playing.
         scope.launch {
             delay(1200)
@@ -213,6 +235,19 @@ class ListenTogetherManager(
                 withRemote { pvm.togglePlayPause() }
             }
         }
+    }
+
+    /** Guest: reconcile queue edits without restarting playback (append-only for MVP). */
+    private fun applyQueueSync(queue: List<TrackInfo>) {
+        if (isHost) return
+        val pvm = player ?: return
+        if (queue.isEmpty()) return
+        val current = pvm.uiState.value.queue.map { it.id }.toSet()
+        if (current.isEmpty()) return // not loaded yet — CHANGE_TRACK will populate it
+        val newTracks = queue.filter { it.id !in current }
+        if (newTracks.isEmpty()) return
+        Napier.i("$TAG Guest queue sync: appending ${newTracks.size} track(s)")
+        newTracks.forEach { t -> withRemote { pvm.addToQueue(t.toMediaMetadata()) } }
     }
 
     private fun applyPlay(position: Long) {

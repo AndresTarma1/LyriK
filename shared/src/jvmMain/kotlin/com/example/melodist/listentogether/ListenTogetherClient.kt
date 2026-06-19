@@ -2,13 +2,16 @@ package com.example.melodist.listentogether
 
 import io.github.aakira.napier.Napier
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
+import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.websocket.DefaultClientWebSocketSession
 import io.ktor.client.plugins.websocket.WebSockets
 import io.ktor.client.plugins.websocket.webSocket
+import io.ktor.client.request.header
 import io.ktor.websocket.Frame
 import io.ktor.websocket.close
 import io.ktor.websocket.readBytes
+import io.ktor.websocket.readReason
+import io.ktor.websocket.readText
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -77,7 +80,9 @@ class ListenTogetherClient(
     private val codec = MessageCodec()
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    private val httpClient = HttpClient(CIO) { install(WebSockets) }
+    private val httpClient = HttpClient(OkHttp) {
+        install(WebSockets) { pingIntervalMillis = 20_000 }
+    }
 
     private var connectionJob: Job? = null
     private var pingJob: Job? = null
@@ -127,7 +132,11 @@ class ListenTogetherClient(
 
         connectionJob = scope.launch {
             try {
-                httpClient.webSocket(urlString = url) {
+                httpClient.webSocket(
+                    urlString = url,
+                    request = { header("User-Agent", "Melodist") },
+                ) {
+                    Napier.i("$TAG WebSocket OPEN")
                     session = this
                     val out = Channel<ByteArray>(Channel.UNLIMITED)
                     outgoingChannel = out
@@ -147,14 +156,20 @@ class ListenTogetherClient(
                     }
                     try {
                         for (frame in incoming) {
-                            if (frame is Frame.Binary) handleMessage(frame.readBytes())
+                            when (frame) {
+                                is Frame.Binary -> handleMessage(frame.readBytes())
+                                is Frame.Text -> Napier.w("$TAG Unexpected TEXT frame: ${frame.readText()}")
+                                is Frame.Close -> Napier.i("$TAG Close frame: ${frame.readReason()}")
+                                else -> Napier.d("$TAG Frame: ${frame.frameType}")
+                            }
                         }
                     } finally {
                         writer.cancel()
                     }
                 }
+                Napier.i("$TAG WebSocket session ended")
             } catch (e: Exception) {
-                Napier.e("$TAG Connection failure", e)
+                Napier.e("$TAG Connection failure: ${e.message}", e)
                 scope.launch { _events.emit(ListenTogetherEvent.ConnectionError(e.message ?: "unknown")) }
             } finally {
                 handleDisconnect()
@@ -247,7 +262,8 @@ class ListenTogetherClient(
         try {
             val bytes = codec.encode(type, payload)
             val result = outgoingChannel?.trySend(bytes)
-            if (result?.isSuccess != true) Napier.w("$TAG Could not enqueue $type (not connected?)")
+            if (result?.isSuccess == true) Napier.d("$TAG Sent $type (${bytes.size}B)")
+            else Napier.w("$TAG Could not enqueue $type (not connected?)")
         } catch (e: Exception) {
             Napier.e("$TAG Error encoding $type", e)
         }
@@ -339,6 +355,7 @@ class ListenTogetherClient(
     private fun handleMessage(data: ByteArray) {
         try {
             val (type, payloadBytes) = codec.decode(data)
+            Napier.d("$TAG Received message type=$type (${payloadBytes.size}B)")
             when (type) {
                 MessageTypes.PONG -> Unit
                 MessageTypes.ROOM_CREATED -> {
