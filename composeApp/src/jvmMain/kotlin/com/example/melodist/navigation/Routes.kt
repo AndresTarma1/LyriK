@@ -1,6 +1,7 @@
 package com.example.melodist.navigation
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Person
@@ -37,6 +38,11 @@ sealed class Route {
     object Settings : Route() {
         override val label = "Settings"
         override val icon = Icons.Filled.Settings
+    }
+
+    object ListenTogether : Route() {
+        override val label = "Listen Together"
+        override val icon = Icons.Filled.Groups
     }
 
     data class Playlist(val playlistId: String) : Route() {

@@ -20,11 +20,13 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.kotlinx.serialization.core)
             implementation(libs.kotlinx.serialization.json)
+            implementation(libs.kotlinx.serialization.protobuf)
 
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.cio)
             implementation(libs.ktor.client.content.negotiation)
             implementation(libs.ktor.serialization.json)
+            implementation(libs.ktor.client.websockets)
 
             api(libs.sqldelight.coroutines)
 

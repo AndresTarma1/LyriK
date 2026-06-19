@@ -39,6 +39,8 @@ import com.example.melodist.download.DownloadService
 import com.example.melodist.player.PlayerService
 import com.example.melodist.player.QueueManager
 import com.example.melodist.player.WindowsMediaSession
+import com.example.melodist.listentogether.ListenTogetherClient
+import com.example.melodist.listentogether.ListenTogetherManager
 import com.example.melodist.utils.SyncUtils
 import org.koin.dsl.module
 
@@ -73,6 +75,10 @@ val appModule = module {
     // ✅ PlayerViewModel singleton, pero inicialización pesada diferida al init{} interno
     single<PlayerViewModel> { PlayerViewModel(get(), get(), get(), get(), get(), get(), get()) }
     single<PlayerCoordinator> { PlayerCoordinatorImpl(get<PlayerViewModel>(), get<DownloadViewModel>()) }
+
+    // Listen Together (WebSocket sync with the meowery relay server)
+    single<ListenTogetherClient> { ListenTogetherClient() }
+    single<ListenTogetherManager> { ListenTogetherManager(get()) }
     single<AppLifecycleManager> { AppLifecycleManager(get(), get(), get(), get()) }
     single<JvmConfigLauncher> { JvmConfigLauncher(get()) }
 

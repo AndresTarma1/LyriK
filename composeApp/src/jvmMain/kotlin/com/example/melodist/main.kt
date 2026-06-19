@@ -59,6 +59,13 @@ fun main() {
     val lifecycleManager = koin.get<AppLifecycleManager>()
     val mediaSession = koin.get<WindowsMediaSession>()
 
+    // Listen Together: wire the sync manager to the player.
+    PlatformCrashHandler.runSafely("Error iniciando ListenTogetherManager") {
+        val listenTogetherManager = koin.get<com.example.melodist.listentogether.ListenTogetherManager>()
+        listenTogetherManager.initialize()
+        listenTogetherManager.setPlayer(playerViewModel)
+    }
+
     mediaSession.initialize()
     mediaSession.setCallbacks(
         onPlay = { playerViewModel.togglePlayPause() },

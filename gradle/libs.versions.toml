@@ -64,6 +64,10 @@ decompose-compose = { module = "com.arkivanov.decompose:extensions-compose", ver
 #Serialization
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version.ref = "kotlinx-serialization" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
+kotlinx-serialization-protobuf = { module = "org.jetbrains.kotlinx:kotlinx-serialization-protobuf", version.ref = "kotlinx-serialization" }
+
+#Ktor WebSockets (Listen Together)
+ktor-client-websockets = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
 
 newpipeextractor = { module = "com.github.TeamNewPipe:NewPipeExtractor", version.ref = "newpipeextractor" }
 

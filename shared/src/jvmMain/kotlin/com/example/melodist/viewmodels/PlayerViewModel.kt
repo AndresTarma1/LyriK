@@ -46,6 +46,20 @@ class PlayerViewModel(
     private val _progressState = MutableStateFlow(PlayerProgressState())
     val progressState: StateFlow<PlayerProgressState> = _progressState.asStateFlow()
 
+    /**
+     * Emits the target position (ms) whenever the user issues a seek. Used by Listen Together to
+     * broadcast host seeks; harmless when the feature is unused.
+     */
+    private val _seekEvents = MutableSharedFlow<Long>(extraBufferCapacity = 8)
+    val seekEvents: SharedFlow<Long> = _seekEvents.asSharedFlow()
+
+    /**
+     * When true, Listen Together is applying a remote command, so observers must not re-broadcast
+     * the resulting state change (prevents host/guest feedback loops).
+     */
+    @Volatile
+    var allowInternalSync: Boolean = false
+
     private var resolveJob: Job? = null
     private var fetchMoreJob: Job? = null
     private var prefetchJob: Job? = null
@@ -438,6 +452,7 @@ class PlayerViewModel(
 
     fun seekTo(millis: Long) {
         playerService.seekTo(millis)
+        _seekEvents.tryEmit(millis)
     }
 
     fun setVolume(value: Int) {
