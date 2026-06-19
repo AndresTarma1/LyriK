@@ -221,7 +221,7 @@ fun SearchScreen(
                     when (item) {
 
                         is SongItem -> {
-                            playerViewModel.playEndpoint(WatchEndpoint(item.id))
+                            playerViewModel.playSingle(item)
                         }
                         else -> {
                             val route = when (item) {

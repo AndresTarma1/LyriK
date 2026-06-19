@@ -37,7 +37,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.melodist.data.repository.LayoutMode
 import com.example.melodist.player.PlaybackState
+import com.example.melodist.ui.themes.LocalDimens
+import com.example.melodist.ui.themes.LocalLayoutMode
 import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.isWideThumbnail
@@ -81,9 +84,18 @@ fun MiniPlayer(
         if (isWideThumbnail(song.thumbnailUrl)) 16f / 9f else 1f
     }
 
+    val dimens = LocalDimens.current
+    val islands = LocalLayoutMode.current == LayoutMode.ISLANDS
     Surface(
-        modifier = modifier.fillMaxWidth().height(88.dp),
-        color = MaterialTheme.colorScheme.surface,
+        modifier = modifier
+            .fillMaxWidth()
+            .then(
+                if (islands) Modifier.padding(horizontal = dimens.surfaceGap, vertical = dimens.surfaceGap)
+                else Modifier
+            )
+            .height(88.dp),
+        color = if (islands) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(if (islands) dimens.surfaceCorner else 0.dp),
         tonalElevation = 0.dp
     ) {
         Box(modifier = Modifier.fillMaxSize()) {

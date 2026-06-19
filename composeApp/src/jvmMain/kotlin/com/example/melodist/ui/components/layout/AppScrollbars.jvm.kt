@@ -31,7 +31,7 @@ fun AppVerticalScrollbar(
         adapter = rememberScrollbarAdapter(state),
         modifier = modifier
             .width(12.dp)
-            .padding(end = 2.dp, top = 4.dp, bottom = 4.dp),
+            .padding(vertical = 4.dp, horizontal = 2.dp),
         style = appScrollbarStyle()
     )
 }
@@ -43,7 +43,8 @@ fun AppVerticalScrollbar(
 ) {
     VerticalScrollbar(
         adapter = rememberScrollbarAdapter(state),
-        modifier = modifier.padding(vertical = 20.dp).width(12.dp),
+        modifier = modifier.width(12.dp)
+                .padding(vertical = 4.dp, horizontal = 2.dp),
         style = appScrollbarStyle()
     )
 }
@@ -55,7 +56,8 @@ fun AppVerticalScrollbar(
 ) {
     VerticalScrollbar(
         adapter = rememberScrollbarAdapter(state),
-        modifier = modifier.padding(vertical = 20.dp),
+        modifier = modifier.width(12.dp)
+                .padding(vertical = 4.dp, horizontal = 2.dp),
         style = appScrollbarStyle()
     )
 }

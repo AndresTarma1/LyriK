@@ -17,8 +17,8 @@ import androidx.compose.ui.unit.dp
 import com.example.melodist.ui.components.CornerQuickPlayConfig
 import com.example.melodist.ui.components.PlaceholderType
 import com.example.melodist.ui.components.YouTubeGridItem
-import com.example.melodist.ui.components.context.CollectionContextMenu
-import com.example.melodist.ui.components.context.SongContextMenu
+import com.example.melodist.ui.components.context.CollectionContextMenuPopup
+import com.example.melodist.ui.components.context.SongContextMenuPopup
 import com.example.melodist.ui.components.song.DownloadIndicator
 import com.example.melodist.ui.helpers.rememberSongDownloadState
 import com.example.melodist.ui.utils.circleAwareShape
@@ -72,7 +72,7 @@ fun SongHomeItem(
             }
         },
         overlayContent = {
-            SongContextMenu(
+            SongContextMenuPopup(
                 expanded = showMenu,
                 onDismiss = { showMenu = false },
                 song = item
@@ -112,7 +112,7 @@ fun AlbumHomeItem(item: AlbumItem, modifier: Modifier = Modifier, onClick: (YTIt
         subtitle = item.artists?.firstOrNull()?.name ?: stringResource(Res.string.item_album),
         modifier = modifier,
         overlayContent = {
-            CollectionContextMenu(
+            CollectionContextMenuPopup(
                 expanded = showMenu,
                 onDismiss = { showMenu = false },
                 title = item.title,
@@ -171,7 +171,7 @@ fun PlaylistHomeItem(item: PlaylistItem, modifier: Modifier = Modifier, onClick:
         subtitle = item.author?.name ?: stringResource(Res.string.item_list),
         modifier = modifier,
         overlayContent = {
-            CollectionContextMenu(
+            CollectionContextMenuPopup(
                 expanded = showMenu,
                 onDismiss = { showMenu = false },
                 title = item.title,

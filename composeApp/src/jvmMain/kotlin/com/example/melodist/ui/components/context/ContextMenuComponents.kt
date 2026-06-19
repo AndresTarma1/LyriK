@@ -4,7 +4,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.example.melodist.models.toMediaMetadata
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
@@ -29,7 +27,6 @@ import androidx.compose.material.icons.filled.RemoveCircleOutline
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material.icons.outlined.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +37,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
@@ -53,31 +49,28 @@ import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
-import androidx.compose.ui.window.rememberCursorPositionProvider
 import com.example.melodist.download.DownloadState
-import com.example.melodist.ui.components.song.AddToPlaylistDialog
-import com.example.melodist.ui.helpers.rememberSongDownloadState
-import com.example.melodist.ui.helpers.rememberSongLikedState
-import com.example.melodist.utils.LocalDownloadViewModel
-import com.example.melodist.utils.LocalPlayerViewModel
-import com.example.melodist.utils.LocalSnackbarHostState
-import com.example.melodist.utils.LocalSnackbarScope
-import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.metrolist.innertube.models.SongItem
-import com.metrolist.innertube.models.WatchEndpoint
-import kotlinx.coroutines.launch
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.koinInject
+import org.jetbrains.jewel.foundation.modifier.onHover
 
-@OptIn(ExperimentalComposeUiApi::class)
+sealed interface SongMenuAction {
+    data object StartRadio : SongMenuAction
+    data object ToggleLike : SongMenuAction
+    data object Download : SongMenuAction
+    data object CancelDownload : SongMenuAction
+    data object RemoveDownload : SongMenuAction
+    data object PlayNext : SongMenuAction
+    data object AddToQueue : SongMenuAction
+    data object AddToPlaylist : SongMenuAction
+    data object RemoveFromLibrary : SongMenuAction
+    data object RemoveFromPlaylist : SongMenuAction
+}
+
 @Composable
-fun CollectionContextMenu(
-    expanded: Boolean,
-    onDismiss: () -> Unit,
+fun CollectionContextMenuContent(
     title: String,
     isPlaylist: Boolean,
     onOpen: () -> Unit,
@@ -85,256 +78,166 @@ fun CollectionContextMenu(
     onShuffle: (() -> Unit)? = null,
     onRemoveFromLibrary: (() -> Unit)? = null,
 ) {
-    if (!expanded) return
-    val cursorPositionProvider = rememberCursorPositionProvider()
-
-    Popup(
-        onDismissRequest = onDismiss,
-        popupPositionProvider = cursorPositionProvider,
-        properties = PopupProperties(focusable = true)
+    Surface(
+        modifier = Modifier.width(260.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
-        Surface(
-            modifier = Modifier
-                .width(260.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        ) {
-            Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.titleSmall,
-                        maxLines = 1,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+        Column(modifier = Modifier.padding(vertical = 6.dp)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 1,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
 
-                    HorizontalDivider(
-                        modifier = Modifier.padding(vertical = 4.dp, horizontal = 12.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant
-                    )
+            HorizontalDivider(
+                modifier = Modifier.padding(vertical = 4.dp, horizontal = 12.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
 
-                    StyledMenuItem(
-                        text = stringResource(if (isPlaylist) Res.string.context_open_playlist else Res.string.context_open_album),
-                        icon = Icons.AutoMirrored.Filled.OpenInNew,
-                        onClick = onOpen
-                    )
+            StyledMenuItem(
+                text = stringResource(if (isPlaylist) Res.string.context_open_playlist else Res.string.context_open_album),
+                icon = Icons.AutoMirrored.Filled.OpenInNew,
+                onClick = onOpen
+            )
 
-                    onPlay?.let {
-                        StyledMenuItem(
-                            text = stringResource(Res.string.context_play),
-                            icon = Icons.Default.PlayArrow,
-                            iconTint = MaterialTheme.colorScheme.primary,
-                            onClick = it
-                        )
-                    }
-
-                    onShuffle?.let {
-                        StyledMenuItem(
-                            text = stringResource(Res.string.context_shuffle),
-                            icon = Icons.Default.Shuffle,
-                            iconTint = MaterialTheme.colorScheme.primary,
-                            onClick = it
-                        )
-                    }
-
-                    onRemoveFromLibrary?.let {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(vertical = 6.dp, horizontal = 12.dp),
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                        StyledMenuItem(
-                            text = stringResource(Res.string.context_remove_library),
-                            icon = Icons.Default.Delete,
-                            iconTint = MaterialTheme.colorScheme.error,
-                            onClick = it
-                        )
-                    }
-
+            onPlay?.let {
+                StyledMenuItem(
+                    text = stringResource(Res.string.context_play),
+                    icon = Icons.Default.PlayArrow,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    onClick = it
+                )
             }
 
+            onShuffle?.let {
+                StyledMenuItem(
+                    text = stringResource(Res.string.context_shuffle),
+                    icon = Icons.Default.Shuffle,
+                    iconTint = MaterialTheme.colorScheme.primary,
+                    onClick = it
+                )
+            }
+
+            onRemoveFromLibrary?.let {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 6.dp, horizontal = 12.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant
+                )
+                StyledMenuItem(
+                    text = stringResource(Res.string.context_remove_library),
+                    icon = Icons.Default.Delete,
+                    iconTint = MaterialTheme.colorScheme.error,
+                    onClick = it
+                )
+            }
         }
-
-
     }
 }
 
-
-/**
- * Displays a context menu for a song with actions to control playback, downloads, playlists, and library management.
- *
- * The menu includes options to start radio playback, like/unlike, download or manage downloads, add to playlists,
- * and optionally add to queue or remove from library or playlist. Availability of certain actions depends on the
- * parameters and the current download state.
- *
- * @param isLocalPlaylist Indicates whether the menu is displayed in the context of a local playlist,
- *                        enabling the removal from playlist option.
- * @param showQueueActions When true, displays options to add the song to the queue or play it next.
- */
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun SongContextMenu(
-    expanded: Boolean,
-    onDismiss: () -> Unit,
+fun SongContextMenuContent(
     song: SongItem,
-    onRemoveFromLibrary: (() -> Unit)? = null,
-    onRemoveFromPlaylist: (() -> Unit)? = null,
-    isLocalPlaylist: Boolean = false,
+    liked: Boolean,
+    downloadState: DownloadState?,
     showQueueActions: Boolean = true,
+    showRemoveFromLibrary: Boolean = false,
+    showRemoveFromPlaylist: Boolean = false,
+    onAction: (SongMenuAction) -> Unit,
 ) {
-    if (!expanded) return
-
-    val downloadViewModel = LocalDownloadViewModel.current
-    val downloadState by rememberSongDownloadState(song.id, downloadViewModel)
-    val playerViewModel = LocalPlayerViewModel.current
-    val liked = rememberSongLikedState(song.id, playerViewModel)
-    val playlistsViewModel: LibraryPlaylistsViewModel = koinInject()
-
-    // Usamos el provider de JetBrains para que siga al ratón,
-    // pero en un Popup limpio sin decoraciones extra de Material.
-    val cursorPositionProvider = rememberCursorPositionProvider()
-
-    var showPlaylistDialog by remember { mutableStateOf(false) }
-    val snackbar = LocalSnackbarHostState.current
-    val scope = LocalSnackbarScope.current
-
-    Popup(
-        onDismissRequest = onDismiss,
-        popupPositionProvider = cursorPositionProvider,
-        properties = PopupProperties(focusable = true)
+    Surface(
+        modifier = Modifier.width(260.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
     ) {
-        Surface(
-            modifier = Modifier
-                .width(260.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-        ) {
-            Column(modifier = Modifier.padding(vertical = 6.dp)) {
-                ContextMenuItem(
-                    text = stringResource(Res.string.context_start_radio),
-                    icon = Icons.Default.Radio,
-                    onClick = {
-                        val endpoint = song.endpoint
-                        val preview = song.toMediaMetadata()
-                        if (endpoint != null) {
-                            playerViewModel.playEndpoint(endpoint, previewSong = preview)
-                        } else {
-                            playerViewModel.playEndpoint(WatchEndpoint(videoId = song.id), previewSong = preview)
-                        }
-                    }
+        Column(modifier = Modifier.padding(vertical = 6.dp)) {
+            ContextMenuItem(
+                text = stringResource(Res.string.context_start_radio),
+                icon = Icons.Default.Radio,
+                onClick = { onAction(SongMenuAction.StartRadio) }
+            )
+
+            ContextMenuItem(
+                text = if (liked) stringResource(Res.string.context_unlike) else stringResource(Res.string.context_like),
+                icon = if (liked) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                iconTint = if (liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                onClick = { onAction(SongMenuAction.ToggleLike) }
+            )
+
+            val (label, icon, color) = when (downloadState) {
+                is DownloadState.Completed -> Triple(
+                    stringResource(Res.string.context_remove_download),
+                    Icons.Default.DeleteOutline,
+                    MaterialTheme.colorScheme.error
                 )
-
-                ContextMenuItem(
-                    text = if (liked) stringResource(Res.string.context_unlike) else stringResource(Res.string.context_like),
-                    icon = if (liked) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
-                    iconTint = if (liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                    onClick = {
-                        playerViewModel.toggleLikeForSong(song)
-                        onDismiss()
-                    }
+                is DownloadState.Downloading, is DownloadState.Queued -> Triple(
+                    stringResource(Res.string.context_cancel_download),
+                    Icons.Default.Cancel,
+                    MaterialTheme.colorScheme.error
                 )
+                else -> Triple(
+                    stringResource(Res.string.context_download),
+                    Icons.Default.Download,
+                    MaterialTheme.colorScheme.primary
+                )
+            }
 
-                val (label, icon, color) = when (downloadState) {
-                    is DownloadState.Completed -> Triple(
-                        stringResource(Res.string.context_remove_download),
-                        Icons.Default.DeleteOutline,
-                        MaterialTheme.colorScheme.error
-                    )
+            val downloadAction = when (downloadState) {
+                is DownloadState.Completed -> SongMenuAction.RemoveDownload
+                is DownloadState.Downloading, is DownloadState.Queued -> SongMenuAction.CancelDownload
+                else -> SongMenuAction.Download
+            }
 
-                    is DownloadState.Downloading, is DownloadState.Queued -> Triple(
-                        stringResource(Res.string.context_cancel_download),
-                        Icons.Default.Cancel,
-                        MaterialTheme.colorScheme.error
-                    )
+            ContextMenuItem(label, icon, color) { onAction(downloadAction) }
 
-                    else -> Triple(stringResource(Res.string.context_download), Icons.Default.Download, MaterialTheme.colorScheme.primary)
-                }
-
-                ContextMenuItem(label, icon, color) {
-                    when (downloadState) {
-                        is DownloadState.Completed -> {
-                            downloadViewModel.removeDownload(song.id)
-                            scope.launch { snackbar.showSnackbar("Descarga eliminada") }
-                        }
-                        is DownloadState.Downloading, is DownloadState.Queued -> {
-                            downloadViewModel.cancelDownload(song.id)
-                            scope.launch { snackbar.showSnackbar("Descarga cancelada") }
-                        }
-                        else -> {
-                            downloadViewModel.downloadSong(song)
-                            scope.launch { snackbar.showSnackbar("«${song.title}» agregada a descargas") }
-                        }
-                    }
-                    onDismiss()
-                }
-
-                if (showQueueActions) {
-                    HorizontalDivider(
-                        Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-                    )
-                    ContextMenuItem(stringResource(Res.string.context_play_next), Icons.AutoMirrored.Filled.PlaylistAdd) {
-                        playerViewModel.playNextResolved(song)
-                        scope.launch { snackbar.showSnackbar("«${song.title}» será reproducida después") }
-                        onDismiss()
-                    }
-                    ContextMenuItem(stringResource(Res.string.context_add_queue), Icons.AutoMirrored.Filled.QueueMusic) {
-                        playerViewModel.addToQueueResolved(song)
-                        scope.launch { snackbar.showSnackbar("«${song.title}» añadida a la cola") }
-                        onDismiss()
-                    }
-                }
-
+            if (showQueueActions) {
                 HorizontalDivider(
                     Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                     color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
                 )
-
-                ContextMenuItem(stringResource(Res.string.context_add_playlist), Icons.Default.AddCircleOutline) {
-                    showPlaylistDialog = true
-                    // No hacemos onDismiss aquí para que no parpadee al abrir el dialog
+                ContextMenuItem(stringResource(Res.string.context_play_next), Icons.AutoMirrored.Filled.PlaylistAdd) {
+                    onAction(SongMenuAction.PlayNext)
                 }
-
-                if (onRemoveFromLibrary != null || (isLocalPlaylist && onRemoveFromPlaylist != null)) {
-                    onRemoveFromLibrary?.let {
-                        ContextMenuItem(
-                            "Eliminar de biblioteca",
-                            Icons.Default.Delete,
-                            MaterialTheme.colorScheme.error
-                        ) {
-                            it()
-                            onDismiss()
-                        }
-                    }
-
-                    if (isLocalPlaylist && onRemoveFromPlaylist != null) {
-                        ContextMenuItem(
-                            stringResource(Res.string.context_remove_playlist),
-                            Icons.Default.RemoveCircleOutline,
-                            MaterialTheme.colorScheme.error
-                        ) {
-                            onRemoveFromPlaylist()
-                            scope.launch { snackbar.showSnackbar("«${song.title}» eliminada de la playlist") }
-                            onDismiss()
-                        }
-                    }
+                ContextMenuItem(stringResource(Res.string.context_add_queue), Icons.AutoMirrored.Filled.QueueMusic) {
+                    onAction(SongMenuAction.AddToQueue)
                 }
             }
 
+            HorizontalDivider(
+                Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            )
+
+            ContextMenuItem(stringResource(Res.string.context_add_playlist), Icons.Default.AddCircleOutline) {
+                onAction(SongMenuAction.AddToPlaylist)
+            }
+
+            if (showRemoveFromLibrary) {
+                ContextMenuItem(
+                    "Eliminar de biblioteca",
+                    Icons.Default.Delete,
+                    MaterialTheme.colorScheme.error
+                ) { onAction(SongMenuAction.RemoveFromLibrary) }
+            }
+
+            if (showRemoveFromPlaylist) {
+                ContextMenuItem(
+                    stringResource(Res.string.context_remove_playlist),
+                    Icons.Default.RemoveCircleOutline,
+                    MaterialTheme.colorScheme.error
+                ) { onAction(SongMenuAction.RemoveFromPlaylist) }
+            }
         }
-    }
-
-    if (showPlaylistDialog) {
-        AddToPlaylistDialog(
-            song = song,
-            playlistsViewModel = playlistsViewModel,
-            onDismiss = {
-                showPlaylistDialog = false
-                onDismiss() // Cerramos el estado del menú al cerrar el diálogo
-            }
-        )
     }
 }
 
-/**
- * Item de menú optimizado para Desktop (altura reducida y hover suave)
- */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 private fun ContextMenuItem(
@@ -349,7 +252,7 @@ private fun ContextMenuItem(
         modifier = Modifier
             .padding(vertical = 6.dp)
             .fillMaxWidth()
-            .height(36.dp) // Altura estándar Desktop (más baja que Mobile)
+            .height(36.dp)
             .background(if (isHovered) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f) else Color.Transparent)
             .onPointerEvent(PointerEventType.Enter) { isHovered = true }
             .onPointerEvent(PointerEventType.Exit) { isHovered = false }
@@ -368,23 +271,6 @@ private fun ContextMenuItem(
     }
 }
 
-// Un helper pequeño para no repetir código y mantener los iconos de 18.dp
-@Composable
-private fun CustomDropdownItem(
-    text: String,
-    icon: ImageVector,
-    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
-    onClick: () -> Unit
-) {
-    DropdownMenuItem(
-        text = { Text(text, style = MaterialTheme.typography.bodyMedium) },
-        leadingIcon = { Icon(icon, null, tint = tint, modifier = Modifier.size(18.dp)) },
-        onClick = onClick,
-        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
-        modifier = Modifier.height(38.dp) // Altura Desktop
-    )
-}
-
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun StyledMenuItem(
@@ -399,14 +285,13 @@ fun StyledMenuItem(
         modifier = Modifier
             .padding(horizontal = 6.dp, vertical = 2.dp)
             .fillMaxWidth()
-            .height(38.dp) // Altura más compacta para Desktop
+            .height(38.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(
                 if (hovered) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                 else Color.Transparent
             )
-            .onPointerEvent(PointerEventType.Enter) { hovered = true }
-            .onPointerEvent(PointerEventType.Exit) { hovered = false }
+            .onHover { hovered = it }
             .pointerHoverIcon(PointerIcon.Hand)
             .clickable { onClick() }
             .padding(horizontal = 10.dp),
@@ -416,12 +301,12 @@ fun StyledMenuItem(
             imageVector = icon,
             contentDescription = null,
             tint = iconTint,
-            modifier = Modifier.size(18.dp) // Icono más pequeño = más elegante
+            modifier = Modifier.size(18.dp)
         )
         Spacer(Modifier.width(12.dp))
         Text(
             text = text,
-            style = MaterialTheme.typography.bodyMedium, // Tipografía equilibrada
+            style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             maxLines = 1
         )

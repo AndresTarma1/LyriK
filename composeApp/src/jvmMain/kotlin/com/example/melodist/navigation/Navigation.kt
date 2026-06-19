@@ -162,12 +162,14 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                     }
 
                     val currentSong = playerState.currentSong
-                    val bottomPadding = if (currentSong != null) 0.dp else 16.dp
+                    val islands = com.example.melodist.ui.themes.LocalLayoutMode.current == com.example.melodist.data.repository.LayoutMode.ISLANDS
+                    val contentShape = RoundedCornerShape(if (islands) 16.dp else 0.dp)
+                    val bottomPadding = if (currentSong != null) 0.dp else if (islands) 16.dp else 0.dp
 
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(end = 16.dp, bottom = bottomPadding)
+                            .padding(end = if (islands) 16.dp else 0.dp, bottom = bottomPadding)
                     ) {
                         Row(
                             modifier = Modifier
@@ -178,8 +180,11 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                                    .clip(contentShape)
+                                    .then(
+                                        if (islands) Modifier.border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, contentShape)
+                                        else Modifier
+                                    )
                             ) {
                                 Children(
                                     stack = rootComponent.childStack,
@@ -224,7 +229,7 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                 exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
                             ) {
                                 Row(modifier = Modifier.fillMaxHeight()) {
-                                    Spacer(Modifier.width(12.dp))
+                                    Spacer(Modifier.width(if (islands) 12.dp else 0.dp))
 
                                     PlaybackQueuePanel(
                                         state = playerState,
@@ -232,9 +237,10 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                         modifier = Modifier
                                             .fillMaxHeight()
                                             .width(animatedWidth)
-                                            .clip(RoundedCornerShape(16.dp))
-                                            .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
-                                            .background(MaterialTheme.colorScheme.surface)
+                                            .then(
+                                                if (islands) Modifier.border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, contentShape)
+                                                else Modifier
+                                            )
                                     )
                                 }
                             }

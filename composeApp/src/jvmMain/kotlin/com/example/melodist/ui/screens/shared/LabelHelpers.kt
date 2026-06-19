@@ -5,6 +5,8 @@ import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import com.example.melodist.data.repository.AppLocale
 import com.example.melodist.data.repository.AudioQuality
+import com.example.melodist.data.repository.DarkLevel
+import com.example.melodist.data.repository.LayoutMode
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.data.repository.RenderApi
@@ -24,6 +26,16 @@ fun ThemeMode.displayName(): String = when (this) {
     ThemeMode.SYSTEM -> stringResource(Res.string.theme_system)
     ThemeMode.DARK -> stringResource(Res.string.theme_dark)
     ThemeMode.LIGHT -> stringResource(Res.string.theme_light)
+}
+
+fun DarkLevel.displayName(): String = when (this) {
+    DarkLevel.DIM -> "Oscuro"
+    DarkLevel.BLACK -> "AMOLED (negro puro)"
+}
+
+fun LayoutMode.displayName(): String = when (this) {
+    LayoutMode.ISLANDS -> "Islas dinámicas"
+    LayoutMode.ATTACHED -> "Pegado / compacto"
 }
 
 @Composable

@@ -17,6 +17,16 @@ enum class ThemeMode {
     SYSTEM, DARK, LIGHT
 }
 
+/** How dark the dark theme's surfaces are. DIM = tinted dark gray, BLACK = pure-black (AMOLED). */
+enum class DarkLevel {
+    DIM, BLACK
+}
+
+/** Overall layout style. ISLANDS = rounded, spaced cards (current). ATTACHED = edge-to-edge, compact. */
+enum class LayoutMode {
+    ISLANDS, ATTACHED
+}
+
 enum class AppLocale(val tag: String?) {
     SYSTEM(null), ES("es"), EN("en")
 }
@@ -58,6 +68,26 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val THEME_PALETTE = stringPreferencesKey("theme_palette")
         val LOCALE = stringPreferencesKey("locale")
         val YOUTUBE_REGION = stringPreferencesKey("youtube_region")
+        val DARK_LEVEL = stringPreferencesKey("dark_level")
+        val LAYOUT_MODE = stringPreferencesKey("layout_mode")
+    }
+
+    val darkLevel: Flow<DarkLevel> = dataStore.data.map { pref ->
+        try { DarkLevel.valueOf(pref[PreferencesKeys.DARK_LEVEL] ?: DarkLevel.DIM.name) }
+        catch (_: Exception) { DarkLevel.DIM }
+    }
+
+    suspend fun setDarkLevel(level: DarkLevel) {
+        dataStore.edit { it[PreferencesKeys.DARK_LEVEL] = level.name }
+    }
+
+    val layoutMode: Flow<LayoutMode> = dataStore.data.map { pref ->
+        try { LayoutMode.valueOf(pref[PreferencesKeys.LAYOUT_MODE] ?: LayoutMode.ISLANDS.name) }
+        catch (_: Exception) { LayoutMode.ISLANDS }
+    }
+
+    suspend fun setLayoutMode(mode: LayoutMode) {
+        dataStore.edit { it[PreferencesKeys.LAYOUT_MODE] = mode.name }
     }
 
     val audioQuality: Flow<AudioQuality> = dataStore.data.map { preferences ->

@@ -38,8 +38,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.melodist.navigation.Route
 import com.example.melodist.ui.components.*
-import com.example.melodist.ui.components.context.CollectionContextMenu
-import com.example.melodist.ui.components.context.SongContextMenu
+import com.example.melodist.ui.components.context.CollectionContextMenuPopup
+import com.example.melodist.ui.components.context.SongContextMenuPopup
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.components.song.DownloadIndicator
@@ -574,13 +574,13 @@ private fun ArtistSectionGridItem(
         },
         overlayContent = {
             if (item is SongItem) {
-                SongContextMenu(
+                SongContextMenuPopup(
                     expanded = showMenu,
                     onDismiss = { showMenu = false },
                     song = item
                 )
             } else if (item is AlbumItem || item is PlaylistItem) {
-                CollectionContextMenu(
+                CollectionContextMenuPopup(
                     expanded = showMenu,
                     onDismiss = { showMenu = false },
                     title = item.title,

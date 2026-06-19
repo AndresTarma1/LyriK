@@ -80,6 +80,9 @@ fun EqualizerPanel(
                         expanded = showPresetMenu,
                         onDismissRequest = { showPresetMenu = false },
                         offset = DpOffset(x = 16.dp, y = 0.dp),
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 8.dp,
                     ) {
                         eqPresets.forEach { preset ->
                             DropdownMenuItem(

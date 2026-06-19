@@ -64,13 +64,16 @@ import com.example.melodist.ui.components.skeletons.AnimatedEqualizer
 import com.example.melodist.ui.themes.MelodistTheme
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
+import com.example.melodist.utils.LocalPlaylistsViewModel
 import com.example.melodist.utils.LocalSnackbarHostState
 import com.example.melodist.utils.LocalSnackbarScope
 import com.example.melodist.utils.LocalUserPreferences
 import com.example.melodist.viewmodels.AppViewModel
 import com.example.melodist.viewmodels.DownloadViewModel
+import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.example.melodist.viewmodels.PlayerUiState
 import com.example.melodist.viewmodels.PlayerViewModel
+import org.koin.compose.koinInject
 import com.kdroid.composetray.tray.api.Tray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -214,7 +217,7 @@ fun ApplicationScope.App(
     }
 
     MelodistTheme(artworkColors = artworkColors, userPreferences = userPreferences) {
-        val surfaceColor = MaterialTheme.colorScheme.surface
+        val surfaceColor = MaterialTheme.colorScheme.background
 
         val titleBarStyle = if (isDark) {
             TitleBarStyle.dark(
@@ -238,12 +241,14 @@ fun ApplicationScope.App(
             theme = if (isDark) JewelTheme.darkThemeDefinition() else JewelTheme.lightThemeDefinition(),
             styling = ComponentStyling.decoratedWindow(titleBarStyle = titleBarStyle),
         ) {
+            val playlistsViewModel: LibraryPlaylistsViewModel = koinInject()
             CompositionLocalProvider(
                 LocalArtworkColors provides artworkColors,
                 LocalSnackbarHostState provides snackbarHostState,
                 LocalSnackbarScope provides scope,
                 LocalPlayerViewModel provides playerViewModel,
                 LocalDownloadViewModel provides downloadViewModel,
+                LocalPlaylistsViewModel provides playlistsViewModel,
                 LocalUserPreferences provides userPreferences,
             ) {
                 DecoratedWindow(

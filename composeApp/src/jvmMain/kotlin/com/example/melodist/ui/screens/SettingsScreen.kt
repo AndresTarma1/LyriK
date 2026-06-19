@@ -47,18 +47,22 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val jvmSettingsViewModel: JvmSettingsViewModel = koinInject()
 
     var showThemeDropdown by remember { mutableStateOf(false) }
+    var showDarkLevelDropdown by remember { mutableStateOf(false) }
+    var showLayoutDropdown by remember { mutableStateOf(false) }
     var showPaletteDropdown by remember { mutableStateOf(false) }
     var showAudioDropdown by remember { mutableStateOf(false) }
     var showLanguageDropdown by remember { mutableStateOf(false) }
     var showRegionDropdown by remember { mutableStateOf(false) }
 
     val colors = ListItemDefaults.segmentedColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        containerColor = MaterialTheme.colorScheme.surface,
     )
 
 
     val audioQuality by viewModel.audioQuality.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
+    val darkLevel by viewModel.darkLevel.collectAsState()
+    val layoutMode by viewModel.layoutMode.collectAsState()
     val themePalette by viewModel.themePalette.collectAsState()
     val dynamicColor by viewModel.dynamicColorFromArtwork.collectAsState()
     val highResCover by viewModel.highResCoverArt.collectAsState()
@@ -137,6 +141,28 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         isSelected = { it == themeMode },
                         onSelect = { viewModel.setThemeMode(it); showThemeDropdown = false },
                         colors = colors
+                    )
+                    DropdownSelector(
+                        label = "Nivel de oscuridad",
+                        icon = Icons.Rounded.Contrast,
+                        currentValue = darkLevel.displayName(),
+                        expanded = showDarkLevelDropdown,
+                        onExpandedChange = { showDarkLevelDropdown = it },
+                        options = DarkLevel.entries.map { it to it.displayName() },
+                        isSelected = { it == darkLevel },
+                        onSelect = { viewModel.setDarkLevel(it); showDarkLevelDropdown = false },
+                        colors = colors,
+                    )
+                    DropdownSelector(
+                        label = "Diseño",
+                        icon = Icons.Rounded.Dashboard,
+                        currentValue = layoutMode.displayName(),
+                        expanded = showLayoutDropdown,
+                        onExpandedChange = { showLayoutDropdown = it },
+                        options = LayoutMode.entries.map { it to it.displayName() },
+                        isSelected = { it == layoutMode },
+                        onSelect = { viewModel.setLayoutMode(it); showLayoutDropdown = false },
+                        colors = colors,
                     )
                     DropdownSelector(
                         label = stringResource(Res.string.color_palette),
@@ -350,6 +376,9 @@ private fun <T> DropdownSelector(
                         expanded = expanded,
                         onDismissRequest = { onExpandedChange(false) },
                         offset = DpOffset(x = 16.dp, y = 0.dp),
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 8.dp,
                     ) {
                         options.forEach { (value, displayName) ->
                             DropdownMenuItem(

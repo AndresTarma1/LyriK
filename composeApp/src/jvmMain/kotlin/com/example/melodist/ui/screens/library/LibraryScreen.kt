@@ -389,7 +389,10 @@ fun LibraryScreen(
 
                         androidx.compose.material3.DropdownMenu(
                             expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false }
+                            onDismissRequest = { showSortMenu = false },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 8.dp,
                         ) {
                             LibrarySortOrder.entries.forEach { order ->
                                 DropdownMenuItem(
@@ -480,7 +483,10 @@ fun LibraryScreen(
 
                     androidx.compose.material3.DropdownMenu(
                         expanded = showFilterMenu,
-                        onDismissRequest = { showFilterMenu = false }
+                        onDismissRequest = { showFilterMenu = false },
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 0.dp,
+                        shadowElevation = 8.dp,
                     ) {
                         DropdownMenuItem(
                             text = { Text(stringResource(Res.string.filter_library), fontWeight = if (state.selectedYtmFilter == null) FontWeight.Bold else FontWeight.Normal) },

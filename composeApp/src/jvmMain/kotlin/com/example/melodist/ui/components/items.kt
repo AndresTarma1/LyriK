@@ -64,8 +64,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
-import com.example.melodist.ui.components.context.SongContextMenu
-import com.example.melodist.ui.components.context.CollectionContextMenu
+import com.example.melodist.ui.components.context.SongContextMenuPopup
+import com.example.melodist.ui.components.context.CollectionContextMenuPopup
 import com.example.melodist.ui.helpers.contextMenuArea
 import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.ui.utils.isCircleLikeShape
@@ -389,7 +389,7 @@ fun MediaGridItem(
                 }
             }
 
-            CollectionContextMenu(
+            CollectionContextMenuPopup(
                 expanded = showMenu,
                 onDismiss = { showMenu = false },
                 title = title,
@@ -458,10 +458,11 @@ fun YoutubeListItem(
     modifier: Modifier = Modifier,
 ) {
     val playerViewModel = LocalPlayerViewModel.current
+    val dimens = com.example.melodist.ui.themes.LocalDimens.current
     val shape = when (item) {
         is ArtistItem -> circleAwareShape()
-        is PlaylistItem -> RoundedCornerShape(8.dp)
-        else -> RoundedCornerShape(6.dp)
+        is PlaylistItem -> RoundedCornerShape(dimens.itemCorner)
+        else -> RoundedCornerShape(dimens.itemCorner - 2.dp)
     }
 
     val imageSize = 56.dp
@@ -476,8 +477,8 @@ fun YoutubeListItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 8.dp, vertical = 2.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(if (isHovered) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f) else Color.Transparent)
+            .clip(RoundedCornerShape(dimens.itemCorner))
+            .background(if (isHovered) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.07f) else Color.Transparent)
             .clickable { onItemClick(item) }
             .pointerHoverIcon(PointerIcon.Hand)
             .contextMenuArea(
@@ -496,7 +497,7 @@ fun YoutubeListItem(
                     text = item.title,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
                 )
             },
             supportingContent = {
@@ -574,13 +575,13 @@ fun YoutubeListItem(
         )
 
         if (item is SongItem) {
-            SongContextMenu(
+            SongContextMenuPopup(
                 expanded = showMenu,
                 onDismiss = { showMenu = false },
                 song = item
             )
         } else if (item is AlbumItem || item is PlaylistItem) {
-            CollectionContextMenu(
+            CollectionContextMenuPopup(
                 expanded = showMenu,
                 onDismiss = { showMenu = false },
                 title = item.title,

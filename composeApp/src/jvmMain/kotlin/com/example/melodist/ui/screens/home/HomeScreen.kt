@@ -231,11 +231,11 @@ private fun ChipFilterRow(
     onChipClick: (String?) -> Unit,
 ) {
     val lazyListState = rememberLazyListState()
-    Column(Modifier.padding(end = 16.dp)) {
+    Column(Modifier.padding(end = 12.dp)) {
         HorizontalScrollableRow(
-            modifier = Modifier.padding(vertical = 12.dp),
+            modifier = Modifier.padding(vertical = 10.dp),
             state = lazyListState,
-            contentPadding = PaddingValues(horizontal = 24.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             items(chips.size) { index ->
@@ -279,20 +279,19 @@ private fun HomeSectionRow(
     onNavigate: (Route) -> Unit,
     playerViewModel: PlayerViewModel?,
 ) {
-    Column(modifier = Modifier.padding(top = 12.dp, bottom = 12.dp, end = 16.dp)) {
+    Column(modifier = Modifier.padding(top = 10.dp, bottom = 10.dp, end = 12.dp)) {
         Text(
             text = section.title,
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Black,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
 
         val sectionScrollState = rememberLazyListState()
         HorizontalScrollableRow(
             modifier = Modifier.fillMaxWidth(),
             state = sectionScrollState,
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             items(
                 count = section.items.size,
@@ -368,9 +367,8 @@ private fun QuickPicksSection(
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = stringResource(Res.string.recently_played),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Black,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
         HorizontalGridLikeRow(
             items = songs,

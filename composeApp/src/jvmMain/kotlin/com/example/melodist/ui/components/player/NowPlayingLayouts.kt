@@ -65,13 +65,12 @@ import com.example.melodist.utils.LocalUserPreferences
 import com.example.melodist.utils.isWideThumbnail
 import com.example.melodist.viewmodels.PlayerUiState
 import com.example.melodist.viewmodels.QueueSource
-import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
+import com.example.melodist.utils.LocalPlaylistsViewModel
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.Artist
 import com.metrolist.innertube.models.Album
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
 import com.example.melodist.utils.LocalSnackbarHostState
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
@@ -82,7 +81,7 @@ import androidx.compose.material.icons.filled.PlaylistRemove
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
-import com.example.melodist.ui.components.context.SongContextMenu
+import com.example.melodist.ui.components.context.SongContextMenuPopup
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import io.github.aakira.napier.Napier
 import org.jetbrains.jewel.foundation.modifier.onHover
@@ -124,7 +123,7 @@ fun NowPlayingLayout(
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp, vertical = 20.dp) // Márgenes más adaptables
+                .padding(horizontal = 20.dp, vertical = 14.dp)
         ) {
             val isCompactHorizontal = maxWidth < 960.dp
             val isCompactVertical = maxHeight < 640.dp
@@ -210,11 +209,11 @@ private fun PlaybackMainLayout(
             title = song.title,
             modifier = Modifier
                 .weight(1f, fill = false) // Permite que la portada encoja si falta espacio vertical
-                .sizeIn(maxHeight = if (isCompact) 260.dp else 400.dp, maxWidth = if (isCompact) 260.dp else 400.dp),
+                .sizeIn(maxHeight = if (isCompact) 240.dp else 380.dp, maxWidth = if (isCompact) 240.dp else 380.dp),
             highRes = highRes
         )
 
-        Spacer(Modifier.height(if (isCompact) 16.dp else 32.dp))
+        Spacer(Modifier.height(if (isCompact) 12.dp else 18.dp))
 
         SongHeader(
             state = state,
@@ -281,7 +280,7 @@ private fun LyricsLayout(
         Row(
             modifier = Modifier.fillMaxSize(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(40.dp)
+            horizontalArrangement = Arrangement.spacedBy(28.dp)
         ) {
             Column(
                 modifier = Modifier.weight(0.4f).fillMaxHeight(),
@@ -294,7 +293,7 @@ private fun LyricsLayout(
                     modifier = Modifier.sizeIn(maxHeight = 320.dp, maxWidth = 320.dp),
                     highRes = highRes
                 )
-                Spacer(Modifier.height(24.dp))
+                Spacer(Modifier.height(18.dp))
                 SongHeader(
                     state = state,
                     song = song,
@@ -309,7 +308,7 @@ private fun LyricsLayout(
                 modifier = Modifier
                     .width(1.dp)
                     .fillMaxHeight()
-                    .padding(vertical = 40.dp)
+                    .padding(vertical = 24.dp)
                     .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
             )
 
@@ -407,7 +406,10 @@ private fun BoxScope.TopActionOverlay(
 
         DropdownMenu(
             expanded = showMenu,
-            onDismissRequest = { onMenuToggle(false) }
+            onDismissRequest = { onMenuToggle(false) },
+            containerColor = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            shadowElevation = 8.dp,
         ) {
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.equalizer_menu)) },
@@ -438,7 +440,7 @@ fun PlaybackQueuePanel(
     val coroutineScope = rememberCoroutineScope()
     val preferencesRepo = LocalUserPreferences.current
     val listState = rememberLazyListState()
-    val playlistsViewModel: LibraryPlaylistsViewModel = koinInject()
+    val playlistsViewModel = LocalPlaylistsViewModel.current
     var showSaveQueueDialog by remember { mutableStateOf(false) }
     var showAddQueueDialog by remember { mutableStateOf(false) }
     val defaultQueueName = stringResource(Res.string.queue_title)
@@ -469,17 +471,16 @@ fun PlaybackQueuePanel(
     }
 
     Surface(
-        modifier = modifier.fillMaxHeight(),
-        color = Color.Transparent,
-        tonalElevation = 2.dp,
-        shape = RoundedCornerShape(topStart = 16.dp, bottomStart = 16.dp)
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 0.dp,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
 
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 20.dp), // Más espacio
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -513,7 +514,10 @@ fun PlaybackQueuePanel(
 
                         DropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
+                            onDismissRequest = { showMenu = false },
+                            containerColor = MaterialTheme.colorScheme.surface,
+                            tonalElevation = 0.dp,
+                            shadowElevation = 8.dp,
                         ) {
                             DropdownMenuItem(
                                 onClick = {
@@ -738,7 +742,7 @@ fun SongHeader(
             TextAlign.Start -> Alignment.Start
             else -> Alignment.CenterHorizontally
         },
-        modifier = Modifier.fillMaxWidth(if (compact) 0.9f else 0.72f)
+        modifier = Modifier.fillMaxWidth(if (compact) 0.92f else 0.84f)
     ) {
         state.queueSource?.let { source ->
             val label = when (source) {
@@ -984,10 +988,10 @@ fun QueueItem(
             }
         }
 
-        SongContextMenu(
-            song = song.toSongItem(),
+        SongContextMenuPopup(
+            expanded = showMenu,
             onDismiss = { showMenu = false },
-            expanded = showMenu
+            song = song.toSongItem(),
         )
     }
 }

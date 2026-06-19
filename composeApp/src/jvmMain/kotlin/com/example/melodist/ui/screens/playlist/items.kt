@@ -60,7 +60,7 @@ import com.example.melodist.ui.components.song.DownloadIndicator
 import com.example.melodist.ui.components.song.AddToPlaylistDialog
 import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.PlaceholderType
-import com.example.melodist.ui.components.context.SongContextMenu
+import com.example.melodist.ui.components.context.SongContextMenuPopup
 import com.example.melodist.download.DownloadState
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
@@ -71,10 +71,9 @@ import com.example.melodist.utils.LocalSnackbarHostState
 import com.example.melodist.utils.LocalSnackbarScope
 import com.metrolist.innertube.models.SongItem
 import java.util.logging.Logger
-import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
+import com.example.melodist.utils.LocalPlaylistsViewModel
 import kotlinx.coroutines.launch
 import org.jetbrains.jewel.foundation.modifier.onHover
-import org.koin.compose.koinInject
 
 val ListItemHeight = 72.dp
 val ListThumbnailSize = 56.dp
@@ -163,7 +162,7 @@ internal fun MultiSongSelectionBar(
     modifier: Modifier = Modifier,
 ) {
     val downloadViewModel = LocalDownloadViewModel.current
-    val playlistsViewModel: LibraryPlaylistsViewModel = koinInject()
+    val playlistsViewModel = LocalPlaylistsViewModel.current
     var showPlaylistDialog by remember { mutableStateOf(false) }
     var showRemoveConfirm by remember { mutableStateOf(false) }
     val snackbar = LocalSnackbarHostState.current
@@ -446,12 +445,11 @@ internal fun SongListItem(
             }
         }
 
-        SongContextMenu(
+        SongContextMenuPopup(
             expanded = showContextMenu,
-            isLocalPlaylist = isLocalPlaylist,
-            onRemoveFromPlaylist = { onRemoveFromPlaylist?.invoke(song.id) },
             onDismiss = { showContextMenu = false },
-            song = song
+            song = song,
+            onRemoveFromPlaylist = if (isLocalPlaylist) { { onRemoveFromPlaylist?.invoke(song.id) } } else null,
         )
     }
 }

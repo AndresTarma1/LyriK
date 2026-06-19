@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.repository.AppLocale
 import com.example.melodist.data.repository.AudioQuality
+import com.example.melodist.data.repository.DarkLevel
+import com.example.melodist.data.repository.LayoutMode
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.data.repository.UserPreferencesRepository
@@ -22,6 +24,12 @@ class SettingsViewModel(
 
     val themeMode: StateFlow<ThemeMode> = preferencesRepository.themeMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemeMode.DARK)
+
+    val darkLevel: StateFlow<DarkLevel> = preferencesRepository.darkLevel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), DarkLevel.DIM)
+
+    val layoutMode: StateFlow<LayoutMode> = preferencesRepository.layoutMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LayoutMode.ISLANDS)
 
     val dynamicColorFromArtwork: StateFlow<Boolean> = preferencesRepository.dynamicColorFromArtwork
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
@@ -62,6 +70,14 @@ class SettingsViewModel(
 
     fun setThemeMode(mode: ThemeMode) {
         viewModelScope.launch { preferencesRepository.setThemeMode(mode) }
+    }
+
+    fun setDarkLevel(level: DarkLevel) {
+        viewModelScope.launch { preferencesRepository.setDarkLevel(level) }
+    }
+
+    fun setLayoutMode(mode: LayoutMode) {
+        viewModelScope.launch { preferencesRepository.setLayoutMode(mode) }
     }
 
     fun setDynamicColorFromArtwork(enabled: Boolean) {
