@@ -55,6 +55,9 @@ import com.example.melodist.listentogether.RoomRole
 import com.example.melodist.utils.LocalSnackbarHostState
 import com.example.melodist.utils.LocalSnackbarScope
 import kotlinx.coroutines.launch
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 /**
@@ -75,15 +78,21 @@ fun ListenTogetherScreen() {
 
     var username by remember { mutableStateOf("") }
     var joinCode by remember { mutableStateOf("") }
+    val defaultHost = stringResource(Res.string.lt_default_host)
+    val defaultGuest = stringResource(Res.string.lt_default_guest)
+    val fmtRequestRejected = stringResource(Res.string.lt_request_rejected)
+    val fmtKicked = stringResource(Res.string.lt_kicked)
+    val fmtError = stringResource(Res.string.lt_error_generic)
+    val fmtConnectionError = stringResource(Res.string.lt_connection_error)
 
     // Surface relevant events as snackbars.
     androidx.compose.runtime.LaunchedEffect(Unit) {
         manager.events.collect { event ->
             when (event) {
-                is ListenTogetherEvent.JoinRejected -> snackbar.showSnackbar("Solicitud rechazada: ${event.reason}")
-                is ListenTogetherEvent.Kicked -> snackbar.showSnackbar("Te expulsaron de la sala: ${event.reason}")
-                is ListenTogetherEvent.Error -> snackbar.showSnackbar("Error: ${event.message}")
-                is ListenTogetherEvent.ConnectionError -> snackbar.showSnackbar("Error de conexión: ${event.error}")
+                is ListenTogetherEvent.JoinRejected -> snackbar.showSnackbar(fmtRequestRejected.format(event.reason))
+                is ListenTogetherEvent.Kicked -> snackbar.showSnackbar(fmtKicked.format(event.reason))
+                is ListenTogetherEvent.Error -> snackbar.showSnackbar(fmtError.format(event.message))
+                is ListenTogetherEvent.ConnectionError -> snackbar.showSnackbar(fmtConnectionError.format(event.error))
                 else -> Unit
             }
         }
@@ -103,12 +112,12 @@ fun ListenTogetherScreen() {
                 Spacer(Modifier.width(10.dp))
                 Column {
                     Text(
-                        "Escuchar juntos",
+                        stringResource(Res.string.lt_title),
                         style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "Reproduce en sincronía con tus amigos",
+                        stringResource(Res.string.lt_subtitle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -125,10 +134,11 @@ fun ListenTogetherScreen() {
                     joinCode = joinCode,
                     onJoinCodeChange = { joinCode = it.uppercase() },
                     busy = connectionState == ConnectionState.CONNECTING,
-                    onCreate = { manager.createRoom(username.ifBlank { "Anfitrión" }) },
-                    onJoin = { manager.joinRoom(joinCode.trim(), username.ifBlank { "Invitado" }) },
+                    onCreate = { manager.createRoom(username.ifBlank { defaultHost }) },
+                    onJoin = { manager.joinRoom(joinCode.trim(), username.ifBlank { defaultGuest }) },
                 )
             } else {
+                val codeCopiedMsg = stringResource(Res.string.lt_code_copied, room.roomCode)
                 RoomContent(
                     roomCode = room.roomCode,
                     isHost = role == RoomRole.HOST,
@@ -136,7 +146,7 @@ fun ListenTogetherScreen() {
                     pending = pendingRequests.map { it.userId to it.username },
                     onApprove = { manager.approveJoin(it) },
                     onReject = { manager.rejectJoin(it) },
-                    onCopyCode = { scope.launch { snackbar.showSnackbar("Código copiado: ${room.roomCode}") } },
+                    onCopyCode = { scope.launch { snackbar.showSnackbar(codeCopiedMsg) } },
                     onLeave = { manager.leaveRoom() },
                 )
             }
@@ -147,11 +157,11 @@ fun ListenTogetherScreen() {
 @Composable
 private fun ConnectionBadge(state: ConnectionState) {
     val (label, color) = when (state) {
-        ConnectionState.CONNECTED -> "Conectado" to MaterialTheme.colorScheme.primary
-        ConnectionState.CONNECTING -> "Conectando…" to MaterialTheme.colorScheme.tertiary
-        ConnectionState.RECONNECTING -> "Reconectando…" to MaterialTheme.colorScheme.tertiary
-        ConnectionState.ERROR -> "Error de conexión" to MaterialTheme.colorScheme.error
-        ConnectionState.DISCONNECTED -> "Desconectado" to MaterialTheme.colorScheme.onSurfaceVariant
+        ConnectionState.CONNECTED -> stringResource(Res.string.lt_connected) to MaterialTheme.colorScheme.primary
+        ConnectionState.CONNECTING -> stringResource(Res.string.lt_connecting) to MaterialTheme.colorScheme.tertiary
+        ConnectionState.RECONNECTING -> stringResource(Res.string.lt_reconnecting) to MaterialTheme.colorScheme.tertiary
+        ConnectionState.ERROR -> stringResource(Res.string.lt_error) to MaterialTheme.colorScheme.error
+        ConnectionState.DISCONNECTED -> stringResource(Res.string.lt_disconnected) to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Surface(
         shape = RoundedCornerShape(10.dp),
@@ -184,7 +194,7 @@ private fun LobbyContent(
     OutlinedTextField(
         value = username,
         onValueChange = onUsernameChange,
-        label = { Text("Tu nombre") },
+        label = { Text(stringResource(Res.string.lt_username_label)) },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
     )
@@ -194,9 +204,9 @@ private fun LobbyContent(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Crear una sala", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.lt_create_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                "Serás el anfitrión: tu reproducción controla la de todos.",
+                stringResource(Res.string.lt_create_desc),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -204,7 +214,7 @@ private fun LobbyContent(
                 if (busy) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                 } else {
-                    Text("Crear sala")
+                    Text(stringResource(Res.string.lt_create_btn))
                 }
             }
         }
@@ -215,11 +225,11 @@ private fun LobbyContent(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Unirse a una sala", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(stringResource(Res.string.lt_join_title), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             OutlinedTextField(
                 value = joinCode,
                 onValueChange = onJoinCodeChange,
-                label = { Text("Código de sala") },
+                label = { Text(stringResource(Res.string.lt_join_code_label)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
                     capitalization = KeyboardCapitalization.Characters,
@@ -232,7 +242,7 @@ private fun LobbyContent(
                 enabled = !busy && joinCode.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Unirse")
+                Text(stringResource(Res.string.lt_join_btn))
             }
         }
     }
@@ -255,7 +265,7 @@ private fun RoomContent(
     ) {
         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                if (isHost) "Eres el anfitrión" else "Estás escuchando",
+                if (isHost) stringResource(Res.string.lt_host_badge) else stringResource(Res.string.lt_guest_badge),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -268,14 +278,14 @@ private fun RoomContent(
                 )
                 Spacer(Modifier.width(8.dp))
                 IconButton(onClick = onCopyCode) {
-                    Icon(Icons.Filled.ContentCopy, contentDescription = "Copiar código", modifier = Modifier.size(18.dp))
+                    Icon(Icons.Filled.ContentCopy, contentDescription = stringResource(Res.string.lt_copy_code), modifier = Modifier.size(18.dp))
                 }
             }
         }
     }
 
     if (pending.isNotEmpty()) {
-        Text("Solicitudes para unirse", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
+        Text(stringResource(Res.string.lt_pending_title), style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
         pending.forEach { (userId, name) ->
             Surface(
                 shape = RoundedCornerShape(10.dp),
@@ -288,10 +298,10 @@ private fun RoomContent(
                 ) {
                     Text(name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
                     IconButton(onClick = { onApprove(userId) }) {
-                        Icon(Icons.Filled.Check, "Aprobar", tint = MaterialTheme.colorScheme.primary)
+                        Icon(Icons.Filled.Check, stringResource(Res.string.lt_approve), tint = MaterialTheme.colorScheme.primary)
                     }
                     IconButton(onClick = { onReject(userId) }) {
-                        Icon(Icons.Filled.Close, "Rechazar", tint = MaterialTheme.colorScheme.error)
+                        Icon(Icons.Filled.Close, stringResource(Res.string.lt_reject), tint = MaterialTheme.colorScheme.error)
                     }
                 }
             }
@@ -299,7 +309,7 @@ private fun RoomContent(
     }
 
     Text(
-        "Miembros (${members.size})",
+        stringResource(Res.string.lt_members_title, members.size),
         style = MaterialTheme.typography.titleSmall,
         fontWeight = FontWeight.Bold
     )
@@ -323,7 +333,7 @@ private fun RoomContent(
                         Spacer(Modifier.width(8.dp))
                     }
                     Text(
-                        if (isMe) "$name (tú)" else name,
+                        if (isMe) stringResource(Res.string.lt_you_suffix, name) else name,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )
@@ -343,6 +353,6 @@ private fun RoomContent(
     ) {
         Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text("Salir de la sala")
+        Text(stringResource(Res.string.lt_leave_btn))
     }
 }
