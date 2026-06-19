@@ -150,6 +150,7 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                             when (tab.config) {
                                                 ScreenConfig.Account -> stringResource(Res.string.nav_account)
                                                 ScreenConfig.Settings -> stringResource(Res.string.nav_settings)
+                                                ScreenConfig.ListenTogether -> stringResource(Res.string.nav_listen_together)
                                                 else -> ""
                                             }
                                         )
