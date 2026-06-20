@@ -57,19 +57,21 @@ fun SyncedLyricsView(
     Box(modifier = modifier) {
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
             val viewportPx = with(androidx.compose.ui.platform.LocalDensity.current) { maxHeight.toPx() }
+            // Anchor the active line near the TOP (so upcoming lyrics are visible below it),
+            // not centered. Negative offset moves the item down from the very top.
+            val topAnchorPx = (viewportPx * 0.16f).toInt()
 
             LaunchedEffect(activeIndex) {
-                if (activeIndex >= 0) {
-                    // Bias the active line toward the vertical center of the viewport.
-                    listState.animateScrollToItem(activeIndex, (-viewportPx * 0.4f).toInt())
-                }
+                listState.animateScrollToItem(activeIndex.coerceAtLeast(0), -topAnchorPx)
             }
 
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(vertical = maxHeight * 0.45f),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                // Small top padding (so the first line isn't glued to the edge but doesn't waste
+                // space); large bottom padding so the last lines can still scroll up to the anchor.
+                contentPadding = PaddingValues(top = 16.dp, bottom = maxHeight * 0.8f),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 itemsIndexed(lines, key = { i, _ -> i }) { i, line ->
                     LyricLineRow(
