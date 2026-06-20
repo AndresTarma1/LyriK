@@ -128,10 +128,10 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "LyriK"
-            packageVersion = "0.1.4"
+            packageVersion = "0.1.5"
 
             windows {
-                msiPackageVersion = "0.1.4"
+                msiPackageVersion = "0.1.5"
                 packageName = "LyriK"
                 iconFile.set(project.file("icons/Music_note_circle.ico"))
                 menu = true
