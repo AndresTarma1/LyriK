@@ -1,102 +1,45 @@
-# Melodist ---> LyriK
+<div align="center">
 
-> **Versión actual:** v0.1.4 (Beta) · Desarrollado con Compose Multiplatform
+# 🎵 Melodist
 
-Reproductor de música de escritorio con streaming desde YouTube Music, motor de audio MPV nativo y interfaz Material Design 3 con temas dinámicos basados en carátulas.
+**Un reproductor de música de escritorio para YouTube Music.**
 
----
+Streaming en alta calidad, letras sincronizadas y escucha compartida — en una interfaz limpia con temas que se adaptan a cada carátula.
 
-## Estado por Plataforma
+![Plataforma](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows)
+![UI](https://img.shields.io/badge/Compose-Multiplatform-4285F4?logo=jetpackcompose)
+![Estado](https://img.shields.io/badge/versión-Beta-orange)
 
-| Plataforma | Estado | Notas                                          |
-|------------|--------|------------------------------------------------|
-| Windows | ✓ Disponible | Plataforma principal, probada en Windows 10/11 |
-| Android | [Metrolist](https://github.com/MetrolistGroup/Metrolist) | Usa Metrolist como alternativa funcional       |
-| macOS | Pendiente | Falta por adaptar                              |
-| Linux | Pendiente | Falta por adaptar |
-| iOS | Pendiente | Falta por adaptar |
+</div>
 
 ---
 
-## Características
+## ✨ Qué hace
 
-- Streaming de YouTube Music con reproducción de canciones, álbumes y playlists (WebM/Opus)
-- Motor de audio MPV nativo vía `libmpv` — alta calidad, bajo consumo
-- Interfaz Material Design 3 con temas dinámicos extraídos de carátulas
-- Búsqueda integrada con historial persistente (SQLDelight / SQLite)
-- Descargas y caché de canciones para ahorro de ancho de banda
-- Atajos de teclado globales y controles desde la bandeja del sistema (System Tray)
-- Soporte de cookies para contenido personalizado y playlists privadas de YouTube
+- 🎧 **Streaming de YouTube Music** — canciones, álbumes y playlists, con audio nativo vía MPV.
+- 🎤 **Letras sincronizadas** — estilo karaoke, resaltado por línea que sigue la canción (LrcLib · KuGou · BetterLyrics).
+- 👥 **Escuchar juntos** — crea una sala y reproduce en sincronía con tus amigos en tiempo real.
+- 🎨 **Tema dinámico** — los colores se extraen de la carátula; modo AMOLED y diseño en islas o compacto.
+- 🔎 **Búsqueda e historial** — con biblioteca local persistente.
+- ⬇️ **Descargas y caché** — escucha sin gastar datos.
+- ⌨️ **Integración de escritorio** — atajos globales y controles desde la bandeja del sistema.
 
 ---
 
-## Proceso de Desarrollo
+## 🚀 Empezar
 
-### Arquitectura
-
-El proyecto sigue Clean Architecture con tres módulos principales:
-
-```
-LyriK/
-├── composeApp/     # UI Desktop, pantallas, navegación, componentes compartidos
-├── shared/         # Lógica de negocio, ViewModels, repositorios, base de datos
-├── innertube/      # Cliente para la API de YouTube Music (NewPipe + parsing custom)
-└── mpv-resources/  # Binarios de MPV para Windows (libmpv-2.dll)
-```
-
-### Stack Técnico
-
-- **UI:** Compose Multiplatform + Material 3
-- **Navegación:** Decompose
-- **Inyección de dependencias:** Koin
-- **Base de datos:** SQLDelight (SQLite)
-- **Audio:** MPV vía JNA
-- **Red:** Ktor Client / OkHttp
-- **Serialización:** Kotlinx Serialization
-
-### Cómo Compilar
-
-Requisitos previos:
-- JDK 21 o superior
-- Windows 10/11 (plataforma de desarrollo activa)
+Requisitos: **JDK 21+** y **Windows 10/11**.
 
 ```powershell
-# Ejecutar en modo desarrollo
 .\gradlew :composeApp:run
-
-# Compilar Kotlin
-.\gradlew compileKotlinJvm --quiet
-
-# Ejecutar tests
-.\gradlew test
 ```
 
-### Rutas de Datos
-
-La aplicación almacena sus datos en `%LOCALAPPDATA%\Tarma\LyriK\`:
-
-| Contenido | Ruta |
-|-----------|------|
-| Base de datos | `%LOCALAPPDATA%\Tarma\LyriK\melodist.db` |
-| Configuración | `%LOCALAPPDATA%\Tarma\LyriK\data\` |
-| Caché de canciones | `%LOCALAPPDATA%\Tarma\LyriK\cache\songs\` |
-| Descargas | `%LOCALAPPDATA%\Tarma\LyriK\downloads\` |
-| Logs | `%LOCALAPPDATA%\Tarma\LyriK\logs\` |
-
 ---
 
-## Trabajo Pendiente
+## 🛠️ Construido con
 
-- Soporte multiplataforma (macOS, Linux, iOS) 
-- Mejorar cobertura de tests unitarios y de UI
-- Estabilizar módulo `server` (Ktor, experimental)
-- Unificar preferencias de crossfade actualmente sin uso
-- Añadir localización (actualmente todo en español)
-- Migrar `Route` y `ScreenConfig` duplicados a una fuente única
+Compose Multiplatform · Material 3 · MPV (JNA) · Ktor/OkHttp · SQLDelight · Koin · Decompose
 
----
-
-## Notas
-
-- Este proyecto utiliza herramientas de IA para lógica y diseño de interfaz
-- Inspirado en [Metrolist](https://github.com/MetrolistGroup/Metrolist)
+<div align="center">
+<sub>Inspirado en <a href="https://github.com/MetrolistGroup/Metrolist">Metrolist</a>.</sub>
+</div>
