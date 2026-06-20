@@ -21,6 +21,14 @@ val melodistJvmArgs = listOf(
     "-XX:+UseCompressedOops",
     "-XX:MaxHeapFreeRatio=30",
     "-XX:MinHeapFreeRatio=10",
+    // Cap the coroutine IO pool: blocking IO bursts (stream resolve, downloads, lyrics providers,
+    // thumbnails) were spawning ~58 "DefaultDispatcher-worker" threads (default limit 64). 16 is
+    // plenty for a player and keeps thread stacks / scheduler overhead down.
+    "-Dkotlinx.coroutines.io.parallelism=16",
+    // Cap metaspace (≈100 MB in use from Compose/Skiko/libs) so it can't creep, and shrink the
+    // JIT code-cache reservation (≈46 MB used of a 240 MB default reservation).
+    "-XX:MaxMetaspaceSize=192m",
+    "-XX:ReservedCodeCacheSize=128m",
     "-Dskiko.gpu.resourceCacheLimit=67108864",
 )
 

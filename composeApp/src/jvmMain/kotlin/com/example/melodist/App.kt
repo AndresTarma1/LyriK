@@ -150,6 +150,17 @@ fun ApplicationScope.App(
     var isVisible by remember { mutableStateOf(false) }
     val minimizeToTray by remember { userPreferences.minimizeToTray }.collectAsState(false)
 
+    // When the window is hidden to the tray, return idle RAM to the OS (Skia surfaces, buffers,
+    // thread stacks sitting resident). Pages fault back on restore; doing it only while hidden
+    // avoids any visible stutter. Re-keys to true before the delay fires at startup, so it never
+    // trims during normal use.
+    LaunchedEffect(isVisible) {
+        if (!isVisible) {
+            kotlinx.coroutines.delay(2000)
+            com.example.melodist.utils.WorkingSetTrimmer.trim()
+        }
+    }
+
     fun handleExit() {
         scope.launch {
             if (windowState.placement == WindowPlacement.Maximized) {
