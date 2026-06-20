@@ -1,5 +1,8 @@
 package com.example.melodist.ui.components.player
 
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.border
@@ -90,7 +93,7 @@ import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun NowPlayingLayout(
     state: PlayerUiState,
@@ -100,6 +103,8 @@ fun NowPlayingLayout(
     onToggleLyrics: (() -> Unit)? = null,
     showLyrics: Boolean = false,
     lyrics: String? = null,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     val playerViewModel = LocalPlayerViewModel.current
     val highRes by playerViewModel.highResCoverArt.collectAsState(false)
@@ -141,7 +146,9 @@ fun NowPlayingLayout(
                         isCompact = useCompactLyrics,
                         onNavigate = onNavigate,
                         onCollapse = onCollapse,
-                        onToggleLyrics = onToggleLyrics
+                        onToggleLyrics = onToggleLyrics,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
                     )
                 } else {
                     PlaybackMainLayout(
@@ -150,7 +157,9 @@ fun NowPlayingLayout(
                         state = state,
                         isCompact = isCompactVertical,
                         onNavigate = onNavigate,
-                        onCollapse = onCollapse
+                        onCollapse = onCollapse,
+                        sharedTransitionScope = sharedTransitionScope,
+                        animatedVisibilityScope = animatedVisibilityScope,
                     )
                 }
             }
@@ -190,6 +199,7 @@ fun NowPlayingLayout(
 // COMPONENTES AUXILIARES EXTRAÍDOS
 // ==========================================
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun PlaybackMainLayout(
     song: MediaMetadata,
@@ -197,7 +207,9 @@ private fun PlaybackMainLayout(
     state: PlayerUiState,
     isCompact: Boolean,
     onNavigate: ((Route) -> Unit)?,
-    onCollapse: () -> Unit
+    onCollapse: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     // Usamos Column si falta altura, o Row si la pantalla es muy ancha pero chata
     Column(
@@ -210,7 +222,8 @@ private fun PlaybackMainLayout(
             title = song.title,
             modifier = Modifier
                 .weight(1f, fill = false) // Permite que la portada encoja si falta espacio vertical
-                .sizeIn(maxHeight = if (isCompact) 240.dp else 380.dp, maxWidth = if (isCompact) 240.dp else 380.dp),
+                .sizeIn(maxHeight = if (isCompact) 240.dp else 380.dp, maxWidth = if (isCompact) 240.dp else 380.dp)
+                .heroCoverElement(song.id, sharedTransitionScope, animatedVisibilityScope),
             highRes = highRes
         )
 
@@ -229,6 +242,7 @@ private fun PlaybackMainLayout(
     }
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun LyricsLayout(
     song: MediaMetadata,
@@ -238,7 +252,9 @@ private fun LyricsLayout(
     isCompact: Boolean,
     onNavigate: ((Route) -> Unit)?,
     onCollapse: () -> Unit,
-    onToggleLyrics: (() -> Unit)?
+    onToggleLyrics: (() -> Unit)?,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
     if (isCompact) {
         // Diseño Vertical (Móviles / Ventanas pequeñas)
@@ -254,7 +270,8 @@ private fun LyricsLayout(
                 CoverArt(
                     url = song.thumbnailUrl,
                     title = song.title,
-                    modifier = Modifier.size(80.dp), // Tamaño controlado para que no rompa el Layout
+                    modifier = Modifier.size(80.dp) // Tamaño controlado para que no rompa el Layout
+                        .heroCoverElement(song.id, sharedTransitionScope, animatedVisibilityScope),
                     highRes = highRes
                 )
                 SongHeader(
@@ -287,7 +304,8 @@ private fun LyricsLayout(
                 CoverArt(
                     url = song.thumbnailUrl,
                     title = song.title,
-                    modifier = Modifier.sizeIn(maxHeight = 320.dp, maxWidth = 320.dp),
+                    modifier = Modifier.sizeIn(maxHeight = 320.dp, maxWidth = 320.dp)
+                        .heroCoverElement(song.id, sharedTransitionScope, animatedVisibilityScope),
                     highRes = highRes
                 )
                 Spacer(Modifier.height(18.dp))

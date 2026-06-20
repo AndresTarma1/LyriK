@@ -7,6 +7,7 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
 enum class AudioQuality {
@@ -70,6 +71,32 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val YOUTUBE_REGION = stringPreferencesKey("youtube_region")
         val DARK_LEVEL = stringPreferencesKey("dark_level")
         val LAYOUT_MODE = stringPreferencesKey("layout_mode")
+        val YTM_SYNC = booleanPreferencesKey("ytm_sync_enabled")
+    }
+
+    // ── YouTube Music sync (experimental) ───────────────────────────────────
+    // When enabled, adding/removing a song in a local playlist is mirrored to a YouTube Music
+    // playlist on the signed-in account. Local→remote playlist ids are stored here (not in the
+    // SQLite schema) so the feature needs no destructive DB migration.
+
+    val ytmSyncEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.YTM_SYNC] ?: false }
+
+    suspend fun setYtmSyncEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.YTM_SYNC] = enabled }
+    }
+
+    private fun remotePlaylistKey(localId: String) = stringPreferencesKey("ytm_remote_$localId")
+
+    /** Remote YTM playlist id mirroring a given local playlist, or null if none yet. */
+    suspend fun getRemotePlaylistId(localId: String): String? =
+        dataStore.data.first()[remotePlaylistKey(localId)]
+
+    suspend fun setRemotePlaylistId(localId: String, remoteId: String) {
+        dataStore.edit { it[remotePlaylistKey(localId)] = remoteId }
+    }
+
+    suspend fun clearRemotePlaylistId(localId: String) {
+        dataStore.edit { it.remove(remotePlaylistKey(localId)) }
     }
 
     val darkLevel: Flow<DarkLevel> = dataStore.data.map { pref ->

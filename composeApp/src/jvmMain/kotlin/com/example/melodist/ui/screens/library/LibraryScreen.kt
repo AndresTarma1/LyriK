@@ -14,19 +14,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
-import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FileOpen
-import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -123,6 +122,10 @@ fun LibraryScreenRoute(
     val csvImportState by playlistsViewModel.csvImportState.collectAsState()
 
     var importNameField by remember { mutableStateOf("") }
+    // Reset the suggested name once an import flow finishes so the next import starts clean.
+    androidx.compose.runtime.LaunchedEffect(csvImportState) {
+        if (csvImportState !is CsvImportState.Ready) importNameField = ""
+    }
     var showDeletePlaylistDialog by remember { mutableStateOf(false) }
     var playlistToDelete by remember { mutableStateOf<String?>(null) }
     var showCsvTutorial by remember { mutableStateOf(false) }
@@ -209,20 +212,9 @@ fun LibraryScreenRoute(
     if (showCsvTutorial) {
         AlertDialog(
             onDismissRequest = { showCsvTutorial = false },
+            icon = { CsvImportTutorialIcon() },
             title = { Text(stringResource(Res.string.csv_tutorial_title)) },
-            text = {
-                Column {
-                    Text(stringResource(Res.string.csv_tutorial_step1))
-                    Spacer(Modifier.height(4.dp))
-                    Text(stringResource(Res.string.csv_tutorial_step2))
-                    Spacer(Modifier.height(4.dp))
-                    Text(stringResource(Res.string.csv_tutorial_step3))
-                    Spacer(Modifier.height(4.dp))
-                    Text(stringResource(Res.string.csv_tutorial_step4))
-                    Spacer(Modifier.height(4.dp))
-                    Text(stringResource(Res.string.csv_tutorial_step5))
-                }
-            },
+            text = { CsvImportTutorialBody() },
             confirmButton = {
                 TextButton(onClick = {
                     showCsvTutorial = false
@@ -236,86 +228,41 @@ fun LibraryScreenRoute(
         )
     }
 
-    when (val csvState = csvImportState) {
-        is CsvImportState.Ready -> {
-            if (importNameField.isBlank()) {
-                importNameField = csvState.suggestedName
-            }
-            AlertDialog(
-                onDismissRequest = { playlistsViewModel.cancelCsvImport() },
-                title = { Text(stringResource(Res.string.csv_import_title)) },
-                text = {
-                    Column {
-                        Text(stringResource(Res.string.csv_songs_found, csvState.totalCount))
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedTextField(
-                            value = importNameField,
-                            onValueChange = { importNameField = it },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = { Text(stringResource(Res.string.playlist_name_label)) },
-                            singleLine = true,
-                        )
-                    }
-                },
-                confirmButton = {
-                    TextButton(
-                        onClick = {
-                            val name = importNameField.trim().ifBlank { csvState.suggestedName }
-                            playlistsViewModel.confirmCsvImport(name)
-                        },
-                    ) { Text(stringResource(Res.string.csv_btn_import)) }
-                },
-                dismissButton = {
-                    TextButton(onClick = { playlistsViewModel.cancelCsvImport() }) { Text(stringResource(Res.string.cancel)) }
-                },
-            )
+    // Only the name-input step is modal; progress/done/error render as a non-blocking floating
+    // card at the app root (see CsvImportProgressOverlay in Navigation), so the user can keep
+    // browsing while the playlist resolves song by song.
+    (csvImportState as? CsvImportState.Ready)?.let { csvState ->
+        if (importNameField.isBlank()) {
+            importNameField = csvState.suggestedName
         }
-
-        is CsvImportState.Searching -> {
-            AlertDialog(
-                onDismissRequest = {},
-                title = { Text(stringResource(Res.string.csv_import_title)) },
-                text = {
-                    Column {
-                        Text(stringResource(Res.string.csv_import_searching, csvState.found + 1, csvState.total, csvState.currentTitle))
-                        Spacer(Modifier.height(12.dp))
-                        LinearProgressIndicator(
-                            progress = { (csvState.found + 1).toFloat() / csvState.total.coerceAtLeast(1).toFloat() },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-                },
-                confirmButton = {},
-            )
-        }
-
-        is CsvImportState.Done -> {
-            AlertDialog(
-                onDismissRequest = { playlistsViewModel.dismissCsvImportResult() },
-                title = { Text(stringResource(Res.string.csv_import_complete)) },
-                text = {
-                    Text(stringResource(Res.string.csv_import_result, csvState.foundCount, csvState.totalCount))
-                },
-                confirmButton = {
-                    TextButton(onClick = { playlistsViewModel.dismissCsvImportResult() }) { Text(stringResource(Res.string.close_label)) }
-                },
-            )
-        }
-
-        is CsvImportState.Error -> {
-            AlertDialog(
-                onDismissRequest = { playlistsViewModel.dismissCsvImportResult() },
-                title = { Text(stringResource(Res.string.csv_import_title)) },
-                text = { Text(stringResource(Res.string.csv_import_error, csvState.message)) },
-                confirmButton = {
-                    TextButton(onClick = { playlistsViewModel.dismissCsvImportResult() }) { Text(stringResource(Res.string.close_label)) }
-                },
-            )
-        }
-
-        is CsvImportState.Idle -> {
-            // No dialog shown
-        }
+        AlertDialog(
+            onDismissRequest = { playlistsViewModel.cancelCsvImport() },
+            title = { Text(stringResource(Res.string.csv_import_title)) },
+            text = {
+                Column {
+                    Text(stringResource(Res.string.csv_songs_found, csvState.totalCount))
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = importNameField,
+                        onValueChange = { importNameField = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text(stringResource(Res.string.playlist_name_label)) },
+                        singleLine = true,
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val name = importNameField.trim().ifBlank { csvState.suggestedName }
+                        playlistsViewModel.confirmCsvImport(name)
+                    },
+                ) { Text(stringResource(Res.string.csv_btn_import)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { playlistsViewModel.cancelCsvImport() }) { Text(stringResource(Res.string.cancel)) }
+            },
+        )
     }
 
     if (showDeletePlaylistDialog && playlistToDelete != null) {
@@ -358,7 +305,6 @@ fun LibraryScreen(
 ) {
     var showCreatePlaylistDialog by remember { mutableStateOf(false) }
     var newPlaylistName by remember { mutableStateOf("") }
-    var showSortMenu by remember { mutableStateOf(false) }
     var showFilterMenu by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -373,44 +319,6 @@ fun LibraryScreen(
                     )
                 },
                 actions = {
-                    // TODO: search
-
-                    Box {
-                        IconButton(
-                            onClick = { showSortMenu = true },
-                            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
-                        ) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.Sort,
-                                contentDescription = stringResource(Res.string.sort_label),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-
-                        androidx.compose.material3.DropdownMenu(
-                            expanded = showSortMenu,
-                            onDismissRequest = { showSortMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface,
-                            tonalElevation = 0.dp,
-                            shadowElevation = 8.dp,
-                        ) {
-                            LibrarySortOrder.entries.forEach { order ->
-                                DropdownMenuItem(
-                                    text = { Text(order.displayName()) },
-                                    onClick = {
-                                        actions.onSortOrderChange(order)
-                                        showSortMenu = false
-                                    },
-                                    leadingIcon = {
-                                        if (state.sortOrder == order) {
-                                            Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-
                     IconButton(
                         onClick = actions.onImportCsv,
                         modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
@@ -471,12 +379,15 @@ fun LibraryScreen(
                 Box {
                     IconButton(
                         onClick = { showFilterMenu = true },
-                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .pointerHoverIcon(PointerIcon.Hand),
                     ) {
                         Icon(
-                            Icons.Default.FilterList,
-                            contentDescription = stringResource(Res.string.cd_filter),
-                            tint = if (state.selectedYtmFilter != null) MaterialTheme.colorScheme.primary
+                            Icons.Default.Tune,
+                            contentDescription = stringResource(Res.string.library_filter_sort),
+                            tint = if (state.selectedYtmFilter != null || state.sortOrder != LibrarySortOrder.NAME_ASC)
+                                MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
@@ -488,6 +399,30 @@ fun LibraryScreen(
                         tonalElevation = 0.dp,
                         shadowElevation = 8.dp,
                     ) {
+                        // ── Sort section ──
+                        MenuSectionHeader(stringResource(Res.string.library_section_sort))
+                        LibrarySortOrder.entries.forEach { order ->
+                            DropdownMenuItem(
+                                text = {
+                                    Text(
+                                        order.displayName(),
+                                        fontWeight = if (state.sortOrder == order) FontWeight.Bold else FontWeight.Normal,
+                                    )
+                                },
+                                onClick = { actions.onSortOrderChange(order); showFilterMenu = false },
+                                leadingIcon = {
+                                    if (state.sortOrder == order) Icon(Icons.Default.Check, null, tint = MaterialTheme.colorScheme.primary)
+                                },
+                            )
+                        }
+
+                        HorizontalDivider(
+                            modifier = Modifier.padding(vertical = 4.dp),
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
+                        )
+
+                        // ── YouTube Music library section ──
+                        MenuSectionHeader(stringResource(Res.string.library_section_ytm))
                         DropdownMenuItem(
                             text = { Text(stringResource(Res.string.filter_library), fontWeight = if (state.selectedYtmFilter == null) FontWeight.Bold else FontWeight.Normal) },
                             onClick = { actions.onYtmFilterChange(null); showFilterMenu = false },
@@ -583,6 +518,17 @@ fun LibraryScreen(
             },
         )
     }
+}
+
+@Composable
+private fun MenuSectionHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 4.dp),
+    )
 }
 
 @Composable

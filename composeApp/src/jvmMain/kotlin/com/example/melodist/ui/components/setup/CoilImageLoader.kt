@@ -18,16 +18,10 @@ object CoilSetup {
         val cacheDir = AppDirs.imageCacheDir
         if (!cacheDir.exists()) cacheDir.mkdirs()
 
-        System.out.println(
-            "[CoilSetup] memoryCache=20MB diskCache=128MB dir=${cacheDir.absolutePath}"
-        )
-
         return ImageLoader.Builder(context)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .memoryCache {
                 MemoryCache.Builder()
-                    // 20MB es suficiente para una app desktop de música.
-                    // Las thumbnails son pequeñas y el disco cache cubre el resto.
                     .maxSizeBytes(1024 * 1024 * 20)
                     .build()
             }

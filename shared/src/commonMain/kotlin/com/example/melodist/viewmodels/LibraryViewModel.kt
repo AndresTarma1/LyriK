@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.AlbumRepository
 import com.example.melodist.data.repository.ArtistRepository
+import com.example.melodist.data.account.AccountManager
 import com.example.melodist.data.repository.PlaylistRepository
 import com.example.melodist.data.repository.SongRepository
+import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.data.repository.dbSongToSongItem
 import com.example.melodist.data.repository.savedAlbumToAlbumItem
 import com.example.melodist.data.repository.savedArtistToArtistItem
@@ -30,6 +32,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
@@ -384,6 +387,7 @@ sealed class CsvImportState {
 
 class LibraryPlaylistsViewModel(
     private val playlistRepository: PlaylistRepository,
+    private val userPreferences: UserPreferencesRepository,
 ) : ViewModel() {
     val savedPlaylists = playlistRepository.getSavedPlaylists().map { it.map(::savedPlaylistToPlaylistItem) }
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -442,13 +446,54 @@ class LibraryPlaylistsViewModel(
         viewModelScope.launch {
             val resolvedSong = withContext(Dispatchers.IO){ song.withMissingMetadataResolved()}
             playlistRepository.addSongToPlaylist(playlistId, resolvedSong)
+            mirrorAddToYtm(playlistId, resolvedSong)
         }
     }
 
     fun removeSongFromLocalPlaylist(playlistId: String, songId: String) {
         viewModelScope.launch {
+            // Read the setVideoId before the local row is deleted; needed for remote removal.
+            val setVideoId = playlistRepository.getSetVideoId(playlistId, songId)
             playlistRepository.removeSongFromPlaylist(playlistId, songId)
+            mirrorRemoveFromYtm(playlistId, songId, setVideoId)
         }
+    }
+
+    // ── YouTube Music sync (experimental) ────────────────────────────────────
+    // Mirrors local playlist edits to a YTM playlist on the signed-in account. Best-effort and
+    // optimistic: the local change is never reverted if the remote call fails.
+
+    private suspend fun ytmSyncActive(): Boolean =
+        userPreferences.ytmSyncEnabled.first() && AccountManager.loginState.value
+
+    private suspend fun mirrorAddToYtm(localPlaylistId: String, song: SongItem) {
+        if (!ytmSyncActive()) return
+        runCatching {
+            withContext(Dispatchers.IO) {
+                val remoteId = resolveOrCreateRemotePlaylist(localPlaylistId) ?: return@withContext
+                val setVideoId = YouTube.addToPlaylist(remoteId, song.id).getOrNull()
+                if (setVideoId != null) {
+                    playlistRepository.updateSetVideoId(localPlaylistId, song.id, setVideoId)
+                }
+            }
+        }.onFailure { Napier.e("[ytm-sync] add failed", it) }
+    }
+
+    private suspend fun mirrorRemoveFromYtm(localPlaylistId: String, songId: String, setVideoId: String?) {
+        if (setVideoId == null || !ytmSyncActive()) return
+        val remoteId = userPreferences.getRemotePlaylistId(localPlaylistId) ?: return
+        runCatching {
+            withContext(Dispatchers.IO) { YouTube.removeFromPlaylist(remoteId, songId, setVideoId) }
+        }.onFailure { Napier.e("[ytm-sync] remove failed", it) }
+    }
+
+    /** The remote YTM playlist mirroring [localPlaylistId], creating it on first use. */
+    private suspend fun resolveOrCreateRemotePlaylist(localPlaylistId: String): String? {
+        userPreferences.getRemotePlaylistId(localPlaylistId)?.let { return it }
+        val name = playlistRepository.getCachedPlaylistItem(localPlaylistId)?.title ?: return null
+        val remoteId = runCatching { YouTube.createPlaylist(name) }.getOrNull() ?: return null
+        userPreferences.setRemotePlaylistId(localPlaylistId, remoteId)
+        return remoteId
     }
 
     fun importCsvFile() {

@@ -1,6 +1,8 @@
 package com.example.melodist.navigation
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -42,7 +44,10 @@ import com.example.melodist.ui.components.MiniPlayer
 import com.example.melodist.ui.components.dialogs.SnackBar
 import com.example.melodist.ui.components.player.NowPlayingLayout
 import com.example.melodist.ui.components.player.PlaybackQueuePanel
+import com.example.melodist.ui.screens.library.CsvImportProgressOverlay
+import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.example.melodist.viewmodels.PlayerViewModel
+import org.koin.compose.koinInject
 import com.example.melodist.ui.screens.YouTubeBrowseScreenRoute
 import com.example.melodist.ui.screens.*
 import com.example.melodist.ui.screens.home.HomeScreenRoute
@@ -72,6 +77,7 @@ private val bottomTabs = listOf(
 )
 
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 fun NavigationDesktop(rootComponent: RootComponent) {
     val childStack by rootComponent.childStack.subscribeAsState()
@@ -79,6 +85,8 @@ fun NavigationDesktop(rootComponent: RootComponent) {
 
     val playerViewModel: PlayerViewModel = LocalPlayerViewModel.current
     val snackbarHostState = LocalSnackbarHostState.current
+    val playlistsViewModel = koinInject<LibraryPlaylistsViewModel>()
+    val csvImportState by playlistsViewModel.csvImportState.collectAsState()
 
     val playerState by playerViewModel.uiState.collectAsState()
     val progressState by playerViewModel.progressState.collectAsState()
@@ -97,6 +105,8 @@ fun NavigationDesktop(rootComponent: RootComponent) {
         }
     }
 
+    SharedTransitionLayout(modifier = Modifier.fillMaxSize()) {
+    val sharedTransitionScope = this
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -226,7 +236,9 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                                 isLyricsVisible = !isLyricsVisible
                                             },
                                             showLyrics = isLyricsVisible,
-                                            lyrics = currentLyrics
+                                            lyrics = currentLyrics,
+                                            sharedTransitionScope = sharedTransitionScope,
+                                            animatedVisibilityScope = this,
                                         )
                                     }
                                 }
@@ -272,7 +284,8 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                         isNowPlayingExpanded = isNowPlayingExpanded,
                         onToggleQueue = { isQueueVisible = !isQueueVisible },
                         isQueueVisible = isQueueVisible,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        sharedTransitionScope = sharedTransitionScope,
                     )
                 }
             }
@@ -282,7 +295,16 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                 currentSong = currentSong,
                 snackbarHostState = snackbarHostState,
             )
+
+            // Non-blocking CSV import progress (bottom-end floating card), global so it survives
+            // navigation between tabs while songs resolve one by one.
+            CsvImportProgressOverlay(
+                state = csvImportState,
+                onCancel = { playlistsViewModel.cancelCsvImport() },
+                onDismiss = { playlistsViewModel.dismissCsvImportResult() },
+            )
         }
+    }
     }
 }
 

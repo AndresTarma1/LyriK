@@ -39,8 +39,17 @@
     <string name="dynamic_colors">Dynamic colors from artwork</string>
     <string name="section_player">Player</string>
     <string name="high_res_artwork">High resolution artwork</string>
+    <string name="high_res_artwork_subtitle">Load high-resolution cover images (if available)</string>
     <string name="show_images">Show images</string>
+    <string name="show_images_subtitle">Display cover images</string>
     <string name="crossfade">Crossfade</string>
+    <string name="crossfade_subtitle">Apply a 5-second crossfade between tracks</string>
+    <string name="section_sync">Sync</string>
+    <string name="ytm_sync">Sync with YouTube Music</string>
+    <string name="ytm_sync_subtitle">Experimental: adding or removing songs from a local playlist is mirrored to your YouTube Music account.</string>
+    <string name="ytm_sync_warning_title">Experimental feature</string>
+    <string name="ytm_sync_warning_message">YouTube Music sync is experimental. It may create or modify playlists on your YouTube Music account and we are not responsible for any data loss, duplicates or other issues. Requires being signed in. Do you want to enable it?</string>
+    <string name="ytm_sync_warning_confirm">Enable anyway</string>
     <string name="section_system">System</string>
     <string name="minimize_to_tray">Minimize to system tray</string>
     <string name="cache_images">Cache images on disk</string>
@@ -346,13 +355,20 @@
     <string name="csv_import_result">%1$d of %2$d songs found</string>
     <string name="csv_import_error">Import error: %1$s</string>
     <string name="csv_no_songs">No valid songs found in file</string>
-    <string name="csv_tutorial_title">Export Spotify playlist</string>
-    <string name="csv_tutorial_step1">1. Go to tunemymusic.com/es/transfer/spotify-to-file</string>
-    <string name="csv_tutorial_step2">2. Connect your Spotify account</string>
-    <string name="csv_tutorial_step3">3. Choose the playlists to export</string>
-    <string name="csv_tutorial_step4">4. Select destination \"Exportar archivo\" → CSV</string>
-    <string name="csv_tutorial_step5">5. Download the file and select it below</string>
-    <string name="csv_tutorial_btn">Select CSV file</string>
+    <string name="csv_tutorial_title">Import from Spotify</string>
+    <string name="csv_tutorial_subtitle">Convert any Spotify, Apple Music or Tidal playlist into a CSV file and we\'ll bring it into your library.</string>
+    <string name="csv_tutorial_step1">Open tunemymusic.com and pick Spotify as the source</string>
+    <string name="csv_tutorial_step2">Connect your Spotify account</string>
+    <string name="csv_tutorial_step3">Choose the playlists you want to export</string>
+    <string name="csv_tutorial_step4">As destination select \"Export file\" → CSV</string>
+    <string name="csv_tutorial_step5">Download the CSV and pick it in the next step</string>
+    <string name="csv_tutorial_footer">Continuing will open TuneMyMusic and the file picker.</string>
+    <string name="csv_tutorial_btn">Continue</string>
+    <string name="csv_importing">Importing playlist</string>
+    <string name="csv_import_found_count">%1$d of %2$d found</string>
+    <string name="library_filter_sort">Filter and sort</string>
+    <string name="library_section_sort">Sort by</string>
+    <string name="library_section_ytm">YouTube Music library</string>
 
     <!-- Listen Together -->
     <string name="lt_title">Listen Together</string>

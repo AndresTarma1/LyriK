@@ -91,7 +91,7 @@ val appModule = module {
     single { LibrarySongsViewModel(get(), get(), get(), get()) }
     single { LibraryAlbumsViewModel(get()) }
     single { LibraryArtistsViewModel(get()) }
-    single { LibraryPlaylistsViewModel(get()) }
+    single { LibraryPlaylistsViewModel(get(), get()) }
     single { LibraryMixedViewModel(get()) }
     factory { AlbumViewModel(get(), get(), get()) }
     factory { PlaylistViewModel(get(), get(), get(), get()) }

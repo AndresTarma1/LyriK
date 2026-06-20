@@ -44,6 +44,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     var showClearDownloadsDialog by remember { mutableStateOf(false) }
     var showEqualizerDialog by remember { mutableStateOf(false) }
     var showJvmSettingsDialog by remember { mutableStateOf(false) }
+    var showYtmSyncWarning by remember { mutableStateOf(false) }
     val jvmSettingsViewModel: JvmSettingsViewModel = koinInject()
 
     var showThemeDropdown by remember { mutableStateOf(false) }
@@ -73,6 +74,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val currentLocale by viewModel.locale.collectAsState()
     val youtubeRegion by viewModel.youtubeRegion.collectAsState()
     val crossfadeEnabled by viewModel.crossfadeEnabled.collectAsState()
+    val ytmSyncEnabled by viewModel.ytmSyncEnabled.collectAsState()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -97,7 +99,6 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     )
                 }
 
-//                SectionLabel(stringResource(Res.string.section_audio), Icons.Rounded.GraphicEq)
                 SettingsGroup(
                     title = { Text(stringResource(Res.string.section_audio)) },
                     colors = colors,
@@ -187,7 +188,6 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 }
 
                 Spacer(Modifier.height(8.dp))
-//                SectionLabel(stringResource(Res.string.section_player), Icons.Rounded.PlayCircle)
                 SettingsGroup(
                     title = { Text(stringResource(Res.string.section_player)) },
                     colors = colors,
@@ -195,6 +195,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     SettingsSwitch(
                         icon = { Icon(Icons.Rounded.HighQuality, null) },
                         title = { Text(stringResource(Res.string.high_res_artwork)) },
+                        subtitle = { Text(stringResource(Res.string.high_res_artwork_subtitle)) },
                         colors = colors,
                         shape = RoundedCornerShape(16.dp),
                         state = highResCover,
@@ -203,6 +204,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     SettingsSwitch(
                         icon = { Icon(Icons.Rounded.Image, null) },
                         title = { Text(stringResource(Res.string.show_images)) },
+                        subtitle = { Text(stringResource(Res.string.show_images_subtitle)) },
                         colors = colors,
                         shape = RoundedCornerShape(16.dp),
                         state = imagesEnabled,
@@ -210,11 +212,32 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     )
                     SettingsSwitch(
                         icon = { Icon(Icons.Rounded.Shuffle, null) },
+                        subtitle = { Text(stringResource(Res.string.crossfade_subtitle)) },
                         title = { Text(stringResource(Res.string.crossfade)) },
                         colors = colors,
                         shape = RoundedCornerShape(16.dp),
                         state = crossfadeEnabled,
                         onCheckedChange = { viewModel.setCrossfadeEnabled(it) }
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+                SettingsGroup(
+                    title = { Text(stringResource(Res.string.section_sync)) },
+                    colors = colors,
+                ) {
+                    SettingsSwitch(
+                        icon = { Icon(Icons.Rounded.CloudSync, null) },
+                        title = { Text(stringResource(Res.string.ytm_sync)) },
+                        subtitle = { Text(stringResource(Res.string.ytm_sync_subtitle)) },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        state = ytmSyncEnabled,
+                        onCheckedChange = { checked ->
+                            // Require an explicit experimental-feature confirmation before enabling.
+                            if (checked) showYtmSyncWarning = true
+                            else viewModel.setYtmSyncEnabled(false)
+                        }
                     )
                 }
 
@@ -261,11 +284,6 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         state = cacheImages,
                         onCheckedChange = { viewModel.setCacheImages(it) }
                     )
-//                    InfoRow(
-//                        label = stringResource(Res.string.download_cache),
-//                        icon = Icons.Rounded.FolderOpen,
-//                        value = cacheSizeText
-//                    )
                     ActionRow(
                         label = stringResource(Res.string.open_data_folder),
                         icon = Icons.Rounded.FolderOpen,
@@ -307,6 +325,24 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     .padding(end = 2.dp, top = 4.dp, bottom = 4.dp)
             )
         }
+    }
+
+    if (showYtmSyncWarning) {
+        AlertDialog(
+            onDismissRequest = { showYtmSyncWarning = false },
+            icon = { Icon(Icons.Rounded.WarningAmber, null, tint = MaterialTheme.colorScheme.error) },
+            title = { Text(stringResource(Res.string.ytm_sync_warning_title)) },
+            text = { Text(stringResource(Res.string.ytm_sync_warning_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.setYtmSyncEnabled(true)
+                    showYtmSyncWarning = false
+                }) { Text(stringResource(Res.string.ytm_sync_warning_confirm)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showYtmSyncWarning = false }) { Text(stringResource(Res.string.cancel)) }
+            },
+        )
     }
 
     if (showClearDownloadsDialog) {

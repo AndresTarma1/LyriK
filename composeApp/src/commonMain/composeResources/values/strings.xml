@@ -39,8 +39,17 @@
     <string name="dynamic_colors">Colores dinámicos desde la carátula</string>
     <string name="section_player">Reproductor</string>
     <string name="high_res_artwork">Carátulas en alta resolución</string>
+    <string name="high_res_artwork_subtitle">Cargar imágenes de portada en alta resolución (si está disponible)</string>
     <string name="show_images">Mostrar imágenes</string>
+    <string name="show_images_subtitle">Mostrar imágenes de portada</string>
     <string name="crossfade">Crossfade</string>
+    <string name="crossfade_subtitle">Aplicar un crossfade entre pistas de 5s</string>
+    <string name="section_sync">Sincronización</string>
+    <string name="ytm_sync">Sincronizar con YouTube Music</string>
+    <string name="ytm_sync_subtitle">Experimental: al añadir o quitar canciones de una playlist local, se reflejan en tu cuenta de YouTube Music.</string>
+    <string name="ytm_sync_warning_title">Función experimental</string>
+    <string name="ytm_sync_warning_message">La sincronización con YouTube Music es experimental. Puede crear o modificar playlists en tu cuenta de YouTube Music y no nos hacemos responsables de pérdidas de datos, duplicados ni otros problemas. Requiere haber iniciado sesión. ¿Quieres activarla?</string>
+    <string name="ytm_sync_warning_confirm">Activar de todos modos</string>
     <string name="section_system">Sistema</string>
     <string name="minimize_to_tray">Minimizar a la bandeja del sistema</string>
     <string name="cache_images">Caché de imágenes en disco</string>
@@ -346,13 +355,20 @@
     <string name="csv_import_result">%1$d de %2$d canciones encontradas</string>
     <string name="csv_import_error">Error al importar: %1$s</string>
     <string name="csv_no_songs">No se encontraron canciones válidas en el archivo</string>
-    <string name="csv_tutorial_title">Exportar playlist de Spotify</string>
-    <string name="csv_tutorial_step1">1. Andá a tunemymusic.com/es/transfer/spotify-to-file</string>
-    <string name="csv_tutorial_step2">2. Conectá tu cuenta de Spotify</string>
-    <string name="csv_tutorial_step3">3. Elegí las playlists a exportar</string>
-    <string name="csv_tutorial_step4">4. Como destino seleccioná \"Exportar archivo\" → CSV</string>
-    <string name="csv_tutorial_step5">5. Descargá el archivo y seleccionálo abajo</string>
-    <string name="csv_tutorial_btn">Seleccionar archivo CSV</string>
+    <string name="csv_tutorial_title">Importar desde Spotify</string>
+    <string name="csv_tutorial_subtitle">Convertí cualquier playlist de Spotify, Apple Music o Tidal en un archivo CSV y la traemos a tu biblioteca.</string>
+    <string name="csv_tutorial_step1">Abrí tunemymusic.com y elegí Spotify como origen</string>
+    <string name="csv_tutorial_step2">Conectá tu cuenta de Spotify</string>
+    <string name="csv_tutorial_step3">Elegí las playlists que querés exportar</string>
+    <string name="csv_tutorial_step4">Como destino seleccioná «Exportar archivo» → CSV</string>
+    <string name="csv_tutorial_step5">Descargá el CSV y seleccionálo en el siguiente paso</string>
+    <string name="csv_tutorial_footer">Al continuar abriremos TuneMyMusic y el selector de archivos.</string>
+    <string name="csv_tutorial_btn">Continuar</string>
+    <string name="csv_importing">Importando playlist</string>
+    <string name="csv_import_found_count">%1$d de %2$d encontradas</string>
+    <string name="library_filter_sort">Filtrar y ordenar</string>
+    <string name="library_section_sort">Ordenar por</string>
+    <string name="library_section_ytm">Biblioteca de YouTube Music</string>
 
     <!-- Spotify Import -->
     <string name="cd_import_spotify">Importar desde Spotify</string>

@@ -157,9 +157,6 @@ class MpvAudioPlayer {
             _isPlaying.value = false
             openUriJob = scope.launch {
                 withContext(Dispatchers.IO) {
-                    // Use the dedicated `user-agent` property: putting User-Agent inside
-                    // `http-header-fields` does NOT override ffmpeg's default "Lavf/..." UA,
-                    // which googlevideo rejects with 403.
                     MpvLib.INSTANCE.mpv_set_property_string(h, "user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:140.0) Gecko/20100101 Firefox/140.0")
                     MpvLib.INSTANCE.mpv_set_property_string(h, "referrer", "https://music.youtube.com")
                     MpvLib.INSTANCE.mpv_command(h, arrayOf("loadfile", uri, "replace", null))
@@ -259,18 +256,6 @@ class MpvAudioPlayer {
         val posStr = getMpvPropertyString("time-pos") ?: "0"
         return ((posStr.toDoubleOrNull() ?: 0.0) * 1000).toLong()
     }
-
-//    fun logMemoryStats() {
-//        val cacheState = getMpvPropertyString("demuxer-cache-state")
-//        val audioOut = getMpvPropertyString("audio-out-params")
-//        val filterStats = getMpvPropertyString("filter-stats")
-//        val af = getMpvPropertyString("af")
-//        log.info("=== mpv memory ===")
-//        log.info("  demuxer-cache: $cacheState")
-//        log.info("  audio-out: $audioOut")
-//        log.info("  filter-stats: $filterStats")
-//        log.info("  af: $af")
-//    }
 
     fun dispose() {
         openUriJob?.cancel()

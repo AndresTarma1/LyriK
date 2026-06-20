@@ -26,6 +26,9 @@ SELECT * FROM PlaylistSongMap WHERE playlistId = ? ORDER BY position;
 updatePlaylistSongPosition:
 UPDATE PlaylistSongMap SET position = ? WHERE id = ?;
 
+updateSetVideoId:
+UPDATE PlaylistSongMap SET setVideoId = ? WHERE playlistId = ? AND songId = ?;
+
 songsByPlaylist:
 SELECT Song.* FROM Song
 INNER JOIN PlaylistSongMap ON Song.id = PlaylistSongMap.songId

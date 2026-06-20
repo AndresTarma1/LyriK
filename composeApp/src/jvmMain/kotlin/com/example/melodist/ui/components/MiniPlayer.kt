@@ -1,7 +1,14 @@
 package com.example.melodist.ui.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.border
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -40,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.melodist.data.repository.LayoutMode
 import com.example.melodist.player.PlaybackState
+import com.example.melodist.ui.components.player.heroCoverElement
 import com.example.melodist.ui.themes.LocalDimens
 import com.example.melodist.ui.themes.LocalLayoutMode
 import com.example.melodist.ui.utils.circleAwareShape
@@ -54,7 +62,12 @@ import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
 
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class, ExperimentalComposeUiApi::class)
+@OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalComposeUiApi::class,
+    ExperimentalSharedTransitionApi::class,
+)
 @Composable
 fun MiniPlayer(
     progressState: PlayerProgressState,
@@ -63,7 +76,8 @@ fun MiniPlayer(
     isNowPlayingExpanded: Boolean,
     onToggleQueue: () -> Unit,
     isQueueVisible: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sharedTransitionScope: SharedTransitionScope? = null,
 ) {
     val playerViewModel = LocalPlayerViewModel.current
     val state by playerViewModel.uiState.collectAsState()
@@ -119,48 +133,55 @@ fun MiniPlayer(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        var isHovered by remember { mutableStateOf(false) }
-                        Box(
-                            modifier = Modifier
-                            .sizeIn(maxWidth = thumbSize * ratio, maxHeight = thumbSize)
-                            .aspectRatio(ratio)
-                            .onHover { isHovered = it }
-                            .clickable(onClick = onToggleNowPlaying)
-                            .pointerHoverIcon(PointerIcon.Hand)
+                        AnimatedVisibility(
+                            visible = !isNowPlayingExpanded,
+                            enter = fadeIn(tween(220)) + expandHorizontally(tween(220)),
+                            exit = fadeOut(tween(180)) + shrinkHorizontally(tween(220)),
                         ) {
-                            MelodistImage(
-                                url = song.thumbnailUrl,
-                                contentDescription = song.title,
-                                modifier = Modifier.fillMaxSize(),
-                                shape = RoundedCornerShape(4.dp),
-                                contentScale = ContentScale.Crop,
-                                placeholderType = PlaceholderType.SONG,
-                                iconSize = 24.dp,
-                                isLowRes = true
-                            )
+                            var isHovered by remember { mutableStateOf(false) }
+                            Box(
+                                modifier = Modifier
+                                .sizeIn(maxWidth = thumbSize * ratio, maxHeight = thumbSize)
+                                .aspectRatio(ratio)
+                                .heroCoverElement(song.id, sharedTransitionScope, this)
+                                .onHover { isHovered = it }
+                                .clickable(onClick = onToggleNowPlaying)
+                                .pointerHoverIcon(PointerIcon.Hand)
+                            ) {
+                                MelodistImage(
+                                    url = song.thumbnailUrl,
+                                    contentDescription = song.title,
+                                    modifier = Modifier.fillMaxSize(),
+                                    shape = RoundedCornerShape(4.dp),
+                                    contentScale = ContentScale.Crop,
+                                    placeholderType = PlaceholderType.SONG,
+                                    iconSize = 24.dp,
+                                    isLowRes = true
+                                )
 
-                            if (isHovered) {
+                                if (isHovered) {
 
-                                Box(
-                                    modifier = Modifier
-                                        .align(Alignment.Center)
-                                        .matchParentSize()
-                                        .background(
-                                            color = Color.Black.copy(alpha = 0.6f),
-                                        ),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = if (isNowPlayingExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp,
-                                        contentDescription = if (isNowPlayingExpanded) stringResource(Res.string.mp_collapse) else stringResource(
-                                            Res.string.mp_expand
-                                        ),
-                                        tint = Color.White
-                                    )
+                                    Box(
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .matchParentSize()
+                                            .background(
+                                                color = Color.Black.copy(alpha = 0.6f),
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isNowPlayingExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp,
+                                            contentDescription = if (isNowPlayingExpanded) stringResource(Res.string.mp_collapse) else stringResource(
+                                                Res.string.mp_expand
+                                            ),
+                                            tint = Color.White
+                                        )
+                                    }
                                 }
+
+
                             }
-
-
                         }
 
                         Column(

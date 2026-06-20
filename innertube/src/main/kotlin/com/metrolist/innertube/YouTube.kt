@@ -35,6 +35,7 @@ import com.metrolist.innertube.models.oddElements
 import com.metrolist.innertube.models.splitBySeparator
 import com.metrolist.innertube.models.response.AccountMenuResponse
 import com.metrolist.innertube.models.response.BrowseResponse
+import com.metrolist.innertube.models.response.AddItemYouTubePlaylistResponse
 import com.metrolist.innertube.models.response.CreatePlaylistResponse
 import com.metrolist.innertube.models.response.EditPlaylistResponse
 import com.metrolist.innertube.models.response.FeedbackResponse
@@ -2653,11 +2654,20 @@ object YouTube {
         return ""
     }
 
+    /**
+     * Add [videoId] to [playlistId]. Returns the `setVideoId` of the added item (needed later to
+     * remove or move it), or null if the response didn't include one.
+     */
     suspend fun addToPlaylist(
         playlistId: String,
         videoId: String,
-    ) = runCatching {
+    ): Result<String?> = runCatching {
         innerTube.addToPlaylist(WEB_REMIX, playlistId, videoId)
+            .body<AddItemYouTubePlaylistResponse>()
+            .playlistEditResults
+            .firstOrNull()
+            ?.playlistEditVideoAddedResultData
+            ?.setVideoId
     }
 
     suspend fun addPlaylistToPlaylist(

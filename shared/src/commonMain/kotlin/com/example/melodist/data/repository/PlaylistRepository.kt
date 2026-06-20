@@ -214,6 +214,17 @@ class PlaylistRepository(
         }
     }
 
+    /** Persist the YTM `setVideoId` for a song already in a local playlist (used for remote sync). */
+    suspend fun updateSetVideoId(playlistId: String, songId: String, setVideoId: String) = withContext(Dispatchers.IO) {
+        database.playlistSongMapQueries.updateSetVideoId(setVideoId, playlistId, songId)
+    }
+
+    /** The stored YTM `setVideoId` for a song in a local playlist, or null. */
+    suspend fun getSetVideoId(playlistId: String, songId: String): String? = withContext(Dispatchers.IO) {
+        database.playlistSongMapQueries.selectByPlaylist(playlistId).executeAsList()
+            .firstOrNull { it.songId == songId }?.setVideoId
+    }
+
     suspend fun removeSongFromPlaylist(playlistId: String, songId: String) = withContext(Dispatchers.IO) {
         val rows = database.playlistSongMapQueries.selectByPlaylist(playlistId).executeAsList()
         val row = rows.firstOrNull { it.songId == songId } ?: return@withContext

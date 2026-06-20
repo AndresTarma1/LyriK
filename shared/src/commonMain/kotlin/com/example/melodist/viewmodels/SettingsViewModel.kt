@@ -64,6 +64,9 @@ class SettingsViewModel(
     val youtubeRegion: StateFlow<YouTubeRegion> = preferencesRepository.youtubeRegion
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), YouTubeRegion.SYSTEM)
 
+    val ytmSyncEnabled: StateFlow<Boolean> = preferencesRepository.ytmSyncEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     fun setAudioQuality(quality: AudioQuality) {
         viewModelScope.launch { preferencesRepository.setAudioQuality(quality) }
     }
@@ -122,5 +125,9 @@ class SettingsViewModel(
 
     fun setYoutubeRegion(region: YouTubeRegion) {
         viewModelScope.launch { preferencesRepository.setYoutubeRegion(region) }
+    }
+
+    fun setYtmSyncEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setYtmSyncEnabled(enabled) }
     }
 }
