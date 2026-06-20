@@ -48,6 +48,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import java.awt.Toolkit
+import java.awt.datatransfer.StringSelection
 import com.example.melodist.listentogether.ConnectionState
 import com.example.melodist.listentogether.ListenTogetherEvent
 import com.example.melodist.listentogether.ListenTogetherManager
@@ -59,6 +61,14 @@ import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+
+/** Stable member item for LazyColumn key usage. */
+private data class MemberItem(
+    val userId: String,
+    val username: String,
+    val isHost: Boolean,
+    val isMe: Boolean,
+)
 
 /**
  * Listen Together screen — create or join a synced listening room.
@@ -142,11 +152,15 @@ fun ListenTogetherScreen() {
                 RoomContent(
                     roomCode = room.roomCode,
                     isHost = role == RoomRole.HOST,
-                    members = room.users.map { Triple(it.username, it.isHost, it.userId == myUserId) },
+                    members = room.users.map { MemberItem(it.userId, it.username, it.isHost, it.userId == myUserId) },
                     pending = pendingRequests.map { it.userId to it.username },
                     onApprove = { manager.approveJoin(it) },
                     onReject = { manager.rejectJoin(it) },
-                    onCopyCode = { scope.launch { snackbar.showSnackbar(codeCopiedMsg) } },
+                    onCopyCode = {
+                        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+                        clipboard.setContents(StringSelection(room.roomCode), null)
+                        scope.launch { snackbar.showSnackbar(codeCopiedMsg) }
+                    },
                     onLeave = { manager.leaveRoom() },
                 )
             }
@@ -252,7 +266,7 @@ private fun LobbyContent(
 private fun RoomContent(
     roomCode: String,
     isHost: Boolean,
-    members: List<Triple<String, Boolean, Boolean>>, // username, isHost, isMe
+    members: List<MemberItem>,
     pending: List<Pair<String, String>>, // userId, username
     onApprove: (String) -> Unit,
     onReject: (String) -> Unit,
@@ -317,7 +331,7 @@ private fun RoomContent(
         modifier = Modifier.fillMaxWidth().height((members.size.coerceAtMost(6) * 52).dp),
         verticalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        items(members) { (name, host, isMe) ->
+        items(members, key = { it.userId }) { member ->
             Surface(
                 shape = RoundedCornerShape(10.dp),
                 color = MaterialTheme.colorScheme.surfaceContainer,
@@ -328,12 +342,12 @@ private fun RoomContent(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (host) {
+                    if (member.isHost) {
                         Icon(Icons.Filled.Star, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                         Spacer(Modifier.width(8.dp))
                     }
                     Text(
-                        if (isMe) stringResource(Res.string.lt_you_suffix, name) else name,
+                        if (member.isMe) stringResource(Res.string.lt_you_suffix, member.username) else member.username,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurface
                     )

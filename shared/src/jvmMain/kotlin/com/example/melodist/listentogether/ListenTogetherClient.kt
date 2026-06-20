@@ -426,9 +426,10 @@ class ListenTogetherClient(
                 MessageTypes.HOST_CHANGED -> {
                     val p = codec.decodePayload(type, payloadBytes) as? HostChangedPayload ?: return
                     _role.value = if (p.newHostId == _userId.value) RoomRole.HOST else RoomRole.GUEST
-                    _roomState.value = _roomState.value?.copy(
+                    val currentState = _roomState.value
+                    _roomState.value = currentState?.copy(
                         hostId = p.newHostId,
-                        users = _roomState.value!!.users.map { it.copy(isHost = it.userId == p.newHostId) },
+                        users = currentState.users.map { it.copy(isHost = it.userId == p.newHostId) },
                     )
                     emit(ListenTogetherEvent.HostChanged(p.newHostId, p.newHostName))
                 }
