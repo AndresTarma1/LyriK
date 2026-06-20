@@ -404,13 +404,6 @@ private fun TitleBarScope.MelodistTitleBar(
                         isPlaying = true,
                         modifier = Modifier.size(width = 20.dp, height = 14.dp)
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Filled.Pause,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp),
-                    )
                 }
                     Text(
                         text = song,

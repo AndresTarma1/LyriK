@@ -527,7 +527,7 @@ fun PlaybackQueuePanel(
 
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.surfaceContainer,
+        color = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
