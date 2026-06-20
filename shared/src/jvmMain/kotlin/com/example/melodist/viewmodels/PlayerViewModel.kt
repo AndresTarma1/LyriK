@@ -11,6 +11,8 @@ import com.example.melodist.download.DownloadService
 import com.example.melodist.lyrics.BetterLyrics
 import com.example.melodist.lyrics.LyricLine
 import com.example.melodist.lyrics.SyncedLyrics
+import com.metrolist.lrclib.LrcLib
+import com.metrolist.kugou.KuGou
 import com.example.melodist.models.MediaMetadata
 import com.example.melodist.models.toMediaMetadata
 import com.example.melodist.player.*
@@ -1028,11 +1030,19 @@ class PlayerViewModel(
             _currentLyrics.value = null
             _syncedLyrics.value = null
 
-            // 1) BetterLyrics — word/line-synced (best UX).
-            try {
-                val artist = song.artists.joinToString(", ") { it.name }
-                val lrc = BetterLyrics.getLyrics(song.title, artist, song.duration, song.album?.title)
-                if (lrc != null) {
+            val artist = song.artists.joinToString(", ") { it.name }
+            val album = song.album?.title
+
+            // Try synced providers in order of reliability. The first usable LRC wins.
+            //   1) LrcLib  — free, reliable, line-synced
+            //   2) KuGou   — line-synced
+            //   3) BetterLyrics — word-synced (best UX, but may be auth-gated/unavailable)
+            val lrc = runCatching { LrcLib.getLyrics(song.title, artist, song.duration, album).getOrNull() }.getOrNull()
+                ?: runCatching { KuGou.getLyrics(song.title, artist, song.duration, album).getOrNull() }.getOrNull()
+                ?: runCatching { BetterLyrics.getLyrics(song.title, artist, song.duration, album) }.getOrNull()
+
+            if (lrc != null) {
+                if (SyncedLyrics.isSynced(lrc)) {
                     val parsed = SyncedLyrics.parse(lrc)
                     if (parsed.isNotEmpty()) {
                         _syncedLyrics.value = parsed
@@ -1040,10 +1050,12 @@ class PlayerViewModel(
                         return@launch
                     }
                 }
-            } catch (_: Exception) {
+                // Plain LRC with no timestamps — show as text.
+                _currentLyrics.value = lrc
+                return@launch
             }
 
-            // 2) Fall back to YouTube lyrics (usually plain text, occasionally LRC).
+            // Fall back to YouTube lyrics (usually plain text, occasionally LRC).
             try {
                 val nextResult = YouTube.next(WatchEndpoint(videoId = song.id)).getOrNull() ?: return@launch
                 val endpoint = nextResult.lyricsEndpoint ?: return@launch

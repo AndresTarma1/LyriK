@@ -41,3 +41,5 @@ plugins {
 include(":composeApp")
 include(":shared")
 include(":innertube")
+include(":lrclib")
+include(":kugou")
