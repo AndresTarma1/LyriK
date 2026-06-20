@@ -58,6 +58,13 @@ class PlayerViewModel(
     private val _seekEvents = MutableSharedFlow<Long>(extraBufferCapacity = 8)
     val seekEvents: SharedFlow<Long> = _seekEvents.asSharedFlow()
 
+    /** User-facing transient messages (e.g. a song couldn't be played). UI shows these as snackbars. */
+    private val _playbackMessages = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    val playbackMessages: SharedFlow<String> = _playbackMessages.asSharedFlow()
+
+    /** Consecutive resolve/playback failures; auto-skip stops once this hits [MAX_CONSECUTIVE_FAILURES]. */
+    private var consecutiveFailures = 0
+
     /**
      * When true, Listen Together is applying a remote command, so observers must not re-broadcast
      * the resulting state change (prevents host/guest feedback loops).
@@ -111,6 +118,7 @@ class PlayerViewModel(
                 )
 
                 when (state) {
+                    PlaybackState.PLAYING -> consecutiveFailures = 0 // a track actually started
                     PlaybackState.ENDED -> onTrackEnded()
                     PlaybackState.ERROR -> log.warning("Playback error; user can retry manually")
                     else -> Unit
@@ -833,34 +841,46 @@ class PlayerViewModel(
                 }
                 if (requestId != playRequestId) return@launch
 
-                if (cachedFile != null) {
-                    playerService.play(cachedFile.absolutePath)
-                } else if (YtDlpResolver.needsYtDlp(song.id)) {
-                    // Known-hard video (all in-process clients 403 this session): skip straight to
-                    // yt-dlp instead of repeating the slow resolve + mpv-failure cycle.
-                    playViaYtDlp(song, requestId)
-                } else {
-                    val streamUrl = withContext(Dispatchers.IO) {
-                        streamResolver.resolveAudioStream(song.id)
-                    }.streamUrl
-                    if (requestId != playRequestId) return@launch
+                val played: Boolean = when {
+                    cachedFile != null -> {
+                        playerService.play(cachedFile.absolutePath)
+                        true
+                    }
+                    YtDlpResolver.needsYtDlp(song.id) -> {
+                        // Known-hard video (all in-process clients 403 this session): skip straight to
+                        // yt-dlp instead of repeating the slow resolve + mpv-failure cycle.
+                        playViaYtDlp(song, requestId)
+                    }
+                    else -> {
+                        val streamUrl = withContext(Dispatchers.IO) {
+                            streamResolver.resolveAudioStream(song.id)
+                        }.streamUrl
+                        if (requestId != playRequestId) return@launch
 
-                    if (streamUrl.isNotEmpty()) {
-                        playerService.play(streamUrl)
-                        // The resolved stream can pass HTTP validation yet 403 in mpv (e.g. spc-gated
-                        // IOS URLs). If playback doesn't actually start, fall back to yt-dlp, which
-                        // handles the hard videos our in-process pipeline can't.
-                        val started = playerService.awaitPlaybackStarted()
-                        if (!started && requestId == playRequestId) {
-                            YtDlpResolver.markNeedsYtDlp(song.id)
-                            Napier.w("Stream did not start for ${song.id}; trying yt-dlp fallback")
-                            playViaYtDlp(song, requestId)
+                        if (streamUrl.isNotEmpty()) {
+                            playerService.play(streamUrl)
+                            // The resolved stream can pass HTTP validation yet 403 in mpv (e.g. spc-gated
+                            // IOS URLs). If playback doesn't actually start, fall back to yt-dlp, which
+                            // handles the hard videos our in-process pipeline can't.
+                            val started = playerService.awaitPlaybackStarted()
+                            if (started || requestId != playRequestId) {
+                                true
+                            } else {
+                                YtDlpResolver.markNeedsYtDlp(song.id)
+                                Napier.w("Stream did not start for ${song.id}; trying yt-dlp fallback")
+                                playViaYtDlp(song, requestId)
+                            }
+                        } else {
+                            false
                         }
-                    } else if (requestId == playRequestId) {
-                        _uiState.update { it.copy(error = "No se pudo obtener el audio para \"${song.title}\"") }
                     }
                 }
                 if (requestId != playRequestId) return@launch
+
+                if (!played) {
+                    handlePlaybackFailure(song)
+                    return@launch
+                }
 
                 // Guardar canción en caché y registrar reproducción
                 withContext(Dispatchers.IO) {
@@ -878,10 +898,30 @@ class PlayerViewModel(
                 throw e
             } catch (e: Exception) {
                 Napier.e("Playback failed for ${song.id} - ${song.title}", e)
-                if (requestId == playRequestId) {
-                    _uiState.update { it.copy(error = e.message) }
-                }
+                if (requestId == playRequestId) handlePlaybackFailure(song)
             }
+        }
+    }
+
+    companion object {
+        private const val MAX_CONSECUTIVE_FAILURES = 5
+    }
+
+    /**
+     * A track couldn't be resolved/played. Notify the user and auto-advance to the next track,
+     * unless too many tracks in a row have failed (likely a broader problem) — then stop.
+     */
+    private fun handlePlaybackFailure(song: MediaMetadata) {
+        consecutiveFailures++
+        _uiState.update { it.copy(error = null) }
+        val hasNext = PlayerQueueCoordinator.nextIndex(_uiState.value) != null
+        if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES || !hasNext) {
+            consecutiveFailures = 0
+            _playbackMessages.tryEmit("No se pudo reproducir «${song.title}»")
+            _uiState.update { it.copy(playbackState = PlaybackState.ERROR) }
+        } else {
+            _playbackMessages.tryEmit("No se pudo reproducir «${song.title}», pasando a la siguiente")
+            next()
         }
     }
 
@@ -907,19 +947,22 @@ class PlayerViewModel(
         }
     }
 
-    /** Resolves [song] via yt-dlp and plays it; keeps the miniplayer in LOADING meanwhile. */
-    private suspend fun playViaYtDlp(song: MediaMetadata, requestId: Long) {
+    /**
+     * Resolves [song] via yt-dlp and plays it; keeps the miniplayer in LOADING meanwhile.
+     * Returns true if playback was started, false if the URL couldn't be resolved (caller handles
+     * the failure / skip).
+     */
+    private suspend fun playViaYtDlp(song: MediaMetadata, requestId: Long): Boolean {
         _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
         val ytUrl = withContext(Dispatchers.IO) {
             YtDlpResolver.resolveAudioUrl(song.id, streamResolver.currentAudioQuality())
         }
-        if (requestId != playRequestId) return
-        if (ytUrl != null) {
+        if (requestId != playRequestId) return true // superseded — not a failure
+        return if (ytUrl != null) {
             playerService.play(ytUrl)
+            true
         } else {
-            _uiState.update {
-                it.copy(playbackState = PlaybackState.ERROR, error = "No se pudo reproducir \"${song.title}\"")
-            }
+            false
         }
     }
 
@@ -931,15 +974,18 @@ class PlayerViewModel(
         val currentArtists = databaseDao.artistsForSong(song.id)
         if (currentArtists.isEmpty() && song.artists.isNotEmpty()) {
             song.artists.forEachIndexed { i, artist ->
-                artist.id?.let { id ->
-                    val artistEntity = ArtistEntity(
-                        id = id,
-                        name = artist.name,
-                        lastUpdateTime = java.time.LocalDateTime.now()
-                    )
-                    databaseDao.insertArtist(artistEntity)
-                    databaseDao.insertSongArtistMap(song.id, id, i)
-                }
+                // Songs coming from Listen Together (and some search results) carry only an artist
+                // name, no YouTube id. Without an id the song↔artist mapping was skipped entirely, so
+                // history showed no artist. Fall back to a stable synthetic id so the name persists.
+                val id = artist.id ?: "local:${artist.name.trim().lowercase().hashCode()}"
+                if (artist.name.isBlank()) return@forEachIndexed
+                val artistEntity = ArtistEntity(
+                    id = id,
+                    name = artist.name,
+                    lastUpdateTime = java.time.LocalDateTime.now()
+                )
+                databaseDao.insertArtist(artistEntity)
+                databaseDao.insertSongArtistMap(song.id, id, i)
             }
         }
         song.album?.let { album ->

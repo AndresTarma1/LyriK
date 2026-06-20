@@ -90,6 +90,13 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val queueWidth = 420.dp
     val animatedWidth by animateDpAsState(queueWidth)
 
+    // Surface transient playback errors (e.g. a song that couldn't be resolved) as snackbars.
+    LaunchedEffect(playerViewModel) {
+        playerViewModel.playbackMessages.collect { message ->
+            snackbarHostState.showSnackbar(message)
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
