@@ -8,6 +8,9 @@ import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.db.DatabaseDao
 import com.example.melodist.db.entities.ArtistEntity
 import com.example.melodist.download.DownloadService
+import com.example.melodist.lyrics.BetterLyrics
+import com.example.melodist.lyrics.LyricLine
+import com.example.melodist.lyrics.SyncedLyrics
 import com.example.melodist.models.MediaMetadata
 import com.example.melodist.models.toMediaMetadata
 import com.example.melodist.player.*
@@ -1015,15 +1018,40 @@ class PlayerViewModel(
     private val _currentLyrics = MutableStateFlow<String?>(null)
     val currentLyrics: StateFlow<String?> = _currentLyrics.asStateFlow()
 
+    /** Time-synced lyrics (BetterLyrics or synced YouTube LRC). Null when only plain text exists. */
+    private val _syncedLyrics = MutableStateFlow<List<LyricLine>?>(null)
+    val syncedLyrics: StateFlow<List<LyricLine>?> = _syncedLyrics.asStateFlow()
+
     fun fetchLyrics() {
         val song = _uiState.value.currentSong ?: return
         viewModelScope.launch(Dispatchers.IO) {
             _currentLyrics.value = null
+            _syncedLyrics.value = null
+
+            // 1) BetterLyrics — word/line-synced (best UX).
+            try {
+                val artist = song.artists.joinToString(", ") { it.name }
+                val lrc = BetterLyrics.getLyrics(song.title, artist, song.duration, song.album?.title)
+                if (lrc != null) {
+                    val parsed = SyncedLyrics.parse(lrc)
+                    if (parsed.isNotEmpty()) {
+                        _syncedLyrics.value = parsed
+                        _currentLyrics.value = parsed.joinToString("\n") { it.text }
+                        return@launch
+                    }
+                }
+            } catch (_: Exception) {
+            }
+
+            // 2) Fall back to YouTube lyrics (usually plain text, occasionally LRC).
             try {
                 val nextResult = YouTube.next(WatchEndpoint(videoId = song.id)).getOrNull() ?: return@launch
                 val endpoint = nextResult.lyricsEndpoint ?: return@launch
                 val lyrics = YouTube.lyrics(endpoint).getOrNull()
                 _currentLyrics.value = lyrics
+                if (lyrics != null && SyncedLyrics.isSynced(lyrics)) {
+                    _syncedLyrics.value = SyncedLyrics.parse(lyrics).takeIf { it.isNotEmpty() }
+                }
             } catch (_: Exception) {
                 _currentLyrics.value = null
             }

@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
 import androidx.compose.material3.*
@@ -266,11 +267,7 @@ private fun LyricsLayout(
                 )
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
-            Text(
-                "Letras",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.88f)
-            )
+            LyricsHeader()
             Box(modifier = Modifier.weight(1f)) {
                 LyricsContent(lyrics = lyrics, textAlign = TextAlign.Start, style = MaterialTheme.typography.bodyLarge)
             }
@@ -315,14 +312,58 @@ private fun LyricsLayout(
             Column(
                 modifier = Modifier.weight(0.6f).fillMaxHeight()
             ) {
-                Text(
-                    "Letras",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.82f),
-                    modifier = Modifier.padding(bottom = 16.dp, top = 16.dp)
-                )
+                LyricsHeader(modifier = Modifier.padding(top = 16.dp, bottom = 12.dp))
                 Box(modifier = Modifier.weight(1f)) {
                     LyricsContent(lyrics = lyrics, textAlign = TextAlign.Start, style = MaterialTheme.typography.headlineSmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LyricsHeader(modifier: Modifier = Modifier) {
+    val playerViewModel = LocalPlayerViewModel.current
+    val synced by playerViewModel.syncedLyrics.collectAsState()
+    val isSynced = !synced.isNullOrEmpty()
+
+    Row(
+        modifier = modifier,
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        Icon(
+            Icons.Rounded.Lyrics,
+            contentDescription = null,
+            modifier = Modifier.size(20.dp),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+        )
+        Text(
+            "Letras",
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+        )
+        if (isSynced) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.GraphicEq,
+                        contentDescription = null,
+                        modifier = Modifier.size(12.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        "Sincronizadas",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
             }
         }
@@ -336,7 +377,21 @@ private fun BoxScope.LyricsContent(
     textAlign: TextAlign,
     style: androidx.compose.ui.text.TextStyle
 ) {
+    val playerViewModel = LocalPlayerViewModel.current
+    val synced by playerViewModel.syncedLyrics.collectAsState()
+    val progress by playerViewModel.progressState.collectAsState()
+    val syncedLines = synced
+
     when {
+        syncedLines != null && syncedLines.isNotEmpty() -> {
+            SyncedLyricsView(
+                lines = syncedLines,
+                positionMs = progress.positionMs,
+                onSeek = { playerViewModel.seekTo(it) },
+                modifier = Modifier.fillMaxSize(),
+                textAlign = textAlign == TextAlign.Start,
+            )
+        }
         lyrics == null -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 LoadingIndicator()
