@@ -20,6 +20,9 @@ sealed class ScreenConfig {
     data object Settings : ScreenConfig()
 
     @Serializable
+    data object ListenTogether : ScreenConfig()
+
+    @Serializable
     data class Album(val browseId: String) : ScreenConfig()
 
     @Serializable

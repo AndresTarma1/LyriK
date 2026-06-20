@@ -66,6 +66,7 @@ private val mainTabs = listOf(
 )
 
 private val bottomTabs = listOf(
+    TabInfo(ScreenConfig.ListenTogether, Icons.Filled.Groups),
     TabInfo(ScreenConfig.Account, Icons.Filled.Person),
     TabInfo(ScreenConfig.Settings, Icons.Filled.Settings),
 )
@@ -149,6 +150,7 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                             when (tab.config) {
                                                 ScreenConfig.Account -> stringResource(Res.string.nav_account)
                                                 ScreenConfig.Settings -> stringResource(Res.string.nav_settings)
+                                                ScreenConfig.ListenTogether -> stringResource(Res.string.nav_listen_together)
                                                 else -> ""
                                             }
                                         )
@@ -283,6 +285,7 @@ fun Route.toConfig(): ScreenConfig = when (this) {
     Route.Library -> ScreenConfig.Library
     Route.Account -> ScreenConfig.Account
     Route.Settings -> ScreenConfig.Settings
+    Route.ListenTogether -> ScreenConfig.ListenTogether
     is Route.Album -> ScreenConfig.Album(browseId)
     is Route.Playlist -> ScreenConfig.Playlist(playlistId)
     is Route.Artist -> ScreenConfig.Artist(artistId)
@@ -350,6 +353,10 @@ fun ScreenRouter(
 
         is RootComponent.Child.Settings -> {
             SettingsScreen(viewModel = instance.component.viewModel)
+        }
+
+        is RootComponent.Child.ListenTogether -> {
+            ListenTogetherScreen()
         }
 
         is RootComponent.Child.YouTubeBrowse -> {

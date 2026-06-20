@@ -2,6 +2,7 @@ package com.example.melodist.ui.components
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.foundation.border
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -90,11 +91,13 @@ fun MiniPlayer(
         modifier = modifier
             .fillMaxWidth()
             .then(
-                if (islands) Modifier.padding(horizontal = dimens.surfaceGap, vertical = dimens.surfaceGap)
+                if (islands) Modifier
+                .padding(horizontal = dimens.surfaceGap, vertical = dimens.surfaceGap)
+                .border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(dimens.surfaceCorner))
                 else Modifier
             )
             .height(88.dp),
-        color = if (islands) MaterialTheme.colorScheme.surfaceContainer else MaterialTheme.colorScheme.surface,
+        color = if (islands) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(if (islands) dimens.surfaceCorner else 0.dp),
         tonalElevation = 0.dp
     ) {
