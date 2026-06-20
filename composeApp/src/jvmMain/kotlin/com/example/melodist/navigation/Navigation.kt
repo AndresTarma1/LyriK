@@ -237,6 +237,7 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                         modifier = Modifier
                                             .fillMaxHeight()
                                             .width(animatedWidth)
+                                            .clip(contentShape)
                                             .then(
                                                 if (islands) Modifier.border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, contentShape)
                                                 else Modifier
