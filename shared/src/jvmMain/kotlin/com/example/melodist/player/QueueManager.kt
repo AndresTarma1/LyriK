@@ -40,24 +40,4 @@ class QueueManager {
         return loadNextPage(queue)
     }
 
-    /**
-     * Rebuilds shuffle order when new items are added to the queue.
-     * Keeps the current song at its position, shuffles the rest.
-     */
-    fun rebuildShuffleOrder(
-        items: List<MediaMetadata>,
-        order: List<Int>,
-        currentIndex: Int,
-        newItems: List<MediaMetadata>
-    ): Pair<List<MediaMetadata>, List<Int>> {
-        val updatedItems = items + newItems
-        val newItemsStartIdx = items.size
-        val newOrder = order + newItems.indices.map { newItemsStartIdx + it }
-        
-        val currentBaseIdx = order.getOrNull(currentIndex) ?: 0
-        val rest = newOrder.filter { it != currentBaseIdx }.shuffled()
-        val finalOrder = listOf(currentBaseIdx) + rest
-        
-        return updatedItems to finalOrder
-    }
 }

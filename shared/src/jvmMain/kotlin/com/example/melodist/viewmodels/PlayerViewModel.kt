@@ -709,61 +709,19 @@ class PlayerViewModel(
     fun addToQueue(song: SongItem) = addToQueue(song.toMediaMetadata())
 
     fun addToQueue(song: MediaMetadata) {
-        _uiState.update { state ->
-            val newState = PlayerQueueCoordinator.append(state, song)
-            // Rebuild shuffle order if shuffle is enabled
-            if (newState.isShuffled) {
-                val currentIndex = newState.currentIndex
-                val items = newState.queueSession.items
-                val order = newState.queueSession.order
-                val rebuilt = queueManager.rebuildShuffleOrder(
-                    items = items,
-                    order = order,
-                    currentIndex = currentIndex,
-                    newItems = listOf(song),
-                )
-                val updatedSession = newState.queueSession.copy(
-                    items = rebuilt.first,
-                    order = rebuilt.second,
-                )
-                newState.copy(
-                    queueSession = updatedSession,
-                    queue = updatedSession.queueItems(),
-                )
-            } else {
-                newState
-            }
-        }
+        // append() adds the song to the end of the play order, which is correct whether or not
+        // shuffle is on (it lands at the end of the current shuffled order). No re-shuffle needed.
+        _uiState.update { state -> PlayerQueueCoordinator.append(state, song) }
     }
 
     fun playNext(song: SongItem) = playNext(song.toMediaMetadata())
 
     fun playNext(song: MediaMetadata) {
-        _uiState.update { state ->
-            val newState = PlayerQueueCoordinator.insertNext(state, song)
-            // Rebuild shuffle order if shuffle is enabled
-            if (newState.isShuffled) {
-                val currentIndex = newState.currentIndex
-                val items = newState.queueSession.items
-                val order = newState.queueSession.order
-                val rebuilt = queueManager.rebuildShuffleOrder(
-                    items = items,
-                    order = order,
-                    currentIndex = currentIndex,
-                    newItems = listOf(song),
-                )
-                val updatedSession = newState.queueSession.copy(
-                    items = rebuilt.first,
-                    order = rebuilt.second,
-                )
-                newState.copy(
-                    queueSession = updatedSession,
-                    queue = updatedSession.queueItems(),
-                )
-            } else {
-                newState
-            }
-        }
+        // insertNext() places the song right after the current one in the play order, which already
+        // respects shuffle (currentIndex is an index into the shuffled order). The previous code
+        // ALSO called rebuildShuffleOrder here, which duplicated the song and re-shuffled the whole
+        // queue — sending the "play next" track to a random/last position. Use insertNext alone.
+        _uiState.update { state -> PlayerQueueCoordinator.insertNext(state, song) }
     }
 
     fun playNextResolved(song: SongItem) {
