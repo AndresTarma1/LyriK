@@ -143,7 +143,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         colors = colors
                     )
                     DropdownSelector(
-                        label = "Nivel de oscuridad",
+                        label = stringResource(Res.string.settings_dark_level),
                         icon = Icons.Rounded.Contrast,
                         currentValue = darkLevel.displayName(),
                         expanded = showDarkLevelDropdown,
@@ -154,7 +154,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         colors = colors,
                     )
                     DropdownSelector(
-                        label = "Diseño",
+                        label = stringResource(Res.string.settings_layout),
                         icon = Icons.Rounded.Dashboard,
                         currentValue = layoutMode.displayName(),
                         expanded = showLayoutDropdown,

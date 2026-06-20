@@ -28,14 +28,16 @@ fun ThemeMode.displayName(): String = when (this) {
     ThemeMode.LIGHT -> stringResource(Res.string.theme_light)
 }
 
+@Composable
 fun DarkLevel.displayName(): String = when (this) {
-    DarkLevel.DIM -> "Oscuro"
-    DarkLevel.BLACK -> "AMOLED (negro puro)"
+    DarkLevel.DIM -> stringResource(Res.string.dark_level_dim)
+    DarkLevel.BLACK -> stringResource(Res.string.dark_level_black)
 }
 
+@Composable
 fun LayoutMode.displayName(): String = when (this) {
-    LayoutMode.ISLANDS -> "Islas dinámicas"
-    LayoutMode.ATTACHED -> "Pegado / compacto"
+    LayoutMode.ISLANDS -> stringResource(Res.string.layout_islands)
+    LayoutMode.ATTACHED -> stringResource(Res.string.layout_attached)
 }
 
 @Composable

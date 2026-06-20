@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- App -->
+    <string name="app_name">LyriK</string>
+    <string name="tray_tooltip">LyriK</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Inicio</string>
+    <string name="nav_search">Buscar</string>
+    <string name="nav_library">Biblioteca</string>
+    <string name="nav_account">Cuenta</string>
+    <string name="nav_settings">Ajustes</string>
+    <string name="nav_listen_together">Escuchar juntos</string>
+
+    <!-- Tray -->
+    <string name="tray_pause">Pausar</string>
+    <string name="tray_play">Reproducir</string>
+    <string name="tray_next">Siguiente</string>
+    <string name="tray_previous">Anterior</string>
+    <string name="tray_open">Abrir LyriK</string>
+    <string name="tray_exit">Salir</string>
+
+    <!-- Update dialog -->
+    <string name="update_title">Actualización disponible</string>
+    <string name="update_message">Hay una nueva versión de LyriK disponible.\n\nVersión actual: %1$s\nNueva versión: %2$s\n\n¿Deseas actualizar ahora?</string>
+    <string name="update_download">Descargar</string>
+    <string name="update_later">Más tarde</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Configuración</string>
+    <string name="settings_subtitle">Personaliza tu experiencia</string>
+    <string name="section_audio">Audio</string>
+    <string name="streaming_quality">Calidad de audio</string>
+    <string name="equalizer">Ecualizador</string>
+    <string name="ten_bands">10 bandas</string>
+    <string name="section_appearance">Apariencia</string>
+    <string name="theme">Tema</string>
+    <string name="color_palette">Paleta de colores</string>
+    <string name="dynamic_colors">Colores dinámicos desde la carátula</string>
+    <string name="section_player">Reproductor</string>
+    <string name="high_res_artwork">Carátulas en alta resolución</string>
+    <string name="show_images">Mostrar imágenes</string>
+    <string name="crossfade">Crossfade</string>
+    <string name="section_system">Sistema</string>
+    <string name="minimize_to_tray">Minimizar a la bandeja del sistema</string>
+    <string name="cache_images">Caché de imágenes en disco</string>
+    <string name="download_cache">Caché de descargas</string>
+    <string name="open_data_folder">Abrir carpeta de datos</string>
+    <string name="btn_open">Abrir</string>
+    <string name="clear_download_cache">Limpiar caché de descargas</string>
+    <string name="btn_clear">Limpiar</string>
+    <string name="skiko_rendering">Renderizado (Skiko)</string>
+    <string name="render_api_restart">Render API (requiere reinicio)</string>
+    <string name="about_title">Melodist</string>
+    <string name="about_subtitle">Reproductor de música de escritorio</string>
+    <string name="version_prefix">v</string>
+    <string name="clear_downloads_title">Limpiar caché de descargas</string>
+    <string name="clear_downloads_message">Se eliminarán todas las descargas guardadas en caché. Esta acción no se puede deshacer.</string>
+    <string name="cancel">Cancelar</string>
+    <string name="audio_quality_title">Calidad de audio</string>
+    <string name="theme_title">Tema</string>
+    <string name="palette_title">Paleta de colores</string>
+    <string name="equalizer_title">Ecualizador de 10 bandas</string>
+    <string name="reset">Restablecer</string>
+    <string name="close_label">Cerrar</string>
+
+    <!-- JVM Settings (Advanced Skiko) -->
+    <string name="jvm_settings_title">Renderizado de Skiko</string>
+    <string name="jvm_settings_subtitle">Los cambios se aplican cuando reinicias la aplicación</string>
+    <string name="save_changes">Guardar cambios</string>
+    <string name="apply_changes_title">Aplicar cambios</string>
+    <string name="apply_changes_message">Los cambios se guardarán y se aplicarán al reiniciar la aplicación.</string>
+    <string name="selected_renderer">Renderer seleccionado: %1$s</string>
+    <string name="save_restart">Guardar y reiniciar</string>
+    <string name="save_no_restart">Guardar sin reiniciar</string>
+    <string name="renderer_directx">DirectX</string>
+    <string name="renderer_default">(por defecto)</string>
+
+    <!-- Search -->
+    <string name="search_placeholder">Canciones, artistas, álbumes…</string>
+    <string name="recent_searches">Búsquedas recientes</string>
+    <string name="clear_all">Borrar todo</string>
+    <string name="no_recent_searches">No hay búsquedas recientes aún.</string>
+    <string name="suggestions_title">Sugerencias</string>
+    <string name="filter_all">Todo</string>
+    <string name="filter_videos">Videos</string>
+    <string name="filter_songs">Canciones</string>
+    <string name="filter_albums">Álbumes</string>
+    <string name="filter_artists">Artistas</string>
+    <string name="filter_playlists">Playlists</string>
+    <string name="something_went_wrong">Algo salió mal</string>
+    <string name="no_results">No se encontraron resultados</string>
+    <string name="explore_trends">Explora tendencias y busca tu música</string>
+    <string name="new_releases">Nuevos lanzamientos</string>
+    <string name="moods_genres">Estados de ánimo y géneros</string>
+
+    <!-- Account -->
+    <string name="account_title">Cuenta</string>
+    <string name="login_title">Iniciar sesión</string>
+    <string name="login_description">Conecta tu cuenta de YouTube Music pegando el token de Metrolist</string>
+    <string name="need_metrolist">Para conectarte necesitas Metrolist</string>
+    <string name="step1">Descarga Metrolist (metrolist.cc)</string>
+    <string name="step2">Ábrelo e inicia sesión con tu cuenta de Google en YouTube Music</string>
+    <string name="step3">Ve a Ajustes → Copiar token de YouTube Music</string>
+    <string name="step4">Pega el token en el campo de abajo y presiona Iniciar sesión</string>
+    <string name="token_example">Ejemplo del token:</string>
+    <string name="token_example_value">***INNERTUBE COOKIE*** =SAPISID=…;\n***VISITOR DATA*** =Cgtv…\n***DATASYNC ID*** =115…</string>
+    <string name="cookie_label">Cookie de YouTube Music</string>
+    <string name="cookie_placeholder">HSID=…; SSID=…; APISID=…</string>
+    <string name="characters">%1$d caracteres</string>
+    <string name="warnings_title">Advertencias</string>
+    <string name="privacy_notice">La cookie se guarda localmente en este dispositivo y solo se usa para comunicarse con YouTube Music.</string>
+    <string name="session_expired_title">Sesión expirada</string>
+    <string name="session_expired_desc">Tu cookie expiró. Puedes pegar una nueva o volver al login.</string>
+    <string name="renew_cookie">Renueva la cookie</string>
+    <string name="renew_cookie_desc">Abre music.youtube.com, inicia sesión y copia el header &apos;cookie&apos; de una petición de red.</string>
+    <string name="new_cookie_label">Nueva cookie de YouTube Music</string>
+    <string name="renew_session">Renovar sesión</string>
+    <string name="logout">Cerrar sesión</string>
+    <string name="back_to_login">Volver al login</string>
+    <string name="retry">Reintentar</string>
+    <string name="could_not_load_account">No se pudo cargar la cuenta</string>
+    <string name="verifying_account">Verificando cuenta…</string>
+    <string name="your_playlists">Tus Playlists</string>
+    <string name="no_playlists_found">No se encontraron playlists</string>
+    <string name="connected">Conectado</string>
+    <string name="show_label">Mostrar</string>
+    <string name="hide_label">Ocultar</string>
+    <string name="refresh_ytm">Refrescar biblioteca de YTM</string>
+    <string name="sort_label">Ordenar</string>
+    <string name="create_local_playlist">Crear playlist local</string>
+    <string name="ytm_filter_label">Filtro YTM</string>
+
+    <!-- Library -->
+    <string name="library_title">Biblioteca</string>
+    <string name="create_playlist_dialog">Crear playlist local</string>
+    <string name="playlist_name_label">Nombre</string>
+    <string name="btn_create">Crear</string>
+    <string name="tab_albums">Álbumes</string>
+    <string name="tab_artists">Artistas</string>
+    <string name="tab_playlists">Playlists</string>
+    <string name="filter_library">Biblioteca</string>
+
+    <!-- Back button -->
+    <string name="back">Atrás</string>
+
+    <!-- Artist -->
+    <string name="shuffle">Aleatorio</string>
+    <string name="radio_text">Radio</string>
+    <string name="subscribed">Suscrito</string>
+    <string name="subscribe_text">Suscribirse</string>
+    <string name="more_options">Más opciones</string>
+    <string name="more">Más</string>
+    <string name="less">Menos</string>
+
+    <!-- Home -->
+    <string name="recently_played">Reproducido recientemente</string>
+    <string name="home_error">¡Oops! Algo salió mal</string>
+    <string name="home_retry">Reintentar</string>
+    <string name="refresh">Actualizar</string>
+    <string name="explore">Explorar</string>
+
+    <!-- YouTube Browse -->
+    <string name="no_content_available">No hay contenido disponible</string>
+    <string name="could_not_load_content">No se pudo cargar el contenido</string>
+    <string name="back_label">Volver</string>
+    <string name="title_fallback">Explorar</string>
+
+    <!-- Queue / Now Playing -->
+    <string name="queue_title">Cola de reproducción</string>
+    <string name="queue_empty">La cola está vacía</string>
+    <string name="queue_empty_hint">Reproduce una canción, álbum o playlist para empezar</string>
+    <string name="queue_songs_count">%1$d canciones</string>
+    <string name="options">Opciones</string>
+    <string name="add_to_playlist">Añadir a playlist</string>
+    <string name="download_queue">Descargar cola</string>
+    <string name="save_as_playlist">Guardar como playlist</string>
+    <string name="lock_queue">Bloquear cola</string>
+    <string name="unlock_queue">Desbloquear cola</string>
+    <string name="now_playing">Reproduciendo ahora</string>
+    <string name="from_album">De: %1$s</string>
+    <string name="from_playlist">De: %1$s</string>
+    <string name="song_radio">Radio de la canción</string>
+    <string name="custom_queue">Cola personalizada</string>
+    <string name="save_queue_title">Guardar cola como playlist</string>
+    <string name="btn_save">Guardar</string>
+    <string name="close_queue">Cerrar</string>
+    <string name="remove_from_queue">Quitar de la cola</string>
+    <string name="play_item">Reproducir</string>
+    <string name="close_now_playing">Cerrar reproducción</string>
+    <string name="open_now_playing">Abrir reproducción</string>
+    <string name="equalizer_menu">Ecualizador</string>
+    <string name="close_equalizer">Cerrar</string>
+
+    <!-- Context Menus -->
+    <string name="context_open_playlist">Abrir playlist</string>
+    <string name="context_open_album">Abrir álbum</string>
+    <string name="context_play">Reproducir</string>
+    <string name="context_shuffle">Reproducir en aleatorio</string>
+    <string name="context_remove_library">Eliminar de biblioteca</string>
+    <string name="context_start_radio">Iniciar Radio</string>
+    <string name="context_remove_download">Eliminar descarga</string>
+    <string name="context_cancel_download">Cancelar descarga</string>
+    <string name="context_download">Descargar</string>
+    <string name="context_play_next">Reproducir a continuación</string>
+    <string name="context_add_queue">Añadir a la cola</string>
+    <string name="context_add_playlist">Añadir a playlist…</string>
+    <string name="context_remove_playlist">Quitar de esta playlist</string>
+    <string name="context_like">Me gusta</string>
+    <string name="context_unlike">Ya no me gusta</string>
+
+    <!-- MiniPlayer -->
+    <string name="mp_like">Me gusta</string>
+    <string name="mp_unlike">Quitar me gusta</string>
+    <string name="mp_shuffle">Aleatorio</string>
+    <string name="mp_previous">Anterior</string>
+    <string name="mp_next">Siguiente</string>
+    <string name="mp_repeat_one">Repetir una</string>
+    <string name="mp_repeat_all">Repetir todo</string>
+    <string name="mp_repeat">Repetir</string>
+    <string name="mp_volume">Volumen</string>
+    <string name="mp_mute">Silenciar</string>
+    <string name="mp_unmute">Activar sonido</string>
+    <string name="mp_queue">Cola de reproducción</string>
+    <string name="mp_collapse">Cerrar reproducción</string>
+    <string name="mp_expand">Abrir reproducción</string>
+    <string name="mp_error">Error</string>
+
+    <!-- Items subtitles -->
+    <string name="item_album">Álbum</string>
+    <string name="item_artist">Artista</string>
+    <string name="item_playlist">Playlist</string>
+    <string name="item_song">Canción</string>
+    <string name="item_list">Lista</string>
+
+    <!-- Equalizer -->
+    <string name="eq_gain">Ganancia (dB)</string>
+    <string name="eq_reset">Restablecer</string>
+
+    <!-- Download dialog -->
+    <string name="download_confirm_title">Eliminar descargas</string>
+    <string name="download_confirm_message">¿Estás seguro que deseas eliminar las descargas de esta lista?</string>
+    <string name="download_confirm_delete">Eliminar</string>
+
+    <!-- Delete playlist confirmation -->
+    <string name="delete_playlist_title">Eliminar playlist</string>
+    <string name="delete_playlist_message">¿Estás seguro que deseas eliminar esta playlist? Esta acción no se puede deshacer.</string>
+    <string name="delete_playlist_confirm">Eliminar</string>
+
+    <!-- Content descriptions -->
+    <string name="cd_search">Buscar</string>
+    <string name="cd_clear">Clear</string>
+    <string name="cd_delete">Eliminar</string>
+    <string name="cd_close">Cerrar</string>
+    <string name="cd_more">Más opciones</string>
+    <string name="cd_play">Reproducir</string>
+    <string name="cd_local">Local</string>
+    <string name="cd_youtube">YouTube Music</string>
+    <string name="cd_source">Fuente</string>
+    <string name="cd_selected">selected</string>
+    <string name="cd_login">Iniciar sesión</string>
+    <string name="cd_logout">Cerrar sesión</string>
+    <string name="cd_refresh">Refrescar</string>
+    <string name="cd_sort">Ordenar</string>
+    <string name="cd_create_playlist">Crear playlist local</string>
+    <string name="cd_filter">Filtro YTM</string>
+
+    <!-- Sort orders -->
+    <string name="sort_name_asc">Nombre (A-Z)</string>
+    <string name="sort_name_desc">Nombre (Z-A)</string>
+    <string name="sort_date_asc">Fecha (más antigua)</string>
+    <string name="sort_date_desc">Fecha (más reciente)</string>
+
+    <!-- YTM Filters -->
+    <string name="ytm_filter_recent">Actividad reciente</string>
+    <string name="ytm_filter_playlists">Playlists</string>
+
+    <!-- Audio quality -->
+    <string name="audio_quality_low">Baja (ahorrar datos)</string>
+    <string name="audio_quality_normal">Normal</string>
+    <string name="audio_quality_high">Alta (mayor consumo)</string>
+
+    <!-- Theme modes -->
+    <string name="theme_system">Sistema</string>
+    <string name="theme_dark">Oscuro</string>
+    <string name="theme_light">Claro</string>
+    <string name="settings_dark_level">Nivel de oscuridad</string>
+    <string name="settings_layout">Diseño</string>
+    <string name="dark_level_dim">Oscuro</string>
+    <string name="dark_level_black">AMOLED (negro puro)</string>
+    <string name="layout_islands">Islas dinámicas</string>
+    <string name="layout_attached">Pegado / compacto</string>
+
+    <!-- Theme palettes -->
+    <string name="palette_default">Por defecto</string>
+    <string name="palette_ocean">Océano</string>
+    <string name="palette_forest">Bosque</string>
+    <string name="palette_sunset">Atardecer</string>
+    <string name="palette_purple">Púrpura</string>
+    <string name="palette_teal">Teal</string>
+    <string name="palette_amber">Ámbar</string>
+    <string name="palette_indigo">Índigo</string>
+    <string name="palette_ytmusic">YouTube Music</string>
+
+    <!-- Render APIs -->
+    <string name="render_directx">DirectX</string>
+    <string name="render_opengl">OpenGL</string>
+    <string name="render_software">Software</string>
+    <string name="render_angle">ANGLE</string>
+    <string name="render_directx_desc">Renderer por defecto en Windows. Usa aceleración por GPU y suele ser el mejor equilibrio.</string>
+    <string name="render_opengl_desc">Renderer alternativo por GPU. Puede ayudar en algunos equipos, pero aquí puede fallar con imágenes circulares.</string>
+    <string name="render_software_desc">Renderiza por CPU. En pruebas consume menos memoria nativa y evita errores visuales a cambio de consumo de CPU.</string>
+    <string name="render_angle_desc">Renderer que traduce llamadas OpenGL a DirectX. Puede ser útil en equipos con drivers OpenGL problemáticos, pero no es oficialmente soportado en Skia.</string>
+
+    <!-- Language -->
+    <string name="language">Idioma</string>
+    <string name="language_system">Predeterminado del sistema</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_english">English</string>
+
+    <!-- YouTube Region -->
+    <string name="youtube_region">Región de YouTube</string>
+    <string name="region_system">Predeterminado del sistema</string>
+    <string name="region_us">Estados Unidos</string>
+    <string name="region_co">Colombia</string>
+
+    <!-- Sort orders -->
+    <string name="sort_name_asc_label">Nombre A-Z</string>
+    <string name="sort_name_desc_label">Nombre Z-A</string>
+    <string name="sort_date_added">Fecha añadido</string>
+
+    <!-- YTM Filters -->
+    <string name="ytm_filter_recent_activity">Actividad reciente</string>
+    <string name="ytm_filter_recently_played">Reproducido recientemente</string>
+    <string name="ytm_filter_playlists_az">Playlists A-Z</string>
+    <string name="ytm_filter_playlists_recent">Playlists recientes</string>
+
+    <!-- CSV Import -->
+    <string name="cd_import_csv">Importar CSV</string>
+    <string name="csv_import_title">Importar playlist CSV</string>
+    <string name="csv_songs_found">%1$d canciones encontradas</string>
+    <string name="csv_btn_import">Importar</string>
+    <string name="csv_import_complete">Importación completa</string>
+    <string name="csv_import_success">%1$d canciones importadas a \"%2$s\"</string>
+    <string name="csv_import_searching">Buscando %1$d de %2$d: %3$s</string>
+    <string name="csv_import_result">%1$d de %2$d canciones encontradas</string>
+    <string name="csv_import_error">Error al importar: %1$s</string>
+    <string name="csv_no_songs">No se encontraron canciones válidas en el archivo</string>
+    <string name="csv_tutorial_title">Exportar playlist de Spotify</string>
+    <string name="csv_tutorial_step1">1. Andá a tunemymusic.com/es/transfer/spotify-to-file</string>
+    <string name="csv_tutorial_step2">2. Conectá tu cuenta de Spotify</string>
+    <string name="csv_tutorial_step3">3. Elegí las playlists a exportar</string>
+    <string name="csv_tutorial_step4">4. Como destino seleccioná \"Exportar archivo\" → CSV</string>
+    <string name="csv_tutorial_step5">5. Descargá el archivo y seleccionálo abajo</string>
+    <string name="csv_tutorial_btn">Seleccionar archivo CSV</string>
+
+    <!-- Spotify Import -->
+    <string name="cd_import_spotify">Importar desde Spotify</string>
+    <string name="spotify_import_title">Importar playlist de Spotify</string>
+    <string name="spotify_import_url_label">URL de la playlist</string>
+    <string name="spotify_import_url_placeholder">https://open.spotify.com/playlist/...</string>
+    <string name="spotify_btn_fetch">Obtener playlist</string>
+    <string name="spotify_btn_import">Importar %1$d canciones</string>
+    <string name="spotify_import_fetching">Obteniendo playlist de Spotify...</string>
+    <string name="spotify_tracks_found">%1$d canciones encontradas en Spotify</string>
+    <string name="spotify_import_searching">Buscando %1$d de %2$d: %3$s</string>
+    <string name="spotify_import_complete">Importación completa</string>
+    <string name="spotify_import_result">%1$d de %2$d canciones importadas</string>
+    <string name="spotify_import_error">Error: %1$s</string>
+    <string name="spotify_not_configured">Spotify no configurado. Revisá el archivo .env</string>
+
+    <!-- Listen Together -->
+    <string name="lt_title">Escuchar juntos</string>
+    <string name="lt_subtitle">Reproduce en sincronía con tus amigos</string>
+    <string name="lt_connected">Conectado</string>
+    <string name="lt_connecting">Conectando…</string>
+    <string name="lt_reconnecting">Reconectando…</string>
+    <string name="lt_error">Error de conexión</string>
+    <string name="lt_disconnected">Desconectado</string>
+    <string name="lt_username_label">Tu nombre</string>
+    <string name="lt_create_title">Crear una sala</string>
+    <string name="lt_create_desc">Serás el anfitrión: tu reproducción controla la de todos.</string>
+    <string name="lt_create_btn">Crear sala</string>
+    <string name="lt_join_title">Unirse a una sala</string>
+    <string name="lt_join_code_label">Código de sala</string>
+    <string name="lt_join_btn">Unirse</string>
+    <string name="lt_host_badge">Eres el anfitrión</string>
+    <string name="lt_guest_badge">Estás escuchando</string>
+    <string name="lt_copy_code">Copiar código</string>
+    <string name="lt_code_copied">Código copiado: %1$s</string>
+    <string name="lt_pending_title">Solicitudes para unirse</string>
+    <string name="lt_approve">Aprobar</string>
+    <string name="lt_reject">Rechazar</string>
+    <string name="lt_members_title">Miembros (%1$d)</string>
+    <string name="lt_you_suffix">%1$s (tú)</string>
+    <string name="lt_leave_btn">Salir de la sala</string>
+    <string name="lt_request_rejected">Solicitud rechazada: %1$s</string>
+    <string name="lt_kicked">Te expulsaron de la sala: %1$s</string>
+    <string name="lt_error_generic">Error: %1$s</string>
+    <string name="lt_connection_error">Error de conexión: %1$s</string>
+    <string name="lt_default_host">Anfitrión</string>
+    <string name="lt_default_guest">Invitado</string>
+</resources>

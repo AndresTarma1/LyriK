@@ -24,7 +24,6 @@ captures/
 # IntelliJ
 *.iml
 *.name
-*.xml
 .idea/**/*.xml
 .idea/workspace.xml
 .idea/tasks.xml
