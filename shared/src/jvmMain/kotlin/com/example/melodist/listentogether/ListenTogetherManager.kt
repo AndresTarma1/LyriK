@@ -81,7 +81,7 @@ class ListenTogetherManager(
     private fun refreshObservation() {
         val pvm = player
         // Guests can't control shared playback; their play/pause becomes mute/unmute.
-        pvm?.listenTogetherGuestMode = pvm != null && isInRoom && !isHost
+        pvm?.listenTogetherGuestMode = isInRoom && !isHost
         if (pvm != null && isInRoom && isHost) startHostObservation(pvm) else stopHostObservation()
     }
 
