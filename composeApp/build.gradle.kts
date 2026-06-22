@@ -74,8 +74,15 @@ kotlin {
             implementation(libs.decompose.compose)
             implementation(libs.kotlinx.serialization.core)
 
-            implementation(libs.coil.compose)
-            implementation(libs.coil.network.ktor3)
+            // Coil pulls an old transitive Skiko (0.9.x) that clashes with Compose's (0.144.x) and
+            // triggers checkJvmMainComposeLibrariesCompatibility. Drop it; Compose provides Skiko.
+            // (Version-catalog accessors don't take an exclude lambda directly, hence get().toString().)
+            implementation(libs.coil.compose.get().toString()) {
+                exclude(group = "org.jetbrains.skiko")
+            }
+            implementation(libs.coil.network.ktor3.get().toString()) {
+                exclude(group = "org.jetbrains.skiko")
+            }
 
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.cio)

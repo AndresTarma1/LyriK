@@ -10,6 +10,9 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
+/** Sentinel for an overlay position that has never been set by the user. */
+const val OVERLAY_POS_UNSET = Int.MIN_VALUE
+
 enum class AudioQuality {
     LOW, NORMAL, HIGH
 }
@@ -72,6 +75,54 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val DARK_LEVEL = stringPreferencesKey("dark_level")
         val LAYOUT_MODE = stringPreferencesKey("layout_mode")
         val YTM_SYNC = booleanPreferencesKey("ytm_sync_enabled")
+        val OVERLAY_HOTKEY_ENABLED = booleanPreferencesKey("overlay_hotkey_enabled")
+        val OVERLAY_HOTKEY_CODE = intPreferencesKey("overlay_hotkey_code")
+        val OVERLAY_HOTKEY_MODS = intPreferencesKey("overlay_hotkey_mods")
+        val OVERLAY_HOTKEY_LABEL = stringPreferencesKey("overlay_hotkey_label")
+        val OVERLAY_POS_X = intPreferencesKey("overlay_pos_x")
+        val OVERLAY_POS_Y = intPreferencesKey("overlay_pos_y")
+        val LT_USERNAME = stringPreferencesKey("listen_together_username")
+    }
+
+    /** Last overlay window position in dp, or [OVERLAY_POS_UNSET] when never moved (→ default corner). */
+    val overlayPosX: Flow<Int> = dataStore.data.map { it[PreferencesKeys.OVERLAY_POS_X] ?: OVERLAY_POS_UNSET }
+    val overlayPosY: Flow<Int> = dataStore.data.map { it[PreferencesKeys.OVERLAY_POS_Y] ?: OVERLAY_POS_UNSET }
+
+    suspend fun setOverlayPosition(x: Int, y: Int) {
+        dataStore.edit {
+            it[PreferencesKeys.OVERLAY_POS_X] = x
+            it[PreferencesKeys.OVERLAY_POS_Y] = y
+        }
+    }
+
+    /** Remembered display name for joining/creating Listen Together rooms. */
+    val listenTogetherUsername: Flow<String> = dataStore.data.map { it[PreferencesKeys.LT_USERNAME] ?: "" }
+
+    suspend fun setListenTogetherUsername(name: String) {
+        dataStore.edit { it[PreferencesKeys.LT_USERNAME] = name }
+    }
+
+    // ── Game overlay hotkey ─────────────────────────────────────────────────
+    // A global shortcut that toggles a Steam-style always-on-top overlay for controlling music
+    // without leaving the current game/app. The combo is stored as a jnativehook key code plus a
+    // packed modifier mask (bit0 ctrl, bit1 alt, bit2 shift, bit3 meta); code 0 means "unset, use
+    // the manager's built-in default". [label] is the pre-formatted human-readable combo.
+
+    val overlayHotkeyEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.OVERLAY_HOTKEY_ENABLED] ?: true }
+    val overlayHotkeyCode: Flow<Int> = dataStore.data.map { it[PreferencesKeys.OVERLAY_HOTKEY_CODE] ?: 0 }
+    val overlayHotkeyMods: Flow<Int> = dataStore.data.map { it[PreferencesKeys.OVERLAY_HOTKEY_MODS] ?: 0 }
+    val overlayHotkeyLabel: Flow<String> = dataStore.data.map { it[PreferencesKeys.OVERLAY_HOTKEY_LABEL] ?: "" }
+
+    suspend fun setOverlayHotkeyEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.OVERLAY_HOTKEY_ENABLED] = enabled }
+    }
+
+    suspend fun setOverlayHotkey(code: Int, mods: Int, label: String) {
+        dataStore.edit {
+            it[PreferencesKeys.OVERLAY_HOTKEY_CODE] = code
+            it[PreferencesKeys.OVERLAY_HOTKEY_MODS] = mods
+            it[PreferencesKeys.OVERLAY_HOTKEY_LABEL] = label
+        }
     }
 
     // ── YouTube Music sync (experimental) ───────────────────────────────────

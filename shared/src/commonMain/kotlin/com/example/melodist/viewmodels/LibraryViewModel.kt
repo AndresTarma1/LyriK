@@ -338,6 +338,18 @@ class LibraryViewModel(
             }
         }
     }
+
+    /** Resolve the locally-cached songs of a LOCAL_ playlist (used by the game overlay). */
+    fun resolveLocalPlaylistSongs(
+        playlistId: String,
+        onResolved: (List<SongItem>) -> Unit,
+        onFallback: () -> Unit = {}
+    ) {
+        viewModelScope.launch {
+            val songs = playlistRepository.getCachedPlaylistSongs(playlistId).orEmpty()
+            if (songs.isNotEmpty()) onResolved(songs) else onFallback()
+        }
+    }
 }
 
 

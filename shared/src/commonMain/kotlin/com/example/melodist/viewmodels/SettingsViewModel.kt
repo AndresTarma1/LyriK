@@ -67,6 +67,12 @@ class SettingsViewModel(
     val ytmSyncEnabled: StateFlow<Boolean> = preferencesRepository.ytmSyncEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val overlayHotkeyEnabled: StateFlow<Boolean> = preferencesRepository.overlayHotkeyEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
+    val overlayHotkeyLabel: StateFlow<String> = preferencesRepository.overlayHotkeyLabel
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
     fun setAudioQuality(quality: AudioQuality) {
         viewModelScope.launch { preferencesRepository.setAudioQuality(quality) }
     }
@@ -129,5 +135,13 @@ class SettingsViewModel(
 
     fun setYtmSyncEnabled(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.setYtmSyncEnabled(enabled) }
+    }
+
+    fun setOverlayHotkeyEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setOverlayHotkeyEnabled(enabled) }
+    }
+
+    fun setOverlayHotkey(code: Int, mods: Int, label: String) {
+        viewModelScope.launch { preferencesRepository.setOverlayHotkey(code, mods, label) }
     }
 }

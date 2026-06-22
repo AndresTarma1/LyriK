@@ -74,6 +74,10 @@ import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.example.melodist.viewmodels.PlayerUiState
 import com.example.melodist.viewmodels.PlayerViewModel
 import org.koin.compose.koinInject
+import com.example.melodist.overlay.GlobalHotkeyManager
+import com.example.melodist.overlay.HotkeyCombo
+import com.example.melodist.overlay.MusicOverlayWindow
+import com.example.melodist.overlay.OverlayController
 import com.kdroid.composetray.tray.api.Tray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -160,6 +164,19 @@ fun ApplicationScope.App(
             com.example.melodist.utils.WorkingSetTrimmer.trim()
         }
     }
+
+    // Game overlay: keep the global-hotkey manager in sync with the user's configured combo.
+    val hotkeyManager: GlobalHotkeyManager = koinInject()
+    val overlayEnabled by remember(userPreferences) { userPreferences.overlayHotkeyEnabled }.collectAsState(true)
+    val overlayCode by remember(userPreferences) { userPreferences.overlayHotkeyCode }.collectAsState(0)
+    val overlayMods by remember(userPreferences) { userPreferences.overlayHotkeyMods }.collectAsState(0)
+    LaunchedEffect(overlayEnabled, overlayCode, overlayMods) {
+        hotkeyManager.setEnabled(overlayEnabled)
+        hotkeyManager.updateCombo(HotkeyCombo.fromPrefs(overlayCode, overlayMods))
+    }
+    val overlayVisible by OverlayController.visible.collectAsState()
+    val overlayPosX by remember(userPreferences) { userPreferences.overlayPosX }.collectAsState(com.example.melodist.data.repository.OVERLAY_POS_UNSET)
+    val overlayPosY by remember(userPreferences) { userPreferences.overlayPosY }.collectAsState(com.example.melodist.data.repository.OVERLAY_POS_UNSET)
 
     fun handleExit() {
         scope.launch {
@@ -331,6 +348,17 @@ fun ApplicationScope.App(
             }
         }
     }
+
+    // Independent always-on-top overlay window, toggled by the global hotkey. Lives outside the
+    // main DecoratedWindow so it works even while the app is minimized to the tray.
+    MusicOverlayWindow(
+        visible = overlayVisible,
+        onDismiss = { OverlayController.hide() },
+        playerViewModel = playerViewModel,
+        userPreferences = userPreferences,
+        savedPosX = overlayPosX,
+        savedPosY = overlayPosY,
+    )
 }
 @Composable
 private fun ApplicationScope.TrayCustom(

@@ -385,14 +385,14 @@ class PlayerViewModel(
     }
 
     @JvmName("playPlaylistFromSongItems")
-    fun playPlaylist(songs: List<SongItem>, startIndex: Int = 0, playlistId: String, title: String) =
-        playPlaylist(songs.map { it.toMediaMetadata() }, startIndex, playlistId, title)
+    fun playPlaylist(songs: List<SongItem>, startIndex: Int = 0, playlistId: String, title: String, shuffle: Boolean = false) =
+        playPlaylist(songs.map { it.toMediaMetadata() }, startIndex, playlistId, title, shuffle)
 
-    fun playPlaylist(songs: List<MediaMetadata>, startIndex: Int = 0, playlistId: String, title: String) {
+    fun playPlaylist(songs: List<MediaMetadata>, startIndex: Int = 0, playlistId: String, title: String, shuffle: Boolean = false) {
         if (songs.isEmpty()) return
         val queue = LocalQueue(QueueSource.Playlist(playlistId, title), songs, startIndex)
         currentQueue = queue
-        val uiState = queueManager.buildUiState(queue, false)
+        val uiState = queueManager.buildUiState(queue, shuffle)
         
         _uiState.update { current ->
             current.copy(

@@ -66,6 +66,12 @@ fun main() {
         listenTogetherManager.setPlayer(playerViewModel)
     }
 
+    // Game overlay: start the global keyboard hook so the configured hotkey toggles the overlay
+    // even while another app/game is focused.
+    PlatformCrashHandler.runSafely("Error iniciando GlobalHotkeyManager") {
+        koin.get<com.example.melodist.overlay.GlobalHotkeyManager>().start()
+    }
+
     mediaSession.initialize()
     mediaSession.setCallbacks(
         onPlay = { playerViewModel.togglePlayPause() },

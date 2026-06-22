@@ -56,6 +56,8 @@ import com.example.melodist.listentogether.ListenTogetherManager
 import com.example.melodist.listentogether.RoomRole
 import com.example.melodist.utils.LocalSnackbarHostState
 import com.example.melodist.utils.LocalSnackbarScope
+import com.example.melodist.utils.LocalUserPreferences
+import androidx.compose.runtime.LaunchedEffect
 import kotlinx.coroutines.launch
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
@@ -86,8 +88,12 @@ fun ListenTogetherScreen() {
     val myUserId by manager.userId.collectAsState()
     val pendingRequests by manager.pendingJoinRequests.collectAsState()
 
+    val prefs = LocalUserPreferences.current
+    val savedName by prefs.listenTogetherUsername.collectAsState("")
     var username by remember { mutableStateOf("") }
     var joinCode by remember { mutableStateOf("") }
+    // Prefill the remembered display name once it loads.
+    LaunchedEffect(savedName) { if (username.isBlank() && savedName.isNotBlank()) username = savedName }
     val defaultHost = stringResource(Res.string.lt_default_host)
     val defaultGuest = stringResource(Res.string.lt_default_guest)
     val fmtRequestRejected = stringResource(Res.string.lt_request_rejected)
@@ -144,8 +150,16 @@ fun ListenTogetherScreen() {
                     joinCode = joinCode,
                     onJoinCodeChange = { joinCode = it.uppercase() },
                     busy = connectionState == ConnectionState.CONNECTING,
-                    onCreate = { manager.createRoom(username.ifBlank { defaultHost }) },
-                    onJoin = { manager.joinRoom(joinCode.trim(), username.ifBlank { defaultGuest }) },
+                    onCreate = {
+                        val name = username.ifBlank { defaultHost }
+                        scope.launch { prefs.setListenTogetherUsername(name.trim()) }
+                        manager.createRoom(name)
+                    },
+                    onJoin = {
+                        val name = username.ifBlank { defaultGuest }
+                        scope.launch { prefs.setListenTogetherUsername(name.trim()) }
+                        manager.joinRoom(joinCode.trim(), name)
+                    },
                 )
             } else {
                 val codeCopiedMsg = stringResource(Res.string.lt_code_copied, room.roomCode)

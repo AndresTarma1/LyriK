@@ -45,7 +45,9 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     var showEqualizerDialog by remember { mutableStateOf(false) }
     var showJvmSettingsDialog by remember { mutableStateOf(false) }
     var showYtmSyncWarning by remember { mutableStateOf(false) }
+    var showOverlayCapture by remember { mutableStateOf(false) }
     val jvmSettingsViewModel: JvmSettingsViewModel = koinInject()
+    val hotkeyManager: com.example.melodist.overlay.GlobalHotkeyManager = koinInject()
 
     var showThemeDropdown by remember { mutableStateOf(false) }
     var showDarkLevelDropdown by remember { mutableStateOf(false) }
@@ -75,6 +77,9 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val youtubeRegion by viewModel.youtubeRegion.collectAsState()
     val crossfadeEnabled by viewModel.crossfadeEnabled.collectAsState()
     val ytmSyncEnabled by viewModel.ytmSyncEnabled.collectAsState()
+    val overlayHotkeyEnabled by viewModel.overlayHotkeyEnabled.collectAsState()
+    val overlayHotkeyLabel by viewModel.overlayHotkeyLabel.collectAsState()
+    val defaultHotkeyLabel = remember { com.example.melodist.overlay.HotkeyCombo.DEFAULT.label() }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -243,6 +248,35 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
 
                 Spacer(Modifier.height(8.dp))
                 SettingsGroup(
+                    title = { Text(stringResource(Res.string.section_overlay)) },
+                    colors = colors,
+                ) {
+                    SettingsSwitch(
+                        icon = { Icon(Icons.Rounded.VideogameAsset, null) },
+                        title = { Text(stringResource(Res.string.overlay_enable)) },
+                        subtitle = { Text(stringResource(Res.string.overlay_enable_subtitle)) },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        state = overlayHotkeyEnabled,
+                        onCheckedChange = { viewModel.setOverlayHotkeyEnabled(it) }
+                    )
+                    SettingsMenuLink(
+                        icon = { Icon(Icons.Rounded.Keyboard, null) },
+                        title = { Text(stringResource(Res.string.overlay_shortcut)) },
+                        subtitle = { Text(overlayHotkeyLabel.ifBlank { defaultHotkeyLabel }) },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        action = {
+                            FilledTonalButton(onClick = { showOverlayCapture = true }) {
+                                Text(stringResource(Res.string.overlay_shortcut_set))
+                            }
+                        },
+                        onClick = { showOverlayCapture = true }
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
+                SettingsGroup(
                     title = { Text(stringResource(Res.string.section_system)) },
                     colors = colors)
                 {
@@ -325,6 +359,28 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     .padding(end = 2.dp, top = 4.dp, bottom = 4.dp)
             )
         }
+    }
+
+    if (showOverlayCapture) {
+        // Put the hotkey manager in one-shot capture mode while the dialog is open; the next
+        // non-modifier key press is recorded as the new combo.
+        DisposableEffect(Unit) {
+            hotkeyManager.beginCapture { combo ->
+                viewModel.setOverlayHotkey(combo.keyCode, combo.modsMask, combo.label())
+                showOverlayCapture = false
+            }
+            onDispose { hotkeyManager.cancelCapture() }
+        }
+        AlertDialog(
+            onDismissRequest = { showOverlayCapture = false },
+            icon = { Icon(Icons.Rounded.Keyboard, null) },
+            title = { Text(stringResource(Res.string.overlay_capture_title)) },
+            text = { Text(stringResource(Res.string.overlay_capture_message)) },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showOverlayCapture = false }) { Text(stringResource(Res.string.cancel)) }
+            },
+        )
     }
 
     if (showYtmSyncWarning) {

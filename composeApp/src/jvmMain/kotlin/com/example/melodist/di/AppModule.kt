@@ -42,6 +42,8 @@ import com.example.melodist.player.WindowsMediaSession
 import com.example.melodist.listentogether.ListenTogetherClient
 import com.example.melodist.listentogether.ListenTogetherManager
 import com.example.melodist.utils.SyncUtils
+import com.example.melodist.overlay.GlobalHotkeyManager
+import com.example.melodist.overlay.OverlayController
 import org.koin.dsl.module
 
 val appModule = module {
@@ -81,6 +83,9 @@ val appModule = module {
     single<ListenTogetherManager> { ListenTogetherManager(get()) }
     single<AppLifecycleManager> { AppLifecycleManager(get(), get(), get(), get()) }
     single<JvmConfigLauncher> { JvmConfigLauncher(get()) }
+
+    // Game overlay — global hotkey toggles an always-on-top music window.
+    single { GlobalHotkeyManager(onTrigger = { OverlayController.toggle() }) }
 
     // ViewModels — loginState de AccountManager para reaccionar a cambios de sesión
     factory { AccountViewModel() }
