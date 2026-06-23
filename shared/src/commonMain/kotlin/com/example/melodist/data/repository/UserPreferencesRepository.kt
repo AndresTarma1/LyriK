@@ -64,6 +64,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val CACHE_IMAGES = booleanPreferencesKey("cache_images")
         val IMAGES_ENABLED = booleanPreferencesKey("images_enabled")
         val MINIMIZE_TO_TRAY = booleanPreferencesKey("minimize_to_tray")
+        val TRIM_MEMORY_ON_TRAY = booleanPreferencesKey("trim_memory_on_tray")
         val WINDOW_WIDTH = intPreferencesKey("window_width")
         val WINDOW_HEIGHT = intPreferencesKey("window_height")
         val WINDOW_MAXIMIZED = booleanPreferencesKey("window_maximized")
@@ -190,6 +191,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     val cacheImages: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.CACHE_IMAGES] ?: true }
     val imagesEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.IMAGES_ENABLED] ?: true }
     val minimizeToTray: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.MINIMIZE_TO_TRAY] ?: true }
+    val trimMemoryOnTray: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.TRIM_MEMORY_ON_TRAY] ?: true }
 
     val windowWidth: Flow<Int> = dataStore.data.map { it[PreferencesKeys.WINDOW_WIDTH] ?: 1200 }
     val windowHeight: Flow<Int> = dataStore.data.map { it[PreferencesKeys.WINDOW_HEIGHT] ?: 800 }
@@ -236,6 +238,10 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setMinimizeToTray(enabled: Boolean) {
         dataStore.edit { it[PreferencesKeys.MINIMIZE_TO_TRAY] = enabled }
+    }
+
+    suspend fun setTrimMemoryOnTray(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.TRIM_MEMORY_ON_TRAY] = enabled }
     }
 
     suspend fun setWindowSize(width: Int, height: Int) {

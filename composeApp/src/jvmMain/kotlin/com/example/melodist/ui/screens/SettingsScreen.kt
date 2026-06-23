@@ -72,6 +72,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val cacheImages by viewModel.cacheImages.collectAsState()
     val imagesEnabled by viewModel.imagesEnabled.collectAsState()
     val minimizeToTray by viewModel.minimizeToTray.collectAsState()
+    val trimMemoryOnTray by viewModel.trimMemoryOnTray.collectAsState()
     val equalizerBands by viewModel.equalizerBands.collectAsState()
     val currentLocale by viewModel.locale.collectAsState()
     val youtubeRegion by viewModel.youtubeRegion.collectAsState()
@@ -309,6 +310,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         shape = RoundedCornerShape(16.dp),
                         state = minimizeToTray,
                         onCheckedChange = { viewModel.setMinimizeToTray(it) }
+                    )
+                    SettingsSwitch(
+                        icon = { Icon(Icons.Rounded.CleaningServices, null) },
+                        title = { Text(stringResource(Res.string.trim_memory_on_tray)) },
+                        subtitle = { Text(stringResource(Res.string.trim_memory_on_tray_subtitle)) },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        state = trimMemoryOnTray,
+                        onCheckedChange = { viewModel.setTrimMemoryOnTray(it) }
                     )
                     SettingsSwitch(
                         icon = { Icon(Icons.Rounded.Image, null) },
@@ -570,7 +580,7 @@ private fun AboutCard() {
 
             Surface(shape = circleAwareShape(), color = MaterialTheme.colorScheme.primaryContainer) {
                 Text(
-                    text = stringResource(Res.string.version_prefix) + "0.1.5",
+                    text = stringResource(Res.string.version_prefix) + "0.2.0",
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)

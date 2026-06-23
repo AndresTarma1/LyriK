@@ -79,6 +79,8 @@
     <string name="overlay_lt_host">Anfitrión</string>
     <string name="section_system">Sistema</string>
     <string name="minimize_to_tray">Minimizar a la bandeja del sistema</string>
+    <string name="trim_memory_on_tray">Liberar memoria al minimizar a la bandeja</string>
+    <string name="trim_memory_on_tray_subtitle">Devuelve al sistema la RAM no usada cuando la app se oculta en la bandeja. Reduce el consumo en segundo plano; las páginas se recargan al volver.</string>
     <string name="cache_images">Caché de imágenes en disco</string>
     <string name="download_cache">Caché de descargas</string>
     <string name="open_data_folder">Abrir carpeta de datos</string>
@@ -435,6 +437,9 @@
     <string name="lt_approve">Aprobar</string>
     <string name="lt_reject">Rechazar</string>
     <string name="lt_members_title">Miembros (%1$d)</string>
+    <string name="lt_member_options">Opciones del integrante</string>
+    <string name="lt_make_host">Pasar a anfitrión</string>
+    <string name="lt_kick">Expulsar de la sala</string>
     <string name="lt_you_suffix">%1$s (tú)</string>
     <string name="lt_leave_btn">Salir de la sala</string>
     <string name="lt_request_rejected">Solicitud rechazada: %1$s</string>

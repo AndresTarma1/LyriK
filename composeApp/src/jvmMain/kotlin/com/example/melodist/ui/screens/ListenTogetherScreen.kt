@@ -23,11 +23,16 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PersonRemove
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -170,6 +175,8 @@ fun ListenTogetherScreen() {
                     pending = pendingRequests.map { it.userId to it.username },
                     onApprove = { manager.approveJoin(it) },
                     onReject = { manager.rejectJoin(it) },
+                    onTransferHost = { manager.transferHost(it) },
+                    onKick = { manager.kickUser(it) },
                     onCopyCode = {
                         val clipboard = Toolkit.getDefaultToolkit().systemClipboard
                         clipboard.setContents(StringSelection(room.roomCode), null)
@@ -229,6 +236,7 @@ private fun LobbyContent(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -250,6 +258,7 @@ private fun LobbyContent(
 
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -284,11 +293,14 @@ private fun RoomContent(
     pending: List<Pair<String, String>>, // userId, username
     onApprove: (String) -> Unit,
     onReject: (String) -> Unit,
+    onTransferHost: (String) -> Unit,
+    onKick: (String) -> Unit,
     onCopyCode: () -> Unit,
     onLeave: () -> Unit,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -317,7 +329,8 @@ private fun RoomContent(
         pending.forEach { (userId, name) ->
             Surface(
                 shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 0.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -353,7 +366,7 @@ private fun RoomContent(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                    modifier = Modifier.padding(start = 12.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (member.isHost) {
@@ -363,8 +376,43 @@ private fun RoomContent(
                     Text(
                         if (member.isMe) stringResource(Res.string.lt_you_suffix, member.username) else member.username,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
                     )
+                    // Host-only controls over other members: transfer host, kick.
+                    if (isHost && !member.isMe) {
+                        var showMenu by remember { mutableStateOf(false) }
+                        Box {
+                            IconButton(onClick = { showMenu = true }, modifier = Modifier.size(36.dp)) {
+                                Icon(
+                                    Icons.Filled.MoreVert,
+                                    contentDescription = stringResource(Res.string.lt_member_options),
+                                    modifier = Modifier.size(20.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showMenu,
+                                onDismissRequest = { showMenu = false },
+                                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                                tonalElevation = 0.dp,
+                                shadowElevation = 8.dp,
+                            ) {
+                                if (!member.isHost) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(Res.string.lt_make_host)) },
+                                        onClick = { showMenu = false; onTransferHost(member.userId) },
+                                        leadingIcon = { Icon(Icons.Filled.StarOutline, null) },
+                                    )
+                                }
+                                DropdownMenuItem(
+                                    text = { Text(stringResource(Res.string.lt_kick), color = MaterialTheme.colorScheme.error) },
+                                    onClick = { showMenu = false; onKick(member.userId) },
+                                    leadingIcon = { Icon(Icons.Filled.PersonRemove, null, tint = MaterialTheme.colorScheme.error) },
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }

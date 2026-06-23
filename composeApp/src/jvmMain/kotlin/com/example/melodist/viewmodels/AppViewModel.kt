@@ -26,7 +26,7 @@ class AppViewModel : ViewModel() {
     private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
     val updateInfo: StateFlow<AppUpdateInfo?> = _updateInfo.asStateFlow()
 
-    private val currentVersion = "0.1.5"
+    private val currentVersion = "0.2.0"
 
     fun checkForUpdates() {
         viewModelScope.launch {

@@ -158,8 +158,9 @@ fun ApplicationScope.App(
     // thread stacks sitting resident). Pages fault back on restore; doing it only while hidden
     // avoids any visible stutter. Re-keys to true before the delay fires at startup, so it never
     // trims during normal use.
-    LaunchedEffect(isVisible) {
-        if (!isVisible) {
+    val trimMemoryOnTray by remember(userPreferences) { userPreferences.trimMemoryOnTray }.collectAsState(true)
+    LaunchedEffect(isVisible, trimMemoryOnTray) {
+        if (!isVisible && trimMemoryOnTray) {
             kotlinx.coroutines.delay(2000)
             com.example.melodist.utils.WorkingSetTrimmer.trim()
         }

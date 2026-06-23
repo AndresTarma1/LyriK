@@ -75,6 +75,7 @@ class ListenTogetherManager(
     fun approveJoin(userId: String) = client.approveJoin(userId)
     fun rejectJoin(userId: String) = client.rejectJoin(userId)
     fun kickUser(userId: String) = client.kickUser(userId)
+    fun transferHost(userId: String) = client.transferHost(userId)
 
     // ---- Host observation ----
 

@@ -49,6 +49,9 @@ class SettingsViewModel(
     val minimizeToTray: StateFlow<Boolean> = preferencesRepository.minimizeToTray
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
+    val trimMemoryOnTray: StateFlow<Boolean> = preferencesRepository.trimMemoryOnTray
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
+
     val queueLocked: StateFlow<Boolean> = preferencesRepository.queueLocked
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -111,6 +114,10 @@ class SettingsViewModel(
 
     fun setMinimizeToTray(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.setMinimizeToTray(enabled) }
+    }
+
+    fun setTrimMemoryOnTray(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setTrimMemoryOnTray(enabled) }
     }
 
     fun setQueueLocked(locked: Boolean) {

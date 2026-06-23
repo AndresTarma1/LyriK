@@ -79,6 +79,8 @@
     <string name="overlay_lt_host">Host</string>
     <string name="section_system">System</string>
     <string name="minimize_to_tray">Minimize to system tray</string>
+    <string name="trim_memory_on_tray">Free memory when minimized to tray</string>
+    <string name="trim_memory_on_tray_subtitle">Returns unused RAM to the OS while the app is hidden in the tray. Lowers background usage; pages fault back in on restore.</string>
     <string name="cache_images">Cache images on disk</string>
     <string name="download_cache">Download cache</string>
     <string name="open_data_folder">Open data folder</string>
@@ -420,6 +422,9 @@
     <string name="lt_approve">Approve</string>
     <string name="lt_reject">Reject</string>
     <string name="lt_members_title">Members (%1$d)</string>
+    <string name="lt_member_options">Member options</string>
+    <string name="lt_make_host">Make host</string>
+    <string name="lt_kick">Kick from room</string>
     <string name="lt_you_suffix">%1$s (you)</string>
     <string name="lt_leave_btn">Leave room</string>
     <string name="lt_request_rejected">Request rejected: %1$s</string>
