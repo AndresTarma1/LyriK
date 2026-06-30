@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🎵 Melodist
+# 🎵 Lyrik
 
 **Un reproductor de música de escritorio para YouTube Music.**
 
