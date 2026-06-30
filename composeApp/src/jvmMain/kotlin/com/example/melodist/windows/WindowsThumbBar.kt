@@ -93,6 +93,9 @@ class WindowsThumbBar(
             // Windows creates the taskbar button asynchronously; only then do thumb buttons stick.
             if (uMsg != 0 && uMsg == taskbarButtonCreatedMsg) {
                 Napier.i("[thumbbar] TaskbarButtonCreated received")
+                // The taskbar button is destroyed when the window hides to tray and recreated on
+                // restore, losing its thumb buttons. Reset so we re-ADD (not update) the fresh button.
+                buttonsAdded = false
                 safe { addButtons() }
             }
             if (uMsg == WM_COMMAND && wParam != null) {

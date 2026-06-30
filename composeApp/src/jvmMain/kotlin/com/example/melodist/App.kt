@@ -134,18 +134,8 @@ fun ApplicationScope.App(
     val snackbarHostState = remember { SnackbarHostState() }
     val updateInfo by appViewModel.updateInfo.collectAsState()
 
-    // Carga de dimensiones iniciales de ventana segura
-    LaunchedEffect(userPreferences) {
-        val initialWidth = userPreferences.windowWidth.first()
-        val initialHeight = userPreferences.windowHeight.first()
-        val initialMaximized = userPreferences.windowMaximized.first()
-        windowState.size = DpSize(initialWidth.dp, initialHeight.dp)
-        windowState.placement = if (initialMaximized) {
-            WindowPlacement.Maximized
-        } else {
-            WindowPlacement.Floating
-        }
-    }
+    // Window size/placement is now set at construction in main() (read from prefs before the window
+    // is built), so it opens in the right placement on the first frame — no async placement race.
 
     LaunchedEffect(Unit) {
         appViewModel.checkForUpdates()

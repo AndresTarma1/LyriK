@@ -12,6 +12,11 @@ import java.util.logging.Logger
 class MpvAudioPlayer {
     private val log = Logger.getLogger("MpvAudioPlayer")
     private var handle: Pointer? = null
+
+    // Audio settings requested before the native handle exists (deferred/lazy mpv init) — cached
+    // here and re-applied in init() so nothing is lost.
+    private var lastEqualizer: List<Float>? = null
+    private var lastGapless: Boolean? = null
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
@@ -86,6 +91,9 @@ class MpvAudioPlayer {
 
                 startEventLoop(it)
             }
+            // Re-apply settings requested before the handle existed (deferred/lazy init).
+            lastEqualizer?.let { bands -> setEqualizer(bands) }
+            lastGapless?.let { enabled -> setGaplessAudio(enabled) }
         } catch (e: Exception) {
             log.severe("MpvAudioPlayer init failed: ${e.message}")
             throw e
@@ -219,6 +227,7 @@ class MpvAudioPlayer {
         }
 
     fun setGaplessAudio(enabled: Boolean) {
+        lastGapless = enabled
         handle?.let {
             MpvLib.INSTANCE.mpv_set_property_string(it, "gapless-audio", if (enabled) "yes" else "no")
         }
@@ -226,6 +235,7 @@ class MpvAudioPlayer {
 
     fun setEqualizer(bands: List<Float>) {
         if (bands.size != 10) return
+        lastEqualizer = bands
         handle?.let { mpv ->
             // En MPV, el filtro equalizer necesita la ganancia en formato:
             // f=frecuencia:width=ancho:g=ganancia

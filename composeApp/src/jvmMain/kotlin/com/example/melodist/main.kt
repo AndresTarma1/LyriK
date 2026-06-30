@@ -3,9 +3,12 @@ package com.example.melodist
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import coil3.compose.setSingletonImageLoaderFactory
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
@@ -44,8 +47,9 @@ fun main() {
 
     koin.get<JvmConfigLauncher>().applySync()
 
+    // Construct the VM now (the UI binds to it), but defer its native init (mpv) — see the thread below.
     val playerViewModel = PlatformCrashHandler.runSafely("Error creando PlayerViewModel") {
-        koin.get<PlayerViewModel>().also { it.initialize() }
+        koin.get<PlayerViewModel>()
     }
     val downloadViewModel = PlatformCrashHandler.runSafely("Error creando DownloadViewModel") {
         koin.get<DownloadViewModel>()
@@ -57,37 +61,64 @@ fun main() {
         koin.get<UserPreferencesRepository>()
     }
     val lifecycleManager = koin.get<AppLifecycleManager>()
-    val mediaSession = koin.get<WindowsMediaSession>()
 
-    // Listen Together: wire the sync manager to the player.
-    PlatformCrashHandler.runSafely("Error iniciando ListenTogetherManager") {
-        val listenTogetherManager = koin.get<com.example.melodist.listentogether.ListenTogetherManager>()
-        listenTogetherManager.initialize()
-        listenTogetherManager.setPlayer(playerViewModel)
+    // Defer non-UI native services off the startup critical path. None of these are needed to paint
+    // the window — initializing them here delayed first paint by the cost of mpv, the SMTC media
+    // session, the jnativehook global hook and the Listen Together setup. They come online a beat
+    // after the UI on a background thread instead.
+    Thread {
+        // mpv (native player) first: play() also self-inits as a fallback if the user plays before
+        // this runs (init() is idempotent), and any EQ/gapless requested meanwhile is cached and
+        // applied on init — so deferring it loses nothing.
+        PlatformCrashHandler.runSafely("Error inicializando reproductor (mpv)") {
+            playerViewModel.initialize()
+        }
+
+        PlatformCrashHandler.runSafely("Error iniciando WindowsMediaSession") {
+            val mediaSession = koin.get<WindowsMediaSession>()
+            mediaSession.initialize()
+            mediaSession.setCallbacks(
+                onPlay = { playerViewModel.togglePlayPause() },
+                onPause = { playerViewModel.togglePlayPause() },
+                onNext = { playerViewModel.next() },
+                onPrevious = { playerViewModel.previous() },
+                onStop = { playerViewModel.stop() },
+            )
+            mediaSession.setPositionProvider { playerViewModel.progressState.value.positionMs }
+        }
+
+        // Listen Together: wire the sync manager to the player.
+        PlatformCrashHandler.runSafely("Error iniciando ListenTogetherManager") {
+            val listenTogetherManager = koin.get<com.example.melodist.listentogether.ListenTogetherManager>()
+            listenTogetherManager.initialize()
+            listenTogetherManager.setPlayer(playerViewModel)
+        }
+
+        // Game overlay: start the global keyboard hook so the configured hotkey toggles the overlay
+        // even while another app/game is focused.
+        PlatformCrashHandler.runSafely("Error iniciando GlobalHotkeyManager") {
+            koin.get<com.example.melodist.overlay.GlobalHotkeyManager>().start()
+        }
+    }.apply { name = "lyrik-deferred-init"; isDaemon = true }.start()
+
+    // Read the saved window geometry BEFORE building the window so it opens in the right placement
+    // from the first frame. Setting placement asynchronously (after composition) is what forced the
+    // open-floating-then-maximize flicker and the componentResized workaround.
+    val saved = runBlocking {
+        Triple(
+            userPreferencesRepository.windowWidth.first(),
+            userPreferencesRepository.windowHeight.first(),
+            userPreferencesRepository.windowMaximized.first(),
+        )
     }
-
-    // Game overlay: start the global keyboard hook so the configured hotkey toggles the overlay
-    // even while another app/game is focused.
-    PlatformCrashHandler.runSafely("Error iniciando GlobalHotkeyManager") {
-        koin.get<com.example.melodist.overlay.GlobalHotkeyManager>().start()
-    }
-
-    mediaSession.initialize()
-    mediaSession.setCallbacks(
-        onPlay = { playerViewModel.togglePlayPause() },
-        onPause = { playerViewModel.togglePlayPause() },
-        onNext = { playerViewModel.next() },
-        onPrevious = { playerViewModel.previous() },
-        onStop = { playerViewModel.stop() },
-    )
-    mediaSession.setPositionProvider { playerViewModel.progressState.value.positionMs }
 
     application {
         setSingletonImageLoaderFactory { context -> CoilSetup.createImageLoader(context) }
         val windowState = rememberWindowState(
-            width = 1200.dp,
-            height = 800.dp,
+            width = saved.first.dp,
+            height = saved.second.dp,
             position = WindowPosition(Alignment.Center),
+            placement = if (saved.third) WindowPlacement.Maximized else WindowPlacement.Floating,
         )
         val lifecycle = remember { LifecycleRegistry() }
         val rootComponent = remember { RootComponent(DefaultComponentContext(lifecycle)) }
