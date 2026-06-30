@@ -49,6 +49,8 @@ data class HomePage(
         val thumbnail: String?,
         val endpoint: BrowseEndpoint?,
         val items: List<YTItem>,
+        /** When > 1, YouTube renders this shelf as a horizontally-scrolling grid (rows per column). */
+        val numItemsPerColumn: Int? = null,
     ) {
         companion object {
             fun fromMusicCarouselShelfRenderer(renderer: MusicCarouselShelfRenderer): Section? {
@@ -92,7 +94,8 @@ data class HomePage(
                     label = renderer.header.musicCarouselShelfBasicHeaderRenderer.strapline?.runs?.firstOrNull()?.text,
                     thumbnail = renderer.header.musicCarouselShelfBasicHeaderRenderer.thumbnail?.musicThumbnailRenderer?.getThumbnailUrl(),
                     endpoint = renderer.header.musicCarouselShelfBasicHeaderRenderer.moreContentButton?.buttonRenderer?.navigationEndpoint?.browseEndpoint,
-                    items = items
+                    items = items,
+                    numItemsPerColumn = renderer.numItemsPerColumn,
                 )
             }
 

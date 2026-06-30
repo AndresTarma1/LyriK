@@ -449,6 +449,21 @@ fun MediaGridItem(
     )
 }
 
+/**
+ * Asks Google's image CDN for a larger render. List thumbnails arrive tiny (~60px), which looks
+ * blurry even at the 56dp display size; bumping the `wNNN-hNNN` segment yields a crisp image
+ * without changing layout. No-op for URLs that don't carry a size segment.
+ */
+internal fun String?.resizeThumbnailUrl(size: Int): String? {
+    if (this.isNullOrEmpty()) return this
+    val replaced = Regex("w\\d+-h\\d+").replace(this, "w$size-h$size")
+    if (replaced != this) return replaced
+    return if (startsWith("https://lh3.googleusercontent.com") ||
+        startsWith("https://yt3.ggpht.com") ||
+        startsWith("https://yt3.googleusercontent.com")
+    ) "$this=w$size-h$size-l90-rj" else this
+}
+
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun YoutubeListItem(
@@ -541,7 +556,7 @@ fun YoutubeListItem(
             },
             leadingContent = {
                 MelodistImage(
-                    url = item.thumbnail,
+                    url = item.thumbnail.resizeThumbnailUrl(160),
                     contentDescription = item.title,
                     modifier = Modifier.size(imageSize),
                     shape = shape,

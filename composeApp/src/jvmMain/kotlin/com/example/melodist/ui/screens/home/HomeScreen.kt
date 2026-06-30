@@ -286,24 +286,62 @@ private fun HomeSectionRow(
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
         )
 
-        val sectionScrollState = rememberLazyListState()
-        HorizontalScrollableRow(
-            modifier = Modifier.fillMaxWidth(),
-            state = sectionScrollState,
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            items(
-                count = section.items.size,
-                key = { index -> section.items[index].id }
-            ) { index ->
-                HomeSectionItem(
-                    item = section.items[index],
-                    onNavigate = onNavigate,
-                    playerViewModel = playerViewModel,
+        val rows = section.numItemsPerColumn ?: 1
+        if (rows > 1) {
+            // Grid shelf: YouTube stacks several rows per column (e.g. quick-picks-style song
+            // lists). Render as list rows across multiple columns, like the search results.
+            HorizontalGridLikeRow(
+                items = section.items,
+                rows = rows,
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+                columnWidth = 320.dp,
+                rowSpacing = 8.dp,
+                columnSpacing = 12.dp,
+                itemKey = { it.id },
+            ) { item ->
+                YoutubeListItem(
+                    item = item,
+                    source = ItemContentSource.YOUTUBE,
+                    onItemClick = { onHomeItemClick(it, onNavigate, playerViewModel) },
+                    modifier = Modifier.fillMaxWidth().height(64.dp),
                 )
             }
+        } else {
+            val sectionScrollState = rememberLazyListState()
+            HorizontalScrollableRow(
+                modifier = Modifier.fillMaxWidth(),
+                state = sectionScrollState,
+                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(
+                    count = section.items.size,
+                    key = { index -> section.items[index].id }
+                ) { index ->
+                    HomeSectionItem(
+                        item = section.items[index],
+                        onNavigate = onNavigate,
+                        playerViewModel = playerViewModel,
+                    )
+                }
+            }
         }
+    }
+}
+
+/** Shared click routing for a home YTItem (play a song, or navigate to album/playlist/artist). */
+private fun onHomeItemClick(
+    item: YTItem,
+    onNavigate: (Route) -> Unit,
+    playerViewModel: PlayerViewModel?,
+) {
+    when (item) {
+        is SongItem -> playerViewModel?.playSingle(item)
+        is AlbumItem -> onNavigate(Route.Album(item.browseId))
+        is PlaylistItem -> onNavigate(Route.Playlist(item.id))
+        is ArtistItem -> onNavigate(Route.Artist(item.id))
+        else -> {}
     }
 }
 
