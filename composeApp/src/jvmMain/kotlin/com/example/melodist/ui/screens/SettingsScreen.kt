@@ -590,7 +590,7 @@ private fun AboutCard() {
 
             Surface(shape = circleAwareShape(), color = MaterialTheme.colorScheme.primaryContainer) {
                 Text(
-                    text = stringResource(Res.string.version_prefix) + "0.2.0",
+                    text = stringResource(Res.string.version_prefix) + com.example.melodist.viewmodels.AppViewModel.CURRENT_VERSION,
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)

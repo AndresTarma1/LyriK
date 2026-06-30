@@ -45,13 +45,18 @@ sealed interface UpdateDownloadState {
 
 class AppViewModel : ViewModel() {
 
+    companion object {
+        /** Single source of truth for the displayed/compared app version (also shown in Settings). */
+        const val CURRENT_VERSION = "0.3.0"
+    }
+
     private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
     val updateInfo: StateFlow<AppUpdateInfo?> = _updateInfo.asStateFlow()
 
     private val _downloadState = MutableStateFlow<UpdateDownloadState>(UpdateDownloadState.Idle)
     val downloadState: StateFlow<UpdateDownloadState> = _downloadState.asStateFlow()
 
-    private val currentVersion = "0.3.0"
+    private val currentVersion = CURRENT_VERSION
 
     fun checkForUpdates() {
         viewModelScope.launch {
