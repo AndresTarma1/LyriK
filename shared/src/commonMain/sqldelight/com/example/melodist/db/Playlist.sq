@@ -41,6 +41,9 @@ UPDATE Playlist SET bookmarkedAt = ? WHERE id = ?;
 deletePlaylist:
 DELETE FROM Playlist WHERE id = ?;
 
+deleteRemotePlaylists:
+DELETE FROM Playlist WHERE isLocal = 0;
+
 playlistExists:
 SELECT COUNT(*) > 0 FROM Playlist WHERE id = ?;
 

@@ -2,12 +2,16 @@ package com.example.melodist.viewmodels
 
 import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.account.AccountManager
+import com.example.melodist.data.repository.UserPreferencesRepository
+import com.example.melodist.db.DatabaseDao
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AccountInfo
 import com.metrolist.innertube.models.PlaylistItem
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 // ─── UI States ────────────────────────────────────────────────
@@ -27,7 +31,27 @@ sealed class AccountState {
 
 // ─── ViewModel ────────────────────────────────────────────────
 
-class AccountViewModel : MelodistViewModel() {
+class AccountViewModel(
+    private val databaseDao: DatabaseDao,
+    private val userPreferences: UserPreferencesRepository,
+) : MelodistViewModel() {
+
+    /**
+     * Detects a YouTube account switch and wipes the previous account's library so it doesn't
+     * bleed into the new one (e.g. the old account's saved "Liked Music"). Keeps local playlists,
+     * downloads and local history. No-op on first login or when the account is unchanged.
+     */
+    private suspend fun handleAccountChange(info: AccountInfo) {
+        val currentId = info.email ?: info.channelHandle ?: info.name
+        if (currentId.isBlank()) return
+        val lastId = userPreferences.lastAccountId.first()
+        if (lastId.isNotBlank() && lastId != currentId) {
+            runCatching { databaseDao.clearAccountLibrary() }
+                .onSuccess { Napier.i("Account changed; cleared previous account's library") }
+                .onFailure { Napier.w("Failed clearing account library on switch: ${it.message}") }
+        }
+        if (lastId != currentId) userPreferences.setLastAccountId(currentId)
+    }
 
     private val _uiState = MutableStateFlow<AccountState>(AccountState.NotLoggedIn)
     val uiState: StateFlow<AccountState> = _uiState.asStateFlow()
@@ -79,6 +103,7 @@ class AccountViewModel : MelodistViewModel() {
                     _uiState.value = AccountState.LoggedIn(
                         accountInfo = info, isLoadingPlaylists = true
                     )
+                    handleAccountChange(info)
                     loadPlaylists()
                 }
                 .onFailure { error ->
@@ -132,6 +157,7 @@ class AccountViewModel : MelodistViewModel() {
                         accountInfo = info,
                         isLoadingPlaylists = true
                     )
+                    handleAccountChange(info)
                     loadPlaylists()
                 }
                 .onFailure { err ->

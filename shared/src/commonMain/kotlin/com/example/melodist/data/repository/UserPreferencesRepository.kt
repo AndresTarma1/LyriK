@@ -83,6 +83,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val OVERLAY_POS_X = intPreferencesKey("overlay_pos_x")
         val OVERLAY_POS_Y = intPreferencesKey("overlay_pos_y")
         val LT_USERNAME = stringPreferencesKey("listen_together_username")
+        val LAST_ACCOUNT_ID = stringPreferencesKey("last_account_id")
     }
 
     /** Last overlay window position in dp, or [OVERLAY_POS_UNSET] when never moved (→ default corner). */
@@ -101,6 +102,13 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setListenTogetherUsername(name: String) {
         dataStore.edit { it[PreferencesKeys.LT_USERNAME] = name }
+    }
+
+    /** Identity (email) of the last signed-in YouTube account — used to detect account switches. */
+    val lastAccountId: Flow<String> = dataStore.data.map { it[PreferencesKeys.LAST_ACCOUNT_ID] ?: "" }
+
+    suspend fun setLastAccountId(id: String) {
+        dataStore.edit { it[PreferencesKeys.LAST_ACCOUNT_ID] = id }
     }
 
     // ── Game overlay hotkey ─────────────────────────────────────────────────

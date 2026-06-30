@@ -88,7 +88,7 @@ val appModule = module {
     single { GlobalHotkeyManager(onTrigger = { OverlayController.toggle() }) }
 
     // ViewModels — loginState de AccountManager para reaccionar a cambios de sesión
-    factory { AccountViewModel() }
+    factory { AccountViewModel(get(), get()) }
     factory { YouTubeBrowseViewModel() }
     single { HomeViewModel(databaseDao = get(), loginState = AccountManager.loginState) }
     single { SearchViewModel(get()) }

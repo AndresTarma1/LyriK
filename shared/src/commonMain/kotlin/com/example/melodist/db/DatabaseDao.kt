@@ -104,6 +104,18 @@ class DatabaseDao(private val database: MelodistDatabase) {
     suspend fun deleteSearchHistory(query: String) = history.deleteSearchHistory(query)
     suspend fun clearSearchHistory() = history.clearSearchHistory()
 
+    /**
+     * Wipes account-scoped library data when switching YouTube accounts: bookmarked remote
+     * playlists (e.g. "Liked Music") and saved songs/albums/artists. Keeps the user's local
+     * playlists, downloads and local play history.
+     */
+    suspend fun clearAccountLibrary() = withContext(Dispatchers.IO) {
+        playlists.deleteRemotePlaylists()
+        database.savedSongQueries.deleteAll()
+        database.savedAlbumQueries.deleteAll()
+        database.savedArtistQueries.deleteAll()
+    }
+
     suspend fun insertLyrics(id: String, lyricsText: String, provider: String = "Unknown") = lyrics.insertLyrics(id, lyricsText, provider)
     fun downloadedSongs(): Flow<List<SongEntity>> = songs.downloadedSongs()
     fun downloadedSongsCount(): Flow<Long> = songs.downloadedSongsCount()

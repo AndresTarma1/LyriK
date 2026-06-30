@@ -74,6 +74,11 @@ class PlaylistDao(private val database: MelodistDatabase) {
         database.playlistQueries.deletePlaylist(id)
     }
 
+    /** Removes bookmarked remote playlists (isLocal = 0); keeps the user's local playlists. */
+    suspend fun deleteRemotePlaylists() = withContext(Dispatchers.IO) {
+        database.playlistQueries.deleteRemotePlaylists()
+    }
+
     fun countByPlaylist(playlistId: String): Long =
         database.playlistSongMapQueries.countByPlaylist(playlistId).executeAsOne()
 
