@@ -14,13 +14,13 @@ object AppEnvironment {
 
     fun initialize() {
         AppDirs.ensureDirectories()
-        redirectStandardStreams()
+        // redirectStandardStreams()
         Napier.base(DebugAntilog())
         val tmpDir = AppDirs.tmpDir.also { it.mkdirs() }
 
         System.setProperty("org.sqlite.tmpdir", tmpDir.absolutePath)
         System.setProperty("java.io.tmpdir", tmpDir.absolutePath)
-        System.setProperty("compose.swing.render.on.graphics", "true")
+        // System.setProperty("compose.swing.render.on.graphics", "true")
 
         configureYouTubeLocale()
     }
