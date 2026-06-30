@@ -102,7 +102,7 @@ object YtDlpResolver {
         val cookie = com.metrolist.innertube.YouTube.cookie?.takeIf { it.isNotBlank() } ?: return null
         cachedCookiesFile?.let { if (cachedCookieValue == cookie && it.exists()) return it }
         return try {
-            val dir = File(System.getProperty("user.home"), ".melodist").apply { mkdirs() }
+            val dir = File(com.example.melodist.platform.AppPaths.tmpDir).apply { mkdirs() }
             val file = File(dir, "ytdlp-cookies.txt")
             val sb = StringBuilder("# Netscape HTTP Cookie File\n")
             cookie.split(';').forEach { pair ->
