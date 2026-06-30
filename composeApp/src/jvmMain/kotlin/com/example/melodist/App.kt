@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -21,6 +23,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
@@ -69,6 +72,7 @@ import com.example.melodist.utils.LocalSnackbarHostState
 import com.example.melodist.utils.LocalSnackbarScope
 import com.example.melodist.utils.LocalUserPreferences
 import com.example.melodist.viewmodels.AppViewModel
+import com.example.melodist.viewmodels.UpdateDownloadState
 import com.example.melodist.viewmodels.DownloadViewModel
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.example.melodist.viewmodels.PlayerUiState
@@ -94,6 +98,10 @@ import lyrik.composeapp.generated.resources.tray_pause
 import lyrik.composeapp.generated.resources.tray_play
 import lyrik.composeapp.generated.resources.tray_previous
 import lyrik.composeapp.generated.resources.update_download
+import lyrik.composeapp.generated.resources.update_install
+import lyrik.composeapp.generated.resources.update_downloading
+import lyrik.composeapp.generated.resources.update_installing
+import lyrik.composeapp.generated.resources.update_failed
 import lyrik.composeapp.generated.resources.update_later
 import lyrik.composeapp.generated.resources.update_message
 import lyrik.composeapp.generated.resources.update_title
@@ -153,6 +161,17 @@ fun ApplicationScope.App(
         if (!isVisible && trimMemoryOnTray) {
             kotlinx.coroutines.delay(2000)
             com.example.melodist.utils.WorkingSetTrimmer.trim()
+        }
+    }
+
+    // Launch-at-Windows-startup: keep the registry Run key in sync with the preference. Doing the
+    // registry write here (JVM/desktop layer) keeps SettingsViewModel pure. AutoLaunch resolves the
+    // real LyriK.exe in the packaged app; in a dev run it points at the dev launcher.
+    LaunchedEffect(Unit) {
+        val autoLaunch = io.github.vinceglb.autolaunch.AutoLaunch(appPackageName = "LyriK")
+        userPreferences.launchAtStartup.distinctUntilChanged().collect { enabled ->
+            runCatching { if (enabled) autoLaunch.enable() else autoLaunch.disable() }
+                .onFailure { io.github.aakira.napier.Napier.w("AutoLaunch sync failed: ${it.message}") }
         }
     }
 
@@ -277,28 +296,64 @@ fun ApplicationScope.App(
                     title = stringResource(Res.string.app_name),
                     icon = painterResource(Res.drawable.Music_note_circle),
                 ) {
+                    val updateDownload by appViewModel.downloadState.collectAsState()
                     updateInfo?.let { info ->
+                        val busy = updateDownload is UpdateDownloadState.Downloading ||
+                            updateDownload is UpdateDownloadState.Launching
                         AlertDialog(
                             onDismissRequest = { appViewModel.dismissUpdate() },
                             title = { Text(stringResource(Res.string.update_title)) },
                             text = {
-                                Text(stringResource(Res.string.update_message, info.currentVersion, info.latestVersion))
+                                Column {
+                                    Text(stringResource(Res.string.update_message, info.currentVersion, info.latestVersion))
+                                    when (val ds = updateDownload) {
+                                        is UpdateDownloadState.Downloading -> {
+                                            Spacer(Modifier.height(12.dp))
+                                            if (ds.progress >= 0f) {
+                                                LinearProgressIndicator(progress = { ds.progress }, modifier = Modifier.fillMaxWidth())
+                                                Text("${stringResource(Res.string.update_downloading)} ${(ds.progress * 100).toInt()}%")
+                                            } else {
+                                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                                                Text(stringResource(Res.string.update_downloading))
+                                            }
+                                        }
+                                        UpdateDownloadState.Launching -> {
+                                            Spacer(Modifier.height(12.dp))
+                                            Text(stringResource(Res.string.update_installing))
+                                        }
+                                        is UpdateDownloadState.Failed -> {
+                                            Spacer(Modifier.height(12.dp))
+                                            Text(stringResource(Res.string.update_failed))
+                                        }
+                                        else -> {}
+                                    }
+                                }
                             },
                             confirmButton = {
-                                TextButton(onClick = {
-                                    appViewModel.dismissUpdate()
-                                    scope.launch(Dispatchers.IO) {
-                                        try {
-                                            Desktop.getDesktop().browse(
-                                                java.net.URI(info.downloadUrl ?: "https://github.com/AndresTarma1/LyriK/releases/latest")
-                                            )
-                                        } catch (_: Exception) {}
+                                if (info.installerUrl != null) {
+                                    // In-app: download the installer and launch it, then quit so it can update.
+                                    TextButton(enabled = !busy, onClick = { appViewModel.downloadAndInstall { handleExit() } }) {
+                                        Text(stringResource(Res.string.update_install))
                                     }
-                                }) {
-                                    Text(stringResource(Res.string.update_download))
+                                } else {
+                                    // No installer asset published — fall back to opening the release page.
+                                    TextButton(onClick = {
+                                        appViewModel.dismissUpdate()
+                                        scope.launch(Dispatchers.IO) {
+                                            try {
+                                                Desktop.getDesktop().browse(
+                                                    java.net.URI(info.releaseUrl ?: "https://github.com/AndresTarma1/LyriK/releases/latest")
+                                                )
+                                            } catch (_: Exception) {}
+                                        }
+                                    }) {
+                                        Text(stringResource(Res.string.update_download))
+                                    }
                                 }
                             },
                             dismissButton = {
+                                // Dismissing is always safe: the download (if any) keeps running in
+                                // the background and the installer is ready next time, no progress lost.
                                 TextButton(onClick = { appViewModel.dismissUpdate() }) {
                                     Text(stringResource(Res.string.update_later))
                                 }

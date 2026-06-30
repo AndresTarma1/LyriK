@@ -24,6 +24,10 @@
     <string name="update_title">Actualización disponible</string>
     <string name="update_message">Hay una nueva versión de LyriK disponible.\n\nVersión actual: %1$s\nNueva versión: %2$s\n\n¿Deseas actualizar ahora?</string>
     <string name="update_download">Descargar</string>
+    <string name="update_install">Actualizar</string>
+    <string name="update_downloading">Descargando…</string>
+    <string name="update_installing">Iniciando el instalador…</string>
+    <string name="update_failed">Falló la descarga. Inténtalo de nuevo.</string>
     <string name="update_later">Más tarde</string>
 
     <!-- Settings -->
@@ -81,6 +85,8 @@
     <string name="minimize_to_tray">Minimizar a la bandeja del sistema</string>
     <string name="trim_memory_on_tray">Liberar memoria al minimizar a la bandeja</string>
     <string name="trim_memory_on_tray_subtitle">Devuelve al sistema la RAM no usada cuando la app se oculta en la bandeja. Reduce el consumo en segundo plano; las páginas se recargan al volver.</string>
+    <string name="launch_at_startup">Iniciar al encender Windows</string>
+    <string name="launch_at_startup_subtitle">Abre LyriK automáticamente al iniciar sesión en Windows.</string>
     <string name="cache_images">Caché de imágenes en disco</string>
     <string name="download_cache">Caché de descargas</string>
     <string name="open_data_folder">Abrir carpeta de datos</string>

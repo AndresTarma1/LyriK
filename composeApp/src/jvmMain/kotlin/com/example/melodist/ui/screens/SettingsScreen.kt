@@ -73,6 +73,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val imagesEnabled by viewModel.imagesEnabled.collectAsState()
     val minimizeToTray by viewModel.minimizeToTray.collectAsState()
     val trimMemoryOnTray by viewModel.trimMemoryOnTray.collectAsState()
+    val launchAtStartup by viewModel.launchAtStartup.collectAsState()
     val equalizerBands by viewModel.equalizerBands.collectAsState()
     val currentLocale by viewModel.locale.collectAsState()
     val youtubeRegion by viewModel.youtubeRegion.collectAsState()
@@ -319,6 +320,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         shape = RoundedCornerShape(16.dp),
                         state = trimMemoryOnTray,
                         onCheckedChange = { viewModel.setTrimMemoryOnTray(it) }
+                    )
+                    SettingsSwitch(
+                        icon = { Icon(Icons.Rounded.RocketLaunch, null) },
+                        title = { Text(stringResource(Res.string.launch_at_startup)) },
+                        subtitle = { Text(stringResource(Res.string.launch_at_startup_subtitle)) },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        state = launchAtStartup,
+                        onCheckedChange = { viewModel.setLaunchAtStartup(it) }
                     )
                     SettingsSwitch(
                         icon = { Icon(Icons.Rounded.Image, null) },

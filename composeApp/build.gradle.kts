@@ -122,6 +122,9 @@ kotlin {
                 implementation(libs.jna)
                 implementation(libs.jna.platform.jpms)
 
+                // Launch-at-Windows-startup (registry Run key). vinceglb/AutoLaunch.
+                implementation(libs.autolaunch)
+
 
                 implementation(libs.jewel.ui.standalone)
                 implementation(libs.jewel.ui.decorated.window)

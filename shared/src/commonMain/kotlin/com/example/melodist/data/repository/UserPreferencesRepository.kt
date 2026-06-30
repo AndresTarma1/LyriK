@@ -65,6 +65,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val IMAGES_ENABLED = booleanPreferencesKey("images_enabled")
         val MINIMIZE_TO_TRAY = booleanPreferencesKey("minimize_to_tray")
         val TRIM_MEMORY_ON_TRAY = booleanPreferencesKey("trim_memory_on_tray")
+        val LAUNCH_AT_STARTUP = booleanPreferencesKey("launch_at_startup")
         val WINDOW_WIDTH = intPreferencesKey("window_width")
         val WINDOW_HEIGHT = intPreferencesKey("window_height")
         val WINDOW_MAXIMIZED = booleanPreferencesKey("window_maximized")
@@ -200,6 +201,13 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     val imagesEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.IMAGES_ENABLED] ?: true }
     val minimizeToTray: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.MINIMIZE_TO_TRAY] ?: true }
     val trimMemoryOnTray: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.TRIM_MEMORY_ON_TRAY] ?: true }
+
+    /** Whether LyriK registers itself to start when Windows boots (synced to the registry Run key). */
+    val launchAtStartup: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.LAUNCH_AT_STARTUP] ?: false }
+
+    suspend fun setLaunchAtStartup(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.LAUNCH_AT_STARTUP] = enabled }
+    }
 
     val windowWidth: Flow<Int> = dataStore.data.map { it[PreferencesKeys.WINDOW_WIDTH] ?: 1200 }
     val windowHeight: Flow<Int> = dataStore.data.map { it[PreferencesKeys.WINDOW_HEIGHT] ?: 800 }
