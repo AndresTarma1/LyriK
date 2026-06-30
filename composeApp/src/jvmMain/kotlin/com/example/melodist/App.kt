@@ -318,6 +318,16 @@ fun ApplicationScope.App(
 
                     window.minimumSize = Dimension(1024, 600)
 
+                    // Spotify-style taskbar thumbnail buttons (Prev / Play-Pause / Next) on Windows.
+                    val isWindows = remember { System.getProperty("os.name").orEmpty().lowercase().contains("win") }
+                    val thumbBar = remember {
+                        com.example.melodist.windows.WindowsThumbBar(
+                            onPrevious = { playerViewModel.previous() },
+                            onPlayPause = { playerViewModel.togglePlayPause() },
+                            onNext = { playerViewModel.next() },
+                        )
+                    }
+
                     DisposableEffect(Unit) {
                         val startMaximized = windowState.placement == WindowPlacement.Maximized
                         val listener = object : ComponentAdapter() {
@@ -328,11 +338,19 @@ fun ApplicationScope.App(
                                 }
                                 EventQueue.invokeLater {
                                     isVisible = true
+                                    if (isWindows) runCatching { thumbBar.init(window) }
                                 }
                             }
                         }
                         window.addComponentListener(listener)
                         onDispose { window.removeComponentListener(listener) }
+                    }
+
+                    // Keep the middle button's glyph in sync with playback state.
+                    if (isWindows) {
+                        LaunchedEffect(playbackState) {
+                            thumbBar.setPlaying(playbackState == PlaybackState.PLAYING)
+                        }
                     }
 
                     TitleBar{
