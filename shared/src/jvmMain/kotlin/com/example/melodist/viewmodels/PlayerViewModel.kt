@@ -841,6 +841,9 @@ class PlayerViewModel(
                 }
                 if (requestId != playRequestId) return@launch
 
+                // videostatsPlaybackUrl of the resolved track — used to register the play on the
+                // account afterwards (history/recommendations). Only the in-process path has it.
+                var trackingUrl: String? = null
                 val played: Boolean = when {
                     cachedFile != null -> {
                         playerService.play(cachedFile.absolutePath)
@@ -852,12 +855,24 @@ class PlayerViewModel(
                         playViaYtDlp(song, requestId)
                     }
                     else -> {
-                        val streamUrl = withContext(Dispatchers.IO) {
-                            streamResolver.resolveAudioStream(song.id)
-                        }.streamUrl
+                        // In-process resolution can THROW for age/login-gated videos (every poToken-free
+                        // client returns LOGIN_REQUIRED). Don't bail to the next track — yt-dlp (with the
+                        // account cookie) can play those, so treat a thrown/empty resolve as "try yt-dlp".
+                        val playbackData = try {
+                            withContext(Dispatchers.IO) {
+                                streamResolver.resolveAudioStream(song.id)
+                            }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Napier.w("In-process resolve failed for ${song.id} (${e.message}); falling back to yt-dlp")
+                            null
+                        }
+                        val streamUrl = playbackData?.streamUrl
+                        trackingUrl = playbackData?.playbackTracking?.videostatsPlaybackUrl?.baseUrl
                         if (requestId != playRequestId) return@launch
 
-                        if (streamUrl.isNotEmpty()) {
+                        if (!streamUrl.isNullOrEmpty()) {
                             playerService.play(streamUrl)
                             // The resolved stream can pass HTTP validation yet 403 in mpv (e.g. spc-gated
                             // IOS URLs). If playback doesn't actually start, fall back to yt-dlp, which
@@ -871,7 +886,10 @@ class PlayerViewModel(
                                 playViaYtDlp(song, requestId)
                             }
                         } else {
-                            false
+                            // Resolve threw or returned nothing (login/age-gated): last resort is yt-dlp.
+                            YtDlpResolver.markNeedsYtDlp(song.id)
+                            Napier.w("No in-process stream for ${song.id}; trying yt-dlp fallback")
+                            playViaYtDlp(song, requestId)
                         }
                     }
                 }
@@ -890,6 +908,15 @@ class PlayerViewModel(
                         timestamp = java.time.LocalDateTime.now(),
                         playTime = 0L,
                     )
+                }
+
+                // Register the play on the user's YouTube account so it counts toward history and
+                // updates recommendations (fire-and-forget; only when signed in and tracking is known).
+                trackingUrl?.takeIf { it.isNotBlank() && YouTube.cookie != null }?.let { url ->
+                    viewModelScope.launch(Dispatchers.IO) {
+                        runCatching { YouTube.registerPlayback(playbackTracking = url) }
+                            .onFailure { Napier.w("registerPlayback failed for ${song.id}: ${it.message}") }
+                    }
                 }
 
                 // Warm the next track's stream cache so skipping to it is near-instant.

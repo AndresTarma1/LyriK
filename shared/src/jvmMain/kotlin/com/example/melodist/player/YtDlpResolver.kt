@@ -59,11 +59,16 @@ object YtDlpResolver {
         val watchUrl = "https://music.youtube.com/watch?v=$videoId"
         try {
             log.info("yt-dlp fallback: resolving $videoId (quality=$quality) via $exe")
-            val proc = ProcessBuilder(
-                exe, "--no-warnings", "--no-playlist",
-                "-f", formatSelector(quality),
-                "-g", watchUrl,
-            ).start()
+            val args = buildList {
+                add(exe); add("--no-warnings"); add("--no-playlist")
+                add("-f"); add(formatSelector(quality))
+                // Pass the signed-in cookie so age-restricted / login-required videos resolve. It must
+                // be a Netscape cookies.txt file: a header-cookie is scoped only to the download host,
+                // not to the youtube.com API calls yt-dlp makes during extraction.
+                cookiesFile()?.let { add("--cookies"); add(it.absolutePath) }
+                add("-g"); add(watchUrl)
+            }
+            val proc = ProcessBuilder(args).start()
 
             val stdout = proc.inputStream.bufferedReader().readText()
             val stderr = proc.errorStream.bufferedReader().readText()
@@ -81,6 +86,42 @@ object YtDlpResolver {
             url
         } catch (e: Exception) {
             log.warning("yt-dlp invocation failed for $videoId: ${e.message}")
+            null
+        }
+    }
+
+    private var cachedCookiesFile: File? = null
+    private var cachedCookieValue: String? = null
+
+    /**
+     * Writes the signed-in cookie to a Netscape `cookies.txt` (the format yt-dlp applies to the
+     * youtube.com extraction calls), for both `.youtube.com` and `.google.com`. Cached until the
+     * cookie changes. Returns null when not logged in.
+     */
+    private fun cookiesFile(): File? {
+        val cookie = com.metrolist.innertube.YouTube.cookie?.takeIf { it.isNotBlank() } ?: return null
+        cachedCookiesFile?.let { if (cachedCookieValue == cookie && it.exists()) return it }
+        return try {
+            val dir = File(System.getProperty("user.home"), ".melodist").apply { mkdirs() }
+            val file = File(dir, "ytdlp-cookies.txt")
+            val sb = StringBuilder("# Netscape HTTP Cookie File\n")
+            cookie.split(';').forEach { pair ->
+                val idx = pair.indexOf('=')
+                if (idx <= 0) return@forEach
+                val name = pair.substring(0, idx).trim()
+                val value = pair.substring(idx + 1).trim()
+                if (name.isEmpty()) return@forEach
+                for (domain in listOf(".youtube.com", ".google.com")) {
+                    // domain \t includeSubdomains \t path \t secure \t expiry \t name \t value
+                    sb.append(domain).append("\tTRUE\t/\tTRUE\t2147483647\t").append(name).append('\t').append(value).append('\n')
+                }
+            }
+            file.writeText(sb.toString())
+            cachedCookiesFile = file
+            cachedCookieValue = cookie
+            file
+        } catch (e: Exception) {
+            log.warning("Failed to write yt-dlp cookies file: ${e.message}")
             null
         }
     }
