@@ -81,7 +81,7 @@ val appModule = module {
     // Listen Together (WebSocket sync with the meowery relay server)
     single<ListenTogetherClient> { ListenTogetherClient() }
     single<ListenTogetherManager> { ListenTogetherManager(get()) }
-    single<AppLifecycleManager> { AppLifecycleManager(get(), get(), get(), get()) }
+    single<AppLifecycleManager> { AppLifecycleManager(get(), get(), get(), get(), get()) }
     single<JvmConfigLauncher> { JvmConfigLauncher(get()) }
 
     // Game overlay — global hotkey toggles an always-on-top music window.

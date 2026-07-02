@@ -271,6 +271,22 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[PreferencesKeys.WINDOW_MAXIMIZED] = maximized }
     }
 
+    /**
+     * Persists placement + size in a single atomic write. DataStore's `edit` serializes and
+     * atomically replaces the whole preferences file on every call, so calling it twice in a row
+     * (as the old setWindowMaximized + setWindowSize combo did) doubles that disk round-trip right
+     * before app exit — noticeable as a brief close-time hitch. One combined edit halves it.
+     */
+    suspend fun setWindowState(maximized: Boolean, width: Int, height: Int) {
+        dataStore.edit {
+            it[PreferencesKeys.WINDOW_MAXIMIZED] = maximized
+            if (!maximized) {
+                it[PreferencesKeys.WINDOW_WIDTH] = width
+                it[PreferencesKeys.WINDOW_HEIGHT] = height
+            }
+        }
+    }
+
     suspend fun setQueueLocked(locked: Boolean) {
         dataStore.edit { it[PreferencesKeys.QUEUE_LOCKED] = locked }
     }

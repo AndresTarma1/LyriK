@@ -272,7 +272,6 @@ class MpvAudioPlayer {
         eventLoopRunning = false
         handle?.let {
             MpvLib.INSTANCE.mpv_wakeup(it) // unblock the event thread's mpv_wait_event
-            eventThread?.join(1000)
             eventThread = null
             MpvLib.INSTANCE.mpv_terminate_destroy(it)
             handle = null

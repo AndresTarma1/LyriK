@@ -190,15 +190,13 @@ fun ApplicationScope.App(
 
     fun handleExit() {
         scope.launch {
-            if (windowState.placement == WindowPlacement.Maximized) {
-                userPreferences.setWindowMaximized(true)
-            } else {
-                userPreferences.setWindowMaximized(false)
-                userPreferences.setWindowSize(
-                    windowState.size.width.value.toInt(),
-                    windowState.size.height.value.toInt()
-                )
-            }
+            // Single atomic write (was two sequential DataStore edits) — halves the disk
+            // round-trip that used to run synchronously right before exit.
+            userPreferences.setWindowState(
+                maximized = windowState.placement == WindowPlacement.Maximized,
+                width = windowState.size.width.value.toInt(),
+                height = windowState.size.height.value.toInt(),
+            )
             onExit()
         }
     }
