@@ -74,17 +74,26 @@ fun main() {
             playerViewModel.initialize()
         }
 
-        PlatformCrashHandler.runSafely("Error iniciando WindowsMediaSession") {
-            val mediaSession = koin.get<WindowsMediaSession>()
-            mediaSession.initialize()
-            mediaSession.setCallbacks(
-                onPlay = { playerViewModel.togglePlayPause() },
-                onPause = { playerViewModel.togglePlayPause() },
-                onNext = { playerViewModel.next() },
-                onPrevious = { playerViewModel.previous() },
-                onStop = { playerViewModel.stop() },
-            )
-            mediaSession.setPositionProvider { playerViewModel.progressState.value.positionMs }
+        // SMTC (dev.toastbits:mediasession) has no persistent thread of its own — unlike
+        // jnativehook, which spawns its own native hook thread. Its transport controls need the
+        // creating thread to stay alive pumping a Windows message loop. Our previous throwaway
+        // "lyrik-deferred-init" thread died right after registering it, silently orphaning the
+        // session (Windows still showed it, but Play/Pause/Next stopped reaching our callbacks).
+        // The AWT Event Dispatch Thread lives for the app's whole lifetime and already pumps
+        // native messages, so initialize there instead.
+        java.awt.EventQueue.invokeLater {
+            PlatformCrashHandler.runSafely("Error iniciando WindowsMediaSession") {
+                val mediaSession = koin.get<WindowsMediaSession>()
+                mediaSession.initialize()
+                mediaSession.setCallbacks(
+                    onPlay = { playerViewModel.togglePlayPause() },
+                    onPause = { playerViewModel.togglePlayPause() },
+                    onNext = { playerViewModel.next() },
+                    onPrevious = { playerViewModel.previous() },
+                    onStop = { playerViewModel.stop() },
+                )
+                mediaSession.setPositionProvider { playerViewModel.progressState.value.positionMs }
+            }
         }
 
         // Listen Together: wire the sync manager to the player.

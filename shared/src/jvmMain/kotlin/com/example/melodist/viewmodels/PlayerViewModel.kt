@@ -86,13 +86,16 @@ class PlayerViewModel(
     private var currentQueue: Queue? = null
 
     /**
-     * ✅ Inicialización diferida de PlayerService y MediaSession.
+     * ✅ Inicialización diferida de PlayerService (mpv).
      * Se llama desde main.kt solo cuando el ViewModel se crea por primera vez,
      * evitando la inicialización pesada al arrancar la app.
+     *
+     * MediaSession (SMTC) is intentionally NOT initialized here: its transport controls need the
+     * creating thread to stay alive pumping a Windows message loop, unlike mpv. It's initialized
+     * separately by main.kt on the AWT Event Dispatch Thread, which lives for the app's lifetime.
      */
     fun initialize() {
         playerService.init()
-        mediaSession.initialize()
     }
 
     init {
