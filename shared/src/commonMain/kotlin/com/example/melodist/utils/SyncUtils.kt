@@ -28,6 +28,12 @@ import kotlin.time.Duration.Companion.milliseconds
 sealed class SyncOperation {
     data object FullSync : SyncOperation()
     data object SavedPlaylists : SyncOperation()
+    /** Pulls one playlist's full song list from YouTube and overwrites the local copy. */
+    data class SinglePlaylist(val playlistId: String, val browseId: String) : SyncOperation()
+    /** Runs [SinglePlaylist] for every local playlist flagged `isAutoSync`. */
+    data object AutoSyncPlaylists : SyncOperation()
+    /** Local-only: collapses playlists that share the same `browseId`, keeping the fullest one. */
+    data object CleanupDuplicates : SyncOperation()
 }
 
 sealed class SyncStatus {
@@ -67,6 +73,9 @@ class SyncUtils(
                     when (operation) {
                         SyncOperation.FullSync -> executeFullSync()
                         SyncOperation.SavedPlaylists -> executeSavedPlaylists()
+                        is SyncOperation.SinglePlaylist -> executeSinglePlaylist(operation.playlistId, operation.browseId)
+                        SyncOperation.AutoSyncPlaylists -> executeAutoSyncPlaylists()
+                        SyncOperation.CleanupDuplicates -> executeCleanupDuplicates()
                     }
                 } catch (e: CancellationException) {
                     throw e
@@ -83,6 +92,11 @@ class SyncUtils(
 
     fun syncSavedPlaylists() { syncScope.launch { syncChannel.send(SyncOperation.SavedPlaylists) } }
     fun performFullSync() { syncScope.launch { syncChannel.send(SyncOperation.FullSync) } }
+    fun syncPlaylist(playlistId: String, browseId: String) {
+        syncScope.launch { syncChannel.send(SyncOperation.SinglePlaylist(playlistId, browseId)) }
+    }
+    fun syncAutoSyncPlaylists() { syncScope.launch { syncChannel.send(SyncOperation.AutoSyncPlaylists) } }
+    fun cleanupDuplicatePlaylists() { syncScope.launch { syncChannel.send(SyncOperation.CleanupDuplicates) } }
 
     private suspend fun executeFullSync() {
         updateState { copy(overallStatus = SyncStatus.Syncing, currentOperation = "Syncing full library") }
@@ -224,6 +238,60 @@ class SyncUtils(
             updateState { copy(playlists = SyncStatus.Completed, currentOperation = "") }
         } catch (e: Exception) {
             updateState { copy(playlists = SyncStatus.Error(e.message ?: "Unknown error"), currentOperation = "") }
+        }
+    }
+
+    /**
+     * Pulls the full song list for one playlist and overwrites the local copy. This is the
+     * counterpart to [PlaylistRepository.addSongToPlaylist]/`removeSongFromPlaylist`, which push
+     * local edits to YouTube immediately — by the time this runs, YouTube should already reflect
+     * any local change, so a full pull-and-replace here is safe (not a lossy overwrite of pending
+     * local-only edits).
+     *
+     * Limitation: only the first page of songs is fetched (matches the rest of the app's playlist
+     * loading); a playlist beyond one page's worth of songs won't be fully mirrored.
+     */
+    private suspend fun executeSinglePlaylist(playlistId: String, browseId: String) = withContext(Dispatchers.IO) {
+        try {
+            val page = YouTube.playlist(browseId).getOrNull() ?: return@withContext
+            playlistRepository.savePlaylistWithSongs(page.playlist, page.songs)
+        } catch (e: Exception) {
+            Napier.e("Failed syncing playlist $playlistId ($browseId)", e)
+        }
+    }
+
+    private suspend fun executeAutoSyncPlaylists() = withContext(Dispatchers.IO) {
+        updateState { copy(currentOperation = "Syncing auto-sync playlists") }
+        try {
+            database.allPlaylists().first()
+                .filter { it.isAutoSync && it.browseId != null }
+                .forEach { playlist ->
+                    executeSinglePlaylist(playlist.id, playlist.browseId!!)
+                    delay(50.milliseconds)
+                }
+        } catch (e: Exception) {
+            Napier.e("Failed syncing auto-sync playlists", e)
+        } finally {
+            updateState { copy(currentOperation = "") }
+        }
+    }
+
+    /** Collapses playlists that share a `browseId` (can happen after account/library glitches),
+     * keeping the one with the most locally-cached songs and deleting the rest. Local-only, no
+     * network calls. */
+    private suspend fun executeCleanupDuplicates() = withContext(Dispatchers.IO) {
+        try {
+            database.allPlaylists().first()
+                .filter { it.browseId != null }
+                .groupBy { it.browseId }
+                .values
+                .filter { it.size > 1 }
+                .forEach { duplicates ->
+                    val keep = duplicates.maxByOrNull { database.countByPlaylist(it.id) }
+                    duplicates.filterNot { it.id == keep?.id }.forEach { database.deletePlaylist(it.id) }
+                }
+        } catch (e: Exception) {
+            Napier.e("Failed cleaning up duplicate playlists", e)
         }
     }
 
