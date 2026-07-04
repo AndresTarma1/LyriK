@@ -39,11 +39,20 @@ class AccountViewModel(
 ) : MelodistViewModel() {
 
     /**
-     * Pulls the account's library (liked songs/albums/artists, saved playlists) after every
+     * Pulls the account's library (liked songs/albums/artists, saved playlists) after a
      * successful login or session restore — previously nothing ever triggered this. Also
      * reconciles YouTube-linked playlists' song lists when "Sincronizar con YouTube Music" is on.
+     *
+     * Cooldown-gated: this ViewModel is a Koin factory recreated every time the user navigates to
+     * the Account screen, so without a cooldown a full sync (plus a complete playlist-songs
+     * re-pull when ytmSyncEnabled is on) would hit YouTube on every single visit.
      */
     private suspend fun triggerPostLoginSync() {
+        val now = System.currentTimeMillis()
+        val last = userPreferences.lastFullSyncAt.first()
+        if (now - last < SYNC_COOLDOWN_MS) return
+        userPreferences.setLastFullSyncAt(now)
+
         syncUtils.performFullSync()
         if (userPreferences.ytmSyncEnabled.first()) {
             syncUtils.syncAutoSyncPlaylists()
@@ -220,6 +229,8 @@ class AccountViewModel(
     }
 
     companion object {
+        private const val SYNC_COOLDOWN_MS = 30 * 60 * 1000L
+
         fun isAuthenticationError(err: Throwable): Boolean {
             val msg = err.message ?: ""
             return msg.contains("401") || msg.contains("Unauthorized", ignoreCase = true)

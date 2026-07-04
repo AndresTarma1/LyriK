@@ -108,9 +108,20 @@ class DatabaseDao(private val database: MelodistDatabase) {
      * Wipes account-scoped library data when switching YouTube accounts: bookmarked remote
      * playlists (e.g. "Liked Music") and saved songs/albums/artists. Keeps the user's local
      * playlists, downloads and local play history.
+     *
+     * Bookmarked playlists actually live in TWO places: the `Playlist` table (populated by
+     * SyncUtils's pull) and `SavedPlaylist` (populated by the playlist screen's bookmark button —
+     * the normal way users save a playlist, e.g. "Liked Music"). Only wiping the former left a
+     * stale "Liked Music" from the previous account visible after switching, since its real entry
+     * lived in SavedPlaylist and was never cleared.
      */
     suspend fun clearAccountLibrary() = withContext(Dispatchers.IO) {
         playlists.deleteRemotePlaylists()
+        val staleSavedPlaylistIds = database.savedPlaylistQueries.selectRemoteIds().executeAsList()
+        staleSavedPlaylistIds.forEach { id ->
+            database.playlistSongMapQueries.deletePlaylistSongMapsByPlaylist(id)
+        }
+        database.savedPlaylistQueries.deleteRemote()
         database.savedSongQueries.deleteAll()
         database.savedAlbumQueries.deleteAll()
         database.savedArtistQueries.deleteAll()

@@ -15,11 +15,13 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class PlaylistRepository(
-    val database: MelodistDatabase
+    val database: MelodistDatabase,
+    private val userPreferences: UserPreferencesRepository,
 ) {
 
     /**
@@ -229,10 +231,12 @@ class PlaylistRepository(
             )
         }
 
-        // Push to the linked YouTube playlist (best-effort: local state is already saved above,
-        // so a network failure here doesn't lose the user's action, just leaves it un-synced).
+        // Push to the linked YouTube playlist — gated behind "Sincronizar con YouTube Music"
+        // (experimental, opt-in) since this writes to the user's real account. Best-effort: local
+        // state is already saved above, so a network failure here doesn't lose the user's action,
+        // just leaves it un-synced.
         val browseId = getBrowseId(playlistId)
-        if (browseId != null) {
+        if (browseId != null && userPreferences.ytmSyncEnabled.first()) {
             retryWithBackoff { YouTube.addToPlaylist(browseId, song.id) }
                 .onSuccess { setVideoId ->
                     if (setVideoId != null) updateSetVideoId(playlistId, song.id, setVideoId)
@@ -257,12 +261,12 @@ class PlaylistRepository(
         val row = rows.firstOrNull { it.songId == songId } ?: return@withContext
         database.playlistSongMapQueries.deletePlaylistSongMap(row.id)
 
-        // Push the removal to the linked YouTube playlist (best-effort, same rationale as add).
+        // Push the removal to the linked YouTube playlist (same gate/rationale as add).
         // Without a stored setVideoId (e.g. the song was added before this sync feature existed)
         // there's no way to identify the item to YouTube's API, so we just skip the remote call.
         val browseId = getBrowseId(playlistId)
         val setVideoId = row.setVideoId
-        if (browseId != null && setVideoId != null) {
+        if (browseId != null && setVideoId != null && userPreferences.ytmSyncEnabled.first()) {
             retryWithBackoff { YouTube.removeFromPlaylist(browseId, songId, setVideoId) }
                 .onFailure { Napier.w("Failed to push removed song $songId from playlist $browseId: ${it.message}") }
         }

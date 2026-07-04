@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -77,6 +78,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val DARK_LEVEL = stringPreferencesKey("dark_level")
         val LAYOUT_MODE = stringPreferencesKey("layout_mode")
         val YTM_SYNC = booleanPreferencesKey("ytm_sync_enabled")
+        val LAST_FULL_SYNC_AT = longPreferencesKey("last_full_sync_at")
         val OVERLAY_HOTKEY_ENABLED = booleanPreferencesKey("overlay_hotkey_enabled")
         val OVERLAY_HOTKEY_CODE = intPreferencesKey("overlay_hotkey_code")
         val OVERLAY_HOTKEY_MODS = intPreferencesKey("overlay_hotkey_mods")
@@ -144,6 +146,19 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setYtmSyncEnabled(enabled: Boolean) {
         dataStore.edit { it[PreferencesKeys.YTM_SYNC] = enabled }
+    }
+
+    /**
+     * Epoch millis of the last full library sync (liked songs/albums/artists/playlists). Used to
+     * cooldown-gate re-syncing: AccountViewModel is recreated every time the user navigates to the
+     * Account screen (it's a Koin factory), so without this a full sync — including a complete
+     * re-pull of every YouTube-linked playlist's songs when ytmSyncEnabled is on — would fire on
+     * every visit instead of just periodically.
+     */
+    val lastFullSyncAt: Flow<Long> = dataStore.data.map { it[PreferencesKeys.LAST_FULL_SYNC_AT] ?: 0L }
+
+    suspend fun setLastFullSyncAt(epochMillis: Long) {
+        dataStore.edit { it[PreferencesKeys.LAST_FULL_SYNC_AT] = epochMillis }
     }
 
     private fun remotePlaylistKey(localId: String) = stringPreferencesKey("ytm_remote_$localId")

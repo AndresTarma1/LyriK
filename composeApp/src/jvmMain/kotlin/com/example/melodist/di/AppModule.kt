@@ -60,7 +60,7 @@ val appModule = module {
     single<AlbumRepository> { AlbumRepository(get()) }
     single<ArtistRepository> { ArtistRepository(get()) }
     single<SongRepository> { SongRepository(get()) }
-    single<PlaylistRepository> { PlaylistRepository(get()) }
+    single<PlaylistRepository> { PlaylistRepository(get(), get()) }
     single<SearchRepository> { SearchRepository(get()) }
     single<SyncUtils> { SyncUtils(get(), get(), get(), get(), get()) }
 
