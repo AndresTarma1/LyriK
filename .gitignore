@@ -67,7 +67,3 @@ shared/build/
 innertube/build/
 /.idea/.gitignore
 /composeApp/build/
-
-# Local code-graph analysis tool output (2.7MB graph.html + AST cache were skewing
-# GitHub's language stats — this is generated, not source).
-graphify-out/

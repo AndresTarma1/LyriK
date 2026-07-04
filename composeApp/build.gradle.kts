@@ -44,7 +44,7 @@ tasks.withType<JavaExec>().configureEach {
 }
 
 kotlin {
-    jvm("desktop")
+    jvm()
 
     jvmToolchain {
         vendor = JvmVendorSpec.JETBRAINS
@@ -75,7 +75,7 @@ kotlin {
             implementation(libs.kotlinx.serialization.core)
 
             // Coil pulls an old transitive Skiko (0.9.x) that clashes with Compose's (0.144.x) and
-            // triggers checkDesktopMainComposeLibrariesCompatibility. Drop it; Compose provides Skiko.
+            // triggers checkJvmMainComposeLibrariesCompatibility. Drop it; Compose provides Skiko.
             // (Version-catalog accessors don't take an exclude lambda directly, hence get().toString().)
             implementation(libs.coil.compose.get().toString()) {
                 exclude(group = "org.jetbrains.skiko")
@@ -111,7 +111,7 @@ kotlin {
         commonTest.dependencies {
             implementation(libs.kotlin.test)
         }
-        val desktopMain by getting {
+        jvmMain {
             dependencies {
                 implementation(compose.desktop.currentOs){
                     exclude(group = "org.jetbrains.compose.material")
@@ -129,6 +129,7 @@ kotlin {
                 implementation(libs.jewel.ui.standalone)
                 implementation(libs.jewel.ui.decorated.window)
                 implementation(libs.jbr)
+
             }
         }
     }
