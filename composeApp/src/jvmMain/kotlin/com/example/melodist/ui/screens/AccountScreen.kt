@@ -692,7 +692,6 @@ private fun AccountProfileHeader(accountInfo: com.metrolist.innertube.models.Acc
                         modifier = Modifier.size(64.dp),
                         shape = circleAwareShape(),
                         placeholderType = PlaceholderType.ARTIST,
-                        isLowRes = true  // ✅ Baja resolución en avatares de lista
                     )
                 } else {
                     Box(
@@ -914,7 +913,6 @@ private fun PlaylistAccountItem(
             modifier = Modifier.size(52.dp),
             shape = RoundedCornerShape(10.dp),
             placeholderType = PlaceholderType.PLAYLIST,
-            isLowRes = true  // ✅ Baja resolución en miniaturas de playlists
         )
 
         // Info

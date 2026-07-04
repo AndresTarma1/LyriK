@@ -333,7 +333,10 @@ class PlaylistViewModel(
     fun removeSongFromPlaylist(songId: String) {
         val playlistId = _currentPlaylistId.value ?: return
         val state = _uiState.value as? PlaylistState.Success ?: return
-        if (!playlistId.startsWith("LOCAL_")) return
+        // Local playlists are always editable; a saved (bookmarked) YouTube playlist has its
+        // songs cached locally too, and repository.removeSongFromPlaylist pushes the removal to
+        // the real YouTube playlist (browseId = the playlist's own id for these).
+        if (!playlistId.startsWith("LOCAL_") && !state.isSaved) return
 
         viewModelScope.launch {
             repository.removeSongFromPlaylist(playlistId, songId)

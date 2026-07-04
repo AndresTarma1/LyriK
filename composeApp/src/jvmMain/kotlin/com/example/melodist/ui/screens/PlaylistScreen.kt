@@ -78,7 +78,13 @@ fun PlaylistScreenRoute(
         }
     }
 
-    val actions = remember(viewModel, successState != null) {
+    // Local playlists are always editable; a saved (bookmarked) YouTube playlist becomes editable
+    // too once its songs are cached locally. isSaved can change while this screen is open (the
+    // bookmark button), so it must be in the remember key, unlike the playlist's immutable id.
+    val canEditPlaylist = successState?.playlistPage?.playlist?.id?.startsWith("LOCAL_") == true ||
+        successState?.isSaved == true
+
+    val actions = remember(viewModel, successState != null, canEditPlaylist) {
         PlaylistActions(
             onBack = onBack,
             onNavigate = onNavigate,
@@ -88,11 +94,13 @@ fun PlaylistScreenRoute(
             onShuffle = { viewModel.playAllSongs(shuffle = true) },
             onDownloadPlaylist = { viewModel.downloadPlaylist() },
             onPlaySong = { index -> viewModel.playSongFromPlaylist(index) },
-            onRemoveSongFromPlaylist = if (successState?.playlistPage?.playlist?.id?.startsWith("LOCAL_") == true) {
+            onRemoveSongFromPlaylist = if (canEditPlaylist) {
                 { songId -> viewModel.removeSongFromPlaylist(songId) }
             } else null,
             onEditCover = { viewModel.pickAndSetCustomThumbnail() },
-            isLocalPlaylist = successState?.playlistPage?.playlist?.id?.startsWith("LOCAL_") == true
+            // Also true for a saved (bookmarked) YouTube playlist: its songs are cached locally
+            // too, and removal pushes to the real playlist (see PlaylistViewModel.removeSongFromPlaylist).
+            isLocalPlaylist = canEditPlaylist
         )
     }
 

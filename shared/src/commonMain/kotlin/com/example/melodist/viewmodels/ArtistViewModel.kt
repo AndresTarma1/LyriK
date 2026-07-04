@@ -3,13 +3,17 @@ package com.example.melodist.viewmodels
 import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.ArtistRepository
+import com.example.melodist.data.repository.UserPreferencesRepository
+import com.example.melodist.utils.retryWithBackoff
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.pages.ArtistPage
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
@@ -24,7 +28,8 @@ sealed class ArtistState {
 @OptIn(ExperimentalCoroutinesApi::class)
 class ArtistViewModel(
     private val apiService: ApiService,
-    private val repository: ArtistRepository
+    private val repository: ArtistRepository,
+    private val userPreferences: UserPreferencesRepository,
 ) : MelodistViewModel() {
 
     private val log = Logger.getLogger("ArtistViewModel")
@@ -60,13 +65,24 @@ class ArtistViewModel(
         if (state !is ArtistState.Success) return
 
         viewModelScope.launch {
-            if (isSaved.value) {
-                repository.removeArtist(state.artistPage.artist.id)
+            val artist = state.artistPage.artist
+            val wasSaved = isSaved.value
+            if (wasSaved) {
+                repository.removeArtist(artist.id)
             } else {
                 repository.saveArtist(
-                    artist = state.artistPage.artist,
+                    artist = artist,
                     subscriberCount = state.artistPage.subscriberCountText
                 )
+            }
+
+            // Push the follow/unfollow to the real YouTube account — gated behind "Sincronizar
+            // con YouTube Music" like the other pushes, since it writes to the user's account.
+            // Some YTM-only artists don't expose a real channel id; skip the push for those.
+            val channelId = artist.channelId
+            if (channelId != null && userPreferences.ytmSyncEnabled.first()) {
+                retryWithBackoff { YouTube.subscribeChannel(channelId, subscribe = !wasSaved) }
+                    .onFailure { Napier.w("Failed to push subscribe state for $channelId: ${it.message}") }
             }
         }
     }

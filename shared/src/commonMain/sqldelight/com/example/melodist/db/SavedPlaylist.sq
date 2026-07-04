@@ -33,3 +33,9 @@ UPDATE SavedPlaylist SET songCountText = ?, thumbnail = ? WHERE id = ?;
 deleteAll:
 DELETE FROM SavedPlaylist;
 
+selectRemoteIds:
+SELECT id FROM SavedPlaylist WHERE id NOT LIKE 'LOCAL_%';
+
+deleteRemote:
+DELETE FROM SavedPlaylist WHERE id NOT LIKE 'LOCAL_%';
+

@@ -10,13 +10,16 @@ import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.data.repository.YouTubeRegion
+import com.example.melodist.utils.SyncUtils
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
-    private val preferencesRepository: UserPreferencesRepository
+    private val preferencesRepository: UserPreferencesRepository,
+    private val syncUtils: SyncUtils,
 ) : ViewModel() {
 
     val audioQuality: StateFlow<AudioQuality> = preferencesRepository.audioQuality
@@ -72,6 +75,9 @@ class SettingsViewModel(
 
     val ytmSyncEnabled: StateFlow<Boolean> = preferencesRepository.ytmSyncEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    /** Sync progress for the manual "Sincronizar ahora" button — ignores the login cooldown. */
+    val syncState = syncUtils.syncState
 
     val overlayHotkeyEnabled: StateFlow<Boolean> = preferencesRepository.overlayHotkeyEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
@@ -148,7 +154,26 @@ class SettingsViewModel(
     }
 
     fun setYtmSyncEnabled(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.setYtmSyncEnabled(enabled) }
+        viewModelScope.launch {
+            preferencesRepository.setYtmSyncEnabled(enabled)
+            // Give immediate feedback that turning this on does something: reconcile YouTube-linked
+            // playlists right away instead of waiting for the next login/session-restore.
+            if (enabled) syncUtils.syncAutoSyncPlaylists()
+        }
+    }
+
+    /**
+     * Manual "Sincronizar ahora" — bypasses AccountViewModel's 30-minute login cooldown, for
+     * testing or when the user wants a fresh pull right now (liked songs/albums/artists/playlists).
+     */
+    fun syncNow() {
+        viewModelScope.launch {
+            preferencesRepository.setLastFullSyncAt(System.currentTimeMillis())
+            syncUtils.performFullSync()
+            if (preferencesRepository.ytmSyncEnabled.first()) {
+                syncUtils.syncAutoSyncPlaylists()
+            }
+        }
     }
 
     fun setOverlayHotkeyEnabled(enabled: Boolean) {

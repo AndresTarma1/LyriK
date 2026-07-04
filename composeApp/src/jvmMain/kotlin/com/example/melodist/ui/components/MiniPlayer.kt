@@ -156,7 +156,6 @@ fun MiniPlayer(
                                     contentScale = ContentScale.Crop,
                                     placeholderType = PlaceholderType.SONG,
                                     iconSize = 24.dp,
-                                    isLowRes = true
                                 )
 
                                 if (isHovered) {

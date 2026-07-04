@@ -54,6 +54,9 @@
     <string name="ytm_sync_warning_title">Experimental feature</string>
     <string name="ytm_sync_warning_message">YouTube Music sync is experimental. It may create or modify playlists on your YouTube Music account and we are not responsible for any data loss, duplicates or other issues. Requires being signed in. Do you want to enable it?</string>
     <string name="ytm_sync_warning_confirm">Enable anyway</string>
+    <string name="sync_now">Sync now</string>
+    <string name="sync_now_subtitle">Refreshes likes, albums, artists and playlists from your YouTube Music account.</string>
+    <string name="sync_now_syncing">Syncing…</string>
     <string name="section_overlay">Game overlay</string>
     <string name="overlay_enable">Enable overlay with global shortcut</string>
     <string name="overlay_enable_subtitle">Shows a mini window over your games (windowed or borderless) to control music without leaving. Does not work in exclusive fullscreen.</string>

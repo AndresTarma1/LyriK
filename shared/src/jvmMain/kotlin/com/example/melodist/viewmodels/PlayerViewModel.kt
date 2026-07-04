@@ -231,7 +231,8 @@ class PlayerViewModel(
                 }
             }
             if (AccountManager.isLoggedIn) {
-                YouTube.likeVideo(song.id, newLiked)
+                com.example.melodist.utils.retryWithBackoff { YouTube.likeVideo(song.id, newLiked) }
+                    .onFailure { Napier.w("Failed to push like state for ${song.id}: ${it.message}") }
             }
         }
     }
@@ -269,7 +270,8 @@ class PlayerViewModel(
             }
 
             if (AccountManager.isLoggedIn) {
-                YouTube.likeVideo(song.id, newLiked)
+                com.example.melodist.utils.retryWithBackoff { YouTube.likeVideo(song.id, newLiked) }
+                    .onFailure { Napier.w("Failed to push like state for ${song.id}: ${it.message}") }
             }
         }
     }

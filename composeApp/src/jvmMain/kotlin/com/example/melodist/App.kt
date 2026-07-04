@@ -22,12 +22,21 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material.icons.rounded.CloudOff
+import androidx.compose.material.icons.rounded.CloudSync
+import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -91,6 +100,9 @@ import kotlinx.coroutines.launch
 import lyrik.composeapp.generated.resources.Music_note_circle
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.app_name
+import lyrik.composeapp.generated.resources.cancel
+import lyrik.composeapp.generated.resources.sync_now
+import lyrik.composeapp.generated.resources.sync_now_syncing
 import lyrik.composeapp.generated.resources.tray_exit
 import lyrik.composeapp.generated.resources.tray_next
 import lyrik.composeapp.generated.resources.tray_open
@@ -105,6 +117,10 @@ import lyrik.composeapp.generated.resources.update_failed
 import lyrik.composeapp.generated.resources.update_later
 import lyrik.composeapp.generated.resources.update_message
 import lyrik.composeapp.generated.resources.update_title
+import lyrik.composeapp.generated.resources.ytm_sync
+import lyrik.composeapp.generated.resources.ytm_sync_warning_confirm
+import lyrik.composeapp.generated.resources.ytm_sync_warning_message
+import lyrik.composeapp.generated.resources.ytm_sync_warning_title
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.theme.JewelTheme
@@ -187,6 +203,21 @@ fun ApplicationScope.App(
     val overlayVisible by OverlayController.visible.collectAsState()
     val overlayPosX by remember(userPreferences) { userPreferences.overlayPosX }.collectAsState(com.example.melodist.data.repository.OVERLAY_POS_UNSET)
     val overlayPosY by remember(userPreferences) { userPreferences.overlayPosY }.collectAsState(com.example.melodist.data.repository.OVERLAY_POS_UNSET)
+
+    // Quick sync menu in the title bar — same toggle/action as Settings, just closer at hand.
+    val syncUtils: com.example.melodist.utils.SyncUtils = koinInject()
+    val ytmSyncEnabled by remember(userPreferences) { userPreferences.ytmSyncEnabled }.collectAsState(false)
+    val syncState by syncUtils.syncState.collectAsState()
+    var showYtmSyncWarningFromMenu by remember { mutableStateOf(false) }
+
+    // The menu's entry point shows the signed-in account's YouTube avatar (and name/email as a
+    // header inside the menu) instead of a generic icon. Fetched once per login-state transition —
+    // this is a single lightweight call, not a sync operation, so it doesn't need the cooldown.
+    val isLoggedIn by remember { com.example.melodist.data.account.AccountManager.loginState }.collectAsState(false)
+    var accountInfo by remember { mutableStateOf<com.metrolist.innertube.models.AccountInfo?>(null) }
+    LaunchedEffect(isLoggedIn) {
+        accountInfo = if (isLoggedIn) com.metrolist.innertube.YouTube.accountInfo().getOrNull() else null
+    }
 
     fun handleExit() {
         scope.launch {
@@ -359,6 +390,25 @@ fun ApplicationScope.App(
                         )
                     }
 
+                    if (showYtmSyncWarningFromMenu) {
+                        AlertDialog(
+                            onDismissRequest = { showYtmSyncWarningFromMenu = false },
+                            title = { Text(stringResource(Res.string.ytm_sync_warning_title)) },
+                            text = { Text(stringResource(Res.string.ytm_sync_warning_message)) },
+                            confirmButton = {
+                                TextButton(onClick = {
+                                    scope.launch { userPreferences.setYtmSyncEnabled(true) }
+                                    showYtmSyncWarningFromMenu = false
+                                }) { Text(stringResource(Res.string.ytm_sync_warning_confirm)) }
+                            },
+                            dismissButton = {
+                                TextButton(onClick = { showYtmSyncWarningFromMenu = false }) {
+                                    Text(stringResource(Res.string.cancel))
+                                }
+                            }
+                        )
+                    }
+
                     window.minimumSize = Dimension(1024, 600)
 
                     // Spotify-style taskbar thumbnail buttons (Prev / Play-Pause / Next) on Windows.
@@ -400,6 +450,18 @@ fun ApplicationScope.App(
                         MelodistTitleBar(
                             currentSong = currentSong?.title,
                             isPlaying = playbackState == PlaybackState.PLAYING,
+                            accountInfo = accountInfo,
+                            ytmSyncEnabled = ytmSyncEnabled,
+                            isSyncing = syncState.overallStatus is com.example.melodist.utils.SyncStatus.Syncing,
+                            onToggleSync = { enable ->
+                                if (enable) showYtmSyncWarningFromMenu = true
+                                else scope.launch { userPreferences.setYtmSyncEnabled(false) }
+                            },
+                            onSyncNow = {
+                                scope.launch { userPreferences.setLastFullSyncAt(System.currentTimeMillis()) }
+                                syncUtils.performFullSync()
+                                if (ytmSyncEnabled) syncUtils.syncAutoSyncPlaylists()
+                            },
                         )
                     }
 
@@ -478,6 +540,11 @@ private fun ApplicationScope.TrayCustom(
 private fun TitleBarScope.MelodistTitleBar(
     currentSong: String?,
     isPlaying: Boolean,
+    accountInfo: com.metrolist.innertube.models.AccountInfo?,
+    ytmSyncEnabled: Boolean,
+    isSyncing: Boolean,
+    onToggleSync: (Boolean) -> Unit,
+    onSyncNow: () -> Unit,
 ) {
     Row(
         modifier = Modifier.align(Alignment.Start).padding(start = 12.dp),
@@ -489,6 +556,81 @@ private fun TitleBarScope.MelodistTitleBar(
             fontWeight = FontWeight.SemiBold,
             color = MaterialTheme.colorScheme.onSurface,
         )
+    }
+
+    // Quick access to YTM sync — the same toggle/action that lives in Settings, closer at hand.
+    // Entry point is the signed-in account's YouTube avatar when available (falls back to a
+    // generic cloud icon while logged out or before the avatar loads).
+    Box(modifier = Modifier.align(Alignment.End).padding(end = 4.dp)) {
+        var showMenu by remember { mutableStateOf(false) }
+        IconButton(onClick = { showMenu = true }) {
+            if (isSyncing) {
+                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else if (accountInfo?.thumbnailUrl != null) {
+                com.example.melodist.ui.components.MelodistImage(
+                    url = accountInfo.thumbnailUrl,
+                    contentDescription = accountInfo.name,
+                    modifier = Modifier.size(24.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    placeholderType = com.example.melodist.ui.components.PlaceholderType.ARTIST,
+                )
+            } else {
+                Icon(
+                    if (ytmSyncEnabled) Icons.Rounded.CloudSync else Icons.Rounded.CloudOff,
+                    contentDescription = stringResource(Res.string.ytm_sync),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 0.dp,
+        ) {
+            if (accountInfo != null) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    com.example.melodist.ui.components.MelodistImage(
+                        url = accountInfo.thumbnailUrl,
+                        contentDescription = accountInfo.name,
+                        modifier = Modifier.size(36.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        placeholderType = com.example.melodist.ui.components.PlaceholderType.ARTIST,
+                    )
+                    Column {
+                        Text(accountInfo.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                        accountInfo.email?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            }
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.ytm_sync)) },
+                trailingIcon = { Switch(checked = ytmSyncEnabled, onCheckedChange = null) },
+                onClick = { onToggleSync(!ytmSyncEnabled) },
+            )
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            DropdownMenuItem(
+                text = { Text(stringResource(if (isSyncing) Res.string.sync_now_syncing else Res.string.sync_now)) },
+                leadingIcon = {
+                    if (isSyncing) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    else Icon(Icons.Rounded.Sync, contentDescription = null)
+                },
+                enabled = !isSyncing,
+                onClick = { onSyncNow(); showMenu = false },
+            )
+        }
     }
 
     AnimatedContent(

@@ -326,7 +326,9 @@ fun MediaGridItem(
                         iconSize = 40.dp,
                         contentScale = ContentScale.Crop,
                         alignment = if (isCircle) Alignment.TopCenter else Alignment.Center,
-                        isLowRes = true,
+                        // Was hardcoded true, silently ignoring the user's "alta resolución de
+                        // carátulas" setting for every grid card. MelodistImage already falls back
+                        // to low-res when that preference is off; don't force it here too.
                     )
 
                     Box(
@@ -568,7 +570,7 @@ fun YoutubeListItem(
                     },
                     contentScale = ContentScale.Crop,
                     iconSize = if (item is PlaylistItem) 28.dp else 24.dp,
-                    isLowRes = true
+                    // Was hardcoded true, ignoring the user's high-res-covers setting here too.
                 )
             },
             trailingContent = {

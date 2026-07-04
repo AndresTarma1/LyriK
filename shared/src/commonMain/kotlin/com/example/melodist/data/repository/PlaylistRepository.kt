@@ -6,18 +6,36 @@ import app.cash.sqldelight.coroutines.asFlow
 import app.cash.sqldelight.coroutines.mapToList
 import app.cash.sqldelight.coroutines.mapToOneOrNull
 import com.example.melodist.db.SavedPlaylist
+import com.example.melodist.utils.retryWithBackoff
+import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.Artist
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.models.SongItem
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 class PlaylistRepository(
-    val database: MelodistDatabase
+    val database: MelodistDatabase,
+    private val userPreferences: UserPreferencesRepository,
 ) {
+
+    /**
+     * The YouTube `browseId` for a local playlist, or null if it isn't linked to a real YT
+     * playlist. Two independent paths lead here: [SyncUtils]'s SavedPlaylists pull writes a
+     * `Playlist` row with an explicit `browseId` column; the normal "save this YouTube playlist"
+     * flow ([savePlaylistWithSongs], via the playlist screen's bookmark button) only ever writes
+     * to `SavedPlaylist` and never touches `Playlist` at all — for those, the playlist's own `id`
+     * IS the browseId (that's how the rest of the app already treats non-local playlist ids).
+     */
+    suspend fun getBrowseId(playlistId: String): String? = withContext(Dispatchers.IO) {
+        database.playlistQueries.playlistById(playlistId).executeAsOneOrNull()?.browseId
+            ?: playlistId.takeIf { !it.startsWith("LOCAL_") && it != "LM" && it != "SE" }
+    }
 
     suspend fun createPlaylist(playlist: Playlist) {
         database.transaction {
@@ -138,7 +156,7 @@ class PlaylistRepository(
                     playlistId = playlist.id,
                     songId = song.id,
                     position = index.toLong(),
-                    setVideoId = null
+                    setVideoId = song.setVideoId
                 )
             }
 
@@ -212,6 +230,19 @@ class PlaylistRepository(
                 id = playlistId
             )
         }
+
+        // Push to the linked YouTube playlist — gated behind "Sincronizar con YouTube Music"
+        // (experimental, opt-in) since this writes to the user's real account. Best-effort: local
+        // state is already saved above, so a network failure here doesn't lose the user's action,
+        // just leaves it un-synced.
+        val browseId = getBrowseId(playlistId)
+        if (browseId != null && userPreferences.ytmSyncEnabled.first()) {
+            retryWithBackoff { YouTube.addToPlaylist(browseId, song.id) }
+                .onSuccess { setVideoId ->
+                    if (setVideoId != null) updateSetVideoId(playlistId, song.id, setVideoId)
+                }
+                .onFailure { Napier.w("Failed to push added song ${song.id} to playlist $browseId: ${it.message}") }
+        }
     }
 
     /** Persist the YTM `setVideoId` for a song already in a local playlist (used for remote sync). */
@@ -229,6 +260,16 @@ class PlaylistRepository(
         val rows = database.playlistSongMapQueries.selectByPlaylist(playlistId).executeAsList()
         val row = rows.firstOrNull { it.songId == songId } ?: return@withContext
         database.playlistSongMapQueries.deletePlaylistSongMap(row.id)
+
+        // Push the removal to the linked YouTube playlist (same gate/rationale as add).
+        // Without a stored setVideoId (e.g. the song was added before this sync feature existed)
+        // there's no way to identify the item to YouTube's API, so we just skip the remote call.
+        val browseId = getBrowseId(playlistId)
+        val setVideoId = row.setVideoId
+        if (browseId != null && setVideoId != null && userPreferences.ytmSyncEnabled.first()) {
+            retryWithBackoff { YouTube.removeFromPlaylist(browseId, songId, setVideoId) }
+                .onFailure { Napier.w("Failed to push removed song $songId from playlist $browseId: ${it.message}") }
+        }
 
         val remaining = database.playlistSongMapQueries.countByPlaylist(playlistId).executeAsOne()
         database.savedPlaylistQueries.selectById(playlistId).executeAsOneOrNull()?.let {

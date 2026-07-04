@@ -54,6 +54,9 @@
     <string name="ytm_sync_warning_title">Función experimental</string>
     <string name="ytm_sync_warning_message">La sincronización con YouTube Music es experimental. Puede crear o modificar playlists en tu cuenta de YouTube Music y no nos hacemos responsables de pérdidas de datos, duplicados ni otros problemas. Requiere haber iniciado sesión. ¿Quieres activarla?</string>
     <string name="ytm_sync_warning_confirm">Activar de todos modos</string>
+    <string name="sync_now">Sincronizar ahora</string>
+    <string name="sync_now_subtitle">Actualiza me gusta, álbumes, artistas y playlists desde tu cuenta de YouTube Music.</string>
+    <string name="sync_now_syncing">Sincronizando…</string>
     <string name="section_overlay">Overlay en juegos</string>
     <string name="overlay_enable">Activar overlay con atajo global</string>
     <string name="overlay_enable_subtitle">Muestra una mini ventana sobre tus juegos (en modo ventana o ventana completa) para controlar la música sin salir. No funciona en pantalla completa exclusiva.</string>
