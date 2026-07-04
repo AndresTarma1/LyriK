@@ -595,16 +595,9 @@ fun PlaylistActionButton(
     modifier: Modifier = Modifier
 ) {
     // Animación suave de color de fondo y contenido
-    val containerColor by animateColorAsState(
-        targetValue = if (isActive) activeColor.copy(alpha = 0.15f)
-        else MaterialTheme.colorScheme.surfaceContainerHigh,
-        label = "color"
-    )
-    val contentColor by animateColorAsState(
-        targetValue = if (isActive) activeColor
-        else MaterialTheme.colorScheme.onSurfaceVariant,
-        label = "tint"
-    )
+    val containerColor = if (isActive) activeColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHigh
+
+    val contentColor = if (isActive) activeColor else MaterialTheme.colorScheme.onSurfaceVariant
 
     FilledTonalIconButton(
         onClick = onClick,
@@ -650,7 +643,7 @@ internal fun DownloadAllButton(
             .pointerHoverIcon(PointerIcon.Hand),
         colors = IconButtonDefaults.filledTonalIconButtonColors(
             containerColor = if (fullyDownloaded)
-                MaterialTheme.colorScheme.primaryContainer
+                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
             else
                 MaterialTheme.colorScheme.surfaceContainerHigh
         )
