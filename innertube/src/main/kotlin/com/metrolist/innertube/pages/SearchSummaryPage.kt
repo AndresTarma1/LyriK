@@ -266,9 +266,15 @@ data class SearchSummaryPage(
                     val podcastIndex = if (isUnfilteredSearch) 2 else 1
 
                     EpisodeItem(
-                        // In filtered search, playlistItemData may be absent; fall back to watchEndpoint.
                         id = renderer.playlistItemData?.videoId
                             ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                            ?: renderer.overlay?.musicItemThumbnailOverlayRenderer
+                                ?.content?.musicPlayButtonRenderer
+                                ?.playNavigationEndpoint?.watchEndpoint?.videoId
+                            ?: renderer.flexColumns.firstOrNull()
+                                ?.musicResponsiveListItemFlexColumnRenderer
+                                ?.text?.runs?.firstOrNull()
+                                ?.navigationEndpoint?.watchEndpoint?.videoId
                             ?: return null,
                         title =
                             renderer.flexColumns
@@ -333,9 +339,15 @@ data class SearchSummaryPage(
                         ?.filter { it.text.isNotBlank() && it.text != "&" && it.text != "," }
 
                     SongItem(
-                        // playlistItemData may be absent in some search contexts; fall back to watchEndpoint.
                         id = renderer.playlistItemData?.videoId
                             ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                            ?: renderer.overlay?.musicItemThumbnailOverlayRenderer
+                                ?.content?.musicPlayButtonRenderer
+                                ?.playNavigationEndpoint?.watchEndpoint?.videoId
+                            ?: renderer.flexColumns.firstOrNull()
+                                ?.musicResponsiveListItemFlexColumnRenderer
+                                ?.text?.runs?.firstOrNull()
+                                ?.navigationEndpoint?.watchEndpoint?.videoId
                             ?: return null,
                         title =
                             renderer.flexColumns

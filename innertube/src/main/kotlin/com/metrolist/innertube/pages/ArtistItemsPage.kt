@@ -11,6 +11,7 @@ import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.models.splitArtistsByConjunction
 import com.metrolist.innertube.models.splitBySeparator
 import com.metrolist.innertube.utils.parseTime
+import io.github.aakira.napier.Napier
 
 data class ArtistItemsPage(
     val title: String,
@@ -51,7 +52,16 @@ data class ArtistItemsPage(
             val libraryTokens = PageHelper.extractLibraryTokensFromMenuItems(renderer.menu?.menuRenderer?.items)
 
             return SongItem(
-                id = renderer.playlistItemData?.videoId ?: return null,
+                id = renderer.playlistItemData?.videoId
+                    ?: renderer.navigationEndpoint?.watchEndpoint?.videoId
+                    ?: renderer.overlay?.musicItemThumbnailOverlayRenderer
+                        ?.content?.musicPlayButtonRenderer
+                        ?.playNavigationEndpoint?.watchEndpoint?.videoId
+                    ?: renderer.flexColumns.firstOrNull()
+                        ?.musicResponsiveListItemFlexColumnRenderer
+                        ?.text?.runs?.firstOrNull()
+                        ?.navigationEndpoint?.watchEndpoint?.videoId
+                    ?: return null,
                 title = renderer.flexColumns.firstOrNull()
                     ?.musicResponsiveListItemFlexColumnRenderer?.text
                     ?.runs?.firstOrNull()?.text ?: return null,
@@ -90,25 +100,29 @@ data class ArtistItemsPage(
                 )
                 // Video
                 renderer.isSong -> {
+                    val title = renderer.title.runs?.firstOrNull()?.text ?: return null
+                    val videoId = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null
                     val subtitleRuns = renderer.subtitle?.runs ?: return null
                     val expandedRuns = subtitleRuns.splitArtistsByConjunction()
-                    val artistRuns = expandedRuns.filter { 
-                        it.text.isNotBlank() && it.text != "&" && it.text != "," 
+                    val artistRuns = expandedRuns.filter { run ->
+                        run.text.isNotBlank() && run.text != "&" && run.text != "," &&
+                        run.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("UC") == true
                     }
+                    val artists = artistRuns.map { run ->
+                        Artist(
+                            name = run.text.trim(),
+                            id = run.navigationEndpoint?.browseEndpoint?.browseId
+                        )
+                    }
+                    
+                    if (artists.isEmpty() && renderer.subtitle?.runs != null) {
+                        Napier.w("ArtistItemsPage.fromMusicTwoRowItemRenderer: Song '$title' (id=$videoId) - SUBTITLE RUNS EXIST but parsing returned EMPTY")
+                    }
+
                     SongItem(
-                        id = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null,
-                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
-                        artists = artistRuns.filter { 
-                            it.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("UC") == true ||
-                            it.navigationEndpoint?.browseEndpoint != null
-                        }.map {
-                            Artist(
-                                name = it.text.trim(),
-                                id = it.navigationEndpoint?.browseEndpoint?.browseId
-                            )
-                        }.ifEmpty {
-                            artistRuns.map { Artist(name = it.text.trim(), id = null) }
-                        },
+                        id = videoId,
+                        title = title,
+                        artists = artists.ifEmpty { null } ?: return null,
                         album = null,
                         duration = null,
                         musicVideoType = renderer.musicVideoType,

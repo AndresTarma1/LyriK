@@ -27,6 +27,7 @@ import java.io.IOException
 import kotlinx.coroutines.delay
 import java.util.*
 import kotlin.io.encoding.Base64
+import io.github.aakira.napier.Napier
 import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
@@ -60,7 +61,7 @@ class InnerTube {
             httpClient.close()
             httpClient = createClient()
         }
-
+    
     var proxyAuth: String? = null
 
     var useLoginForBrowse: Boolean = false
@@ -93,18 +94,18 @@ class InnerTube {
                         java.util.concurrent.TimeUnit.MINUTES
                     )
                 )
-
+                
                 // Timeout configurations
                 connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
                 readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
                 writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
-
+                
                 // Enable HTTP/2 for better performance
                 protocols(listOf(okhttp3.Protocol.HTTP_2, okhttp3.Protocol.HTTP_1_1))
-
+                
                 // Retry on connection failure
                 retryOnConnectionFailure(true)
-
+                
                 // Cache configuration for better performance
                 cache(
                     okhttp3.Cache(
@@ -112,12 +113,12 @@ class InnerTube {
                         maxSize = 50L * 1024L * 1024L // 50 MB
                     )
                 )
-
+                
                 // Apply proxy configuration
                 this@InnerTube.proxy?.let { proxyConfig ->
                     proxy(proxyConfig)
                 }
-
+                
                 // Apply proxy authentication
                 this@InnerTube.proxyAuth?.let { auth ->
                     proxyAuthenticator { _, response ->
@@ -217,15 +218,6 @@ class InnerTube {
         }
     }
 
-    /**
-     * Retrieves player data for a video.
-     *
-     * @param videoId The video to retrieve player data for.
-     * @param playlistId Optional playlist ID for context.
-     * @param signatureTimestamp Optional timestamp for signature validation when supported by the client.
-     * @param poToken Optional token for integrity verification when supported by the client.
-     * @return The player endpoint response.
-     */
     suspend fun player(
         client: YouTubeClient,
         videoId: String,
@@ -235,7 +227,6 @@ class InnerTube {
     ) = withRetry {
         httpClient.post("player") {
             ytClient(client, setLogin = true)
-            client.apiKey?.let { parameter("key", it) }
             setBody(
                 PlayerBody(
                     context = client.toContext(locale, visitorData, dataSyncId).let {
@@ -621,7 +612,7 @@ class InnerTube {
             )
         }
     }
-
+    
     suspend fun getUploadCustomThumbnailLink(
         client: YouTubeClient,
         contentLength: Int

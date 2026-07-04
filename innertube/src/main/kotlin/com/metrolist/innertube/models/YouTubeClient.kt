@@ -22,16 +22,7 @@ data class YouTubeClient(
     val useSignatureTimestamp: Boolean = false,
     val isEmbedded: Boolean = false,
     val useWebPoTokens: Boolean = false,
-    val apiKey: String? = null,
 ) {
-    /**
-     * Constructs a Context object from this client's configuration and the provided parameters.
-     *
-     * @param locale The locale information to derive geographic and language settings from.
-     * @param visitorData Optional visitor identification data.
-     * @param dataSyncId Optional user identifier. Populates the context only if this client supports login.
-     * @return A Context configured with this client's properties, the provided locale and visitor data, and optionally the user identifier.
-     */
     fun toContext(locale: YouTubeLocale, visitorData: String?, dataSyncId: String?) = Context(
         client = Context.Client(
             clientName = clientName,
@@ -82,6 +73,7 @@ data class YouTubeClient(
             loginSupported = true,
             loginRequired = true,
             useSignatureTimestamp = true,
+            useWebPoTokens = true,
         )
 
         val TVHTML5 = YouTubeClient(
@@ -125,20 +117,6 @@ data class YouTubeClient(
             userAgent = "com.google.android.youtube/21.03.38 (Linux; U; Android 14) gzip",
             loginSupported = true,
             useSignatureTimestamp = true
-        )
-
-        val ANDROID_MUSIC = YouTubeClient(
-            clientName = "ANDROID_MUSIC",
-            clientVersion = "7.27.52",
-            clientId = "21",
-            userAgent = "com.google.android.apps.youtube.music/7.27.52 (Linux; U; Android 15; sdk_gphone64_x86_64 Build/AP4A.250205.002.C1) gzip",
-            osName = "Android",
-            osVersion = "15",
-            deviceMake = "Google",
-            deviceModel = "sdk_gphone64_x86_64",
-            androidSdkVersion = "35",
-            loginSupported = true,
-            apiKey = "AIzaSyAOghZGza2MQSZkY_zfZ370N-PUdXEo8AI",
         )
 
         /**

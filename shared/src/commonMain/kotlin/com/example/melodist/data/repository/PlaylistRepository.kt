@@ -31,10 +31,16 @@ class PlaylistRepository(
      * flow ([savePlaylistWithSongs], via the playlist screen's bookmark button) only ever writes
      * to `SavedPlaylist` and never touches `Playlist` at all — for those, the playlist's own `id`
      * IS the browseId (that's how the rest of the app already treats non-local playlist ids).
+     *
+     * Also excludes auto-generated shelves that YouTube doesn't let you edit: "LM" (Liked Music,
+     * driven by likes, not a real playlist item list), "SE" (saved episodes), and Mixes/Radios
+     * ("RD..." ids) — pushing an add/remove to one of those isn't a valid operation.
      */
     suspend fun getBrowseId(playlistId: String): String? = withContext(Dispatchers.IO) {
         database.playlistQueries.playlistById(playlistId).executeAsOneOrNull()?.browseId
-            ?: playlistId.takeIf { !it.startsWith("LOCAL_") && it != "LM" && it != "SE" }
+            ?: playlistId.takeIf {
+                !it.startsWith("LOCAL_") && it != "LM" && it != "SE" && !it.startsWith("RD")
+            }
     }
 
     suspend fun createPlaylist(playlist: Playlist) {

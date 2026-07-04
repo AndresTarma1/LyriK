@@ -14,6 +14,7 @@ import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.models.oddElements
 import com.metrolist.innertube.models.splitBySeparator
 import com.metrolist.innertube.utils.parseTime
+import io.github.aakira.napier.Napier
 
 data class LibraryPage(
     val items: List<YTItem>,
@@ -119,16 +120,18 @@ data class LibraryPage(
                         ?.musicItemThumbnailOverlayRenderer?.content
                         ?.musicPlayButtonRenderer?.playNavigationEndpoint
                         ?.watchEndpoint?.videoId ?: return null
+                    val title = renderer.title.runs?.firstOrNull()?.text ?: return null
                     val subtitleRuns = renderer.subtitle?.runs?.splitBySeparator()
+                    val artists = PageHelper.extractArtists(subtitleRuns?.firstOrNull())
+                    
+                    if (artists.isEmpty() && (subtitleRuns?.firstOrNull()?.size ?: 0) > 0) {
+                        Napier.w("LibraryPage: Song '$title' (id=$videoId) - ARTIST RUNS EXIST but extractArtists returned EMPTY")
+                    }
+                    
                     SongItem(
                         id = videoId,
-                        title = renderer.title.runs?.firstOrNull()?.text ?: return null,
-                        artists = subtitleRuns?.firstOrNull()?.mapNotNull {
-                            Artist(
-                                name = it.text,
-                                id = it.navigationEndpoint?.browseEndpoint?.browseId
-                            )
-                        } ?: emptyList(),
+                        title = title,
+                        artists = artists,
                         album = subtitleRuns?.getOrNull(1)?.firstOrNull()?.let {
                             Album(
                                 name = it.text,
@@ -160,7 +163,7 @@ data class LibraryPage(
 
             return when {
                 renderer.isSong -> {
-                    val videoId = renderer.playlistItemData?.videoId ?: return null
+                    val videoId = renderer.videoId ?: return null
                     val title = renderer.flexColumns.firstOrNull()
                         ?.musicResponsiveListItemFlexColumnRenderer?.text
                         ?.runs?.firstOrNull()?.text ?: return null
@@ -192,6 +195,7 @@ data class LibraryPage(
                             ?.content?.confirmDialogRenderer?.confirmButton?.buttonRenderer
                             ?.command?.musicDeletePrivatelyOwnedEntityCommand?.entityId
                     }
+                    Napier.d("Parsed uploaded song: id=$videoId, entityId=$uploadEntityId")
 
                     SongItem(
                         id = videoId,

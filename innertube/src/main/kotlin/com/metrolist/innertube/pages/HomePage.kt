@@ -20,13 +20,13 @@ import com.metrolist.innertube.models.splitBySeparator
 import com.metrolist.innertube.models.filterExplicit
 import com.metrolist.innertube.models.filterVideoSongs
 import com.metrolist.innertube.utils.parseTime
+import io.github.aakira.napier.Napier
 
 data class HomePage(
     val chips: List<Chip>?,
     val sections: List<Section>,
     val continuation: String? = null,
 ) {
-
     data class Chip(
         val title: String,
         val endpoint: BrowseEndpoint?,
@@ -49,20 +49,23 @@ data class HomePage(
         val thumbnail: String?,
         val endpoint: BrowseEndpoint?,
         val items: List<YTItem>,
-        /** When > 1, YouTube renders this shelf as a horizontally-scrolling grid (rows per column). */
+        /** LyriK-specific: when > 1, this shelf renders as a horizontally-scrolling grid. */
         val numItemsPerColumn: Int? = null,
     ) {
         companion object {
             fun fromMusicCarouselShelfRenderer(renderer: MusicCarouselShelfRenderer): Section? {
                 val title = renderer.header?.musicCarouselShelfBasicHeaderRenderer?.title?.runs?.firstOrNull()?.text
+                Napier.d("HomePage section title: $title, contents: ${renderer.contents.size}")
 
                 if (title == null) {
+                    Napier.d("HomePage section skipped: no title")
                     return null
                 }
 
                 val twoRowCount = renderer.contents.count { it.musicTwoRowItemRenderer != null }
                 val multiRowCount = renderer.contents.count { it.musicMultiRowListItemRenderer != null }
                 val responsiveCount = renderer.contents.count { it.musicResponsiveListItemRenderer != null }
+                Napier.d("HomePage section '$title': twoRow=$twoRowCount, multiRow=$multiRowCount, responsive=$responsiveCount")
 
                 val items = mutableListOf<YTItem>()
 
@@ -84,8 +87,10 @@ data class HomePage(
                 val podcastCount = items.count { it is PodcastItem }
                 val episodeCount = items.count { it is EpisodeItem }
                 val songCount = items.count { it is SongItem }
+                Napier.d("HomePage section '$title': parsed ${items.size} items (podcasts=$podcastCount, episodes=$episodeCount, songs=$songCount)")
 
                 if (items.isEmpty()) {
+                    Napier.d("HomePage section '$title' skipped: no items")
                     return null
                 }
 
@@ -131,7 +136,7 @@ data class HomePage(
                     ?: return null
 
                 return SongItem(
-                    id = renderer.playlistItemData?.videoId ?: return null,
+                    id = renderer.videoId ?: return null,
                     title = renderer.flexColumns
                         .firstOrNull()
                         ?.musicResponsiveListItemFlexColumnRenderer
@@ -172,7 +177,8 @@ data class HomePage(
                 val hasWatchEndpoint = renderer.navigationEndpoint.watchEndpoint != null
 
                 if (!renderer.isSong && !renderer.isAlbum && !renderer.isPlaylist && !renderer.isArtist && !renderer.isPodcast && !renderer.isEpisode) {
-                     }
+                    Napier.d("HomePage twoRow '$title': no type matched - pageType=$pageType, hasWatchEndpoint=$hasWatchEndpoint")
+                }
 
                 // Debug for episodes
                 if (renderer.isEpisode) {
@@ -181,30 +187,29 @@ data class HomePage(
                         ?.musicPlayButtonRenderer?.playNavigationEndpoint
                         ?.watchEndpoint?.videoId
                     val browseId = renderer.navigationEndpoint.browseEndpoint?.browseId
+                    Napier.d("HomePage episode '$title': overlayVideoId=$overlayVideoId, browseId=$browseId")
                 }
 
                 return when {
                     renderer.isSong -> {
-                        val subtitleRuns = renderer.subtitle?.runs?.oddElements() ?: return null
+                        val subtitleRuns = renderer.subtitle?.runs ?: return null
+                        val artistRuns = subtitleRuns.filter {
+                            it.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("MPREb_") != true
+                        }
+                        val title = renderer.title.runs?.firstOrNull()?.text ?: return null
+                        val videoId = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null
+                        val artists = PageHelper.extractArtists(artistRuns).ifEmpty {
+                            subtitleRuns.firstOrNull()?.let { run ->
+                                listOf(Artist(name = run.text, id = null))
+                            } ?: emptyList()
+                        }
+
                         SongItem(
-                            id = renderer.navigationEndpoint.watchEndpoint?.videoId ?: return null,
-                            title = renderer.title.runs?.firstOrNull()?.text ?: return null,
-                            artists = subtitleRuns.filter { run ->
-                                run.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("UC") == true ||
-                                (run.navigationEndpoint?.browseEndpoint != null && 
-                                 run.navigationEndpoint.browseEndpoint.browseId.startsWith("MPREb_") != true)
-                            }.map { run ->
-                                Artist(
-                                    name = run.text,
-                                    id = run.navigationEndpoint?.browseEndpoint?.browseId
-                                )
-                            }.ifEmpty {
-                                subtitleRuns.firstOrNull()?.let { run -> 
-                                    listOf(Artist(name = run.text, id = null)) 
-                                } ?: emptyList()
-                            },
-                            album = subtitleRuns.firstOrNull { 
-                                it.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("MPREb_") == true 
+                            id = videoId,
+                            title = title,
+                            artists = artists,
+                            album = subtitleRuns.firstOrNull {
+                                it.navigationEndpoint?.browseEndpoint?.browseId?.startsWith("MPREb_") == true
                             }?.let {
                                 Album(
                                     name = it.text,
@@ -308,6 +313,7 @@ data class HomePage(
                         val thumbnail = renderer.thumbnailRenderer.musicThumbnailRenderer?.getThumbnailUrl()
 
                         if (videoId == null || titleText == null || thumbnail == null) {
+                            Napier.d("HomePage episode FAILED: videoId=$videoId, title=$titleText, thumbnail=$thumbnail")
                             return null
                         }
 
@@ -325,6 +331,7 @@ data class HomePage(
                             )
                         }
 
+                        Napier.d("HomePage episode SUCCESS: '$titleText', podcast: ${podcastAlbum?.name}")
                         EpisodeItem(
                             id = videoId,
                             title = titleText,

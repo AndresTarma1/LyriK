@@ -73,7 +73,7 @@ object SearchSuggestionPage {
                 val dateIndex = if (isUnfilteredSearch) 1 else 0
                 val podcastIndex = if (isUnfilteredSearch) 2 else 1
                 EpisodeItem(
-                    id = renderer.playlistItemData?.videoId ?: return null,
+                    id = renderer.videoId ?: return null,
                     title =
                         renderer.flexColumns
                             .firstOrNull()
@@ -166,7 +166,7 @@ object SearchSuggestionPage {
                     ?.splitArtistsByConjunction()
                     ?.filter { it.text.isNotBlank() && it.text != "&" && it.text != "," }
                 SongItem(
-                    id = renderer.playlistItemData?.videoId ?: return null,
+                    id = renderer.videoId ?: return null,
                     title =
                         renderer.flexColumns
                             .firstOrNull()
