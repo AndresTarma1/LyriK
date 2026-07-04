@@ -41,7 +41,7 @@
 ## Git And Maintenance
 - Keep edits scoped to the requested behavior.
 - Never revert unrelated local changes.
-- Run `compileKotlinJvm` after Kotlin/SQLDelight changes when possible.
+- Run `compileKotlinDesktop` after Kotlin/SQLDelight changes when possible.
 
 ---
 
@@ -55,23 +55,23 @@
 - **Data paths** — `%APPDATA%\Tarma\LyriK\` (DB, DataStore preferences, persistent user files) / `%LOCALAPPDATA%\Tarma\LyriK\` (cache, downloads, volatile data)
 
 ## Key Files
-- `composeApp/src/jvmMain/kotlin/com/example/melodist/App.kt` — Root composable: ArtAppColors, theme, locale sync, DecoratedWindow, tray
-- `composeApp/src/jvmMain/kotlin/com/example/melodist/navigation/Navigation.kt` — Desktop layout, keyboard shortcuts, queue/now-playing panels
-- `composeApp/src/jvmMain/kotlin/com/example/melodist/ui/components/MiniPlayer.kt` — Bottom bar with tooltips, like button, volume badge
-- `composeApp/src/jvmMain/kotlin/com/example/melodist/ui/components/player/NowPlayingLayouts.kt` — Queue panel with sticky now-playing header, QueueItem
-- `composeApp/src/jvmMain/kotlin/com/example/melodist/ui/components/EqualizerPanel.kt` — Shared 10-band EQ component
-- `composeApp/src/jvmMain/kotlin/com/example/melodist/ui/screens/SettingsScreen.kt` — Settings with responsive dialogs, JVM config entry
-- `composeApp/src/jvmMain/kotlin/com/example/melodist/ui/screens/AdvancedJvmSettingsScreen.kt` — JVM config UI (Xmx, Xms, G1GC, ZGC, restart)
-- `composeApp/src/jvmMain/kotlin/com/example/melodist/ui/screens/library/LibraryScreen.kt` — Library with search, sort, YTM filter dropdown
+- `composeApp/src/desktopMain/kotlin/com/example/melodist/App.kt` — Root composable: ArtAppColors, theme, locale sync, DecoratedWindow, tray
+- `composeApp/src/desktopMain/kotlin/com/example/melodist/navigation/Navigation.kt` — Desktop layout, keyboard shortcuts, queue/now-playing panels
+- `composeApp/src/desktopMain/kotlin/com/example/melodist/ui/components/MiniPlayer.kt` — Bottom bar with tooltips, like button, volume badge
+- `composeApp/src/desktopMain/kotlin/com/example/melodist/ui/components/player/NowPlayingLayouts.kt` — Queue panel with sticky now-playing header, QueueItem
+- `composeApp/src/desktopMain/kotlin/com/example/melodist/ui/components/EqualizerPanel.kt` — Shared 10-band EQ component
+- `composeApp/src/desktopMain/kotlin/com/example/melodist/ui/screens/SettingsScreen.kt` — Settings with responsive dialogs, JVM config entry
+- `composeApp/src/desktopMain/kotlin/com/example/melodist/ui/screens/AdvancedJvmSettingsScreen.kt` — JVM config UI (Xmx, Xms, G1GC, ZGC, restart)
+- `composeApp/src/desktopMain/kotlin/com/example/melodist/ui/screens/library/LibraryScreen.kt` — Library with search, sort, YTM filter dropdown
 - `shared/src/commonMain/kotlin/com/example/melodist/viewmodels/LibraryViewModel.kt` — Combined local+YTM flows, filtered/sorted
 - `shared/src/commonMain/kotlin/com/example/melodist/viewmodels/HomeViewModel.kt` — Home page + recent songs from DB
-- `shared/src/jvmMain/kotlin/com/example/melodist/viewmodels/PlayerViewModel.kt` — Player state, queue, playback, like, volume, mute
-- `shared/src/jvmMain/kotlin/com/example/melodist/player/PlayerService.kt` — mpv wrapper, volume, EQ, position ticker
-- `shared/src/jvmMain/kotlin/com/example/melodist/player/MpvAudioPlayer.kt` — Low-level mpv JNI bindings
-- `shared/src/jvmMain/kotlin/com/example/melodist/data/local/DatabaseDriverFactory.kt` — SQLite driver, schema version check (DESTRUCTIVE)
+- `shared/src/desktopMain/kotlin/com/example/melodist/viewmodels/PlayerViewModel.kt` — Player state, queue, playback, like, volume, mute
+- `shared/src/desktopMain/kotlin/com/example/melodist/player/PlayerService.kt` — mpv wrapper, volume, EQ, position ticker
+- `shared/src/desktopMain/kotlin/com/example/melodist/player/MpvAudioPlayer.kt` — Low-level mpv JNI bindings
+- `shared/src/desktopMain/kotlin/com/example/melodist/data/local/DatabaseDriverFactory.kt` — SQLite driver, schema version check (DESTRUCTIVE)
 - `shared/src/commonMain/kotlin/com/example/melodist/data/repository/UserPreferencesRepository.kt` — DataStore preferences
 - `shared/src/commonMain/kotlin/com/example/melodist/data/repository/JvmConfigRepository.kt` — JVM config persistence
-- `shared/src/jvmMain/kotlin/com/example/melodist/utils/AppRestarter.kt` — ProcessBuilder restart with JVM args
+- `shared/src/desktopMain/kotlin/com/example/melodist/utils/AppRestarter.kt` — ProcessBuilder restart with JVM args
 - `shared/src/commonMain/kotlin/com/example/melodist/db/DatabaseDao.kt` — Unified DB access, artist/album mappings
 
 ## Completed
@@ -112,6 +112,6 @@
 | 3 | Version string duplicated (build.gradle ↔ AppViewModel) | `build.gradle.kts:110`, `AppViewModel.kt:29` |
 
 ## Build Commands
-- Compile: `.\gradlew compileKotlinJvm --quiet`
+- Compile: `.\gradlew compileKotlinDesktop --quiet`
 - Run: `.\gradlew :composeApp:run`
 - Package MSI: `.\gradlew :composeApp:packageDistributionForCurrentOS`
