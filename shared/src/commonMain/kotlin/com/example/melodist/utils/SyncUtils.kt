@@ -178,6 +178,15 @@ class SyncUtils(
         updateState { copy(currentOperation = "Syncing artists") }
         try {
             val remoteArtists = YouTube.library("FEmusic_library_corpus_artists").completed().getOrNull()?.items?.filterIsInstance<com.metrolist.innertube.models.ArtistItem>().orEmpty()
+            val remoteIds = remoteArtists.map { it.id }.toSet()
+
+            // Reflect unsubscribes made from YouTube itself: drop locally-saved artists no longer
+            // in the remote subscription list (mirrors executeSavedPlaylists' same reconciliation).
+            artistRepository.getSavedArtists().first()
+                .map { it.id }
+                .filterNot { it in remoteIds }
+                .forEach { artistRepository.removeArtist(it) }
+
             remoteArtists.forEach { artist ->
                 artistRepository.saveArtist(artist)
             }

@@ -100,7 +100,7 @@ val appModule = module {
     single { LibraryMixedViewModel(get()) }
     factory { AlbumViewModel(get(), get(), get()) }
     factory { PlaylistViewModel(get(), get(), get(), get()) }
-    factory { ArtistViewModel(get(), get()) }
+    factory { ArtistViewModel(get(), get(), get()) }
     single { SettingsViewModel(get(), get()) }
     single { JvmSettingsViewModel(get()) }
 }
