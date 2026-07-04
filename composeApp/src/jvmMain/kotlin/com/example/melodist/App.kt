@@ -210,6 +210,15 @@ fun ApplicationScope.App(
     val syncState by syncUtils.syncState.collectAsState()
     var showYtmSyncWarningFromMenu by remember { mutableStateOf(false) }
 
+    // The menu's entry point shows the signed-in account's YouTube avatar (and name/email as a
+    // header inside the menu) instead of a generic icon. Fetched once per login-state transition —
+    // this is a single lightweight call, not a sync operation, so it doesn't need the cooldown.
+    val isLoggedIn by remember { com.example.melodist.data.account.AccountManager.loginState }.collectAsState(false)
+    var accountInfo by remember { mutableStateOf<com.metrolist.innertube.models.AccountInfo?>(null) }
+    LaunchedEffect(isLoggedIn) {
+        accountInfo = if (isLoggedIn) com.metrolist.innertube.YouTube.accountInfo().getOrNull() else null
+    }
+
     fun handleExit() {
         scope.launch {
             // Single atomic write (was two sequential DataStore edits) — halves the disk
@@ -441,6 +450,7 @@ fun ApplicationScope.App(
                         MelodistTitleBar(
                             currentSong = currentSong?.title,
                             isPlaying = playbackState == PlaybackState.PLAYING,
+                            accountInfo = accountInfo,
                             ytmSyncEnabled = ytmSyncEnabled,
                             isSyncing = syncState.overallStatus is com.example.melodist.utils.SyncStatus.Syncing,
                             onToggleSync = { enable ->
@@ -530,6 +540,7 @@ private fun ApplicationScope.TrayCustom(
 private fun TitleBarScope.MelodistTitleBar(
     currentSong: String?,
     isPlaying: Boolean,
+    accountInfo: com.metrolist.innertube.models.AccountInfo?,
     ytmSyncEnabled: Boolean,
     isSyncing: Boolean,
     onToggleSync: (Boolean) -> Unit,
@@ -548,11 +559,21 @@ private fun TitleBarScope.MelodistTitleBar(
     }
 
     // Quick access to YTM sync — the same toggle/action that lives in Settings, closer at hand.
+    // Entry point is the signed-in account's YouTube avatar when available (falls back to a
+    // generic cloud icon while logged out or before the avatar loads).
     Box(modifier = Modifier.align(Alignment.End).padding(end = 4.dp)) {
         var showMenu by remember { mutableStateOf(false) }
         IconButton(onClick = { showMenu = true }) {
             if (isSyncing) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+            } else if (accountInfo?.thumbnailUrl != null) {
+                com.example.melodist.ui.components.MelodistImage(
+                    url = accountInfo.thumbnailUrl,
+                    contentDescription = accountInfo.name,
+                    modifier = Modifier.size(24.dp),
+                    shape = androidx.compose.foundation.shape.CircleShape,
+                    placeholderType = com.example.melodist.ui.components.PlaceholderType.ARTIST,
+                )
             } else {
                 Icon(
                     if (ytmSyncEnabled) Icons.Rounded.CloudSync else Icons.Rounded.CloudOff,
@@ -567,6 +588,33 @@ private fun TitleBarScope.MelodistTitleBar(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
             tonalElevation = 0.dp,
         ) {
+            if (accountInfo != null) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    com.example.melodist.ui.components.MelodistImage(
+                        url = accountInfo.thumbnailUrl,
+                        contentDescription = accountInfo.name,
+                        modifier = Modifier.size(36.dp),
+                        shape = androidx.compose.foundation.shape.CircleShape,
+                        placeholderType = com.example.melodist.ui.components.PlaceholderType.ARTIST,
+                    )
+                    Column {
+                        Text(accountInfo.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+                        accountInfo.email?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+            }
             DropdownMenuItem(
                 text = { Text(stringResource(Res.string.ytm_sync)) },
                 trailingIcon = { Switch(checked = ytmSyncEnabled, onCheckedChange = null) },
