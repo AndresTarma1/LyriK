@@ -81,8 +81,15 @@ fun PlaylistScreenRoute(
     // Local playlists are always editable; a saved (bookmarked) YouTube playlist becomes editable
     // too once its songs are cached locally. isSaved can change while this screen is open (the
     // bookmark button), so it must be in the remember key, unlike the playlist's immutable id.
-    val canEditPlaylist = successState?.playlistPage?.playlist?.id?.startsWith("LOCAL_") == true ||
-        successState?.isSaved == true
+    // Auto-generated shelves (Mixes/Radios, id starts with "RD"; "SE" saved-episodes) are never
+    // really editable on YouTube's side — don't offer removal for those, even if bookmarked.
+    // "LM" (Liked Music) is the one exception: PlaylistViewModel.removeSongFromPlaylist maps
+    // removal there to a real unlike, so it stays editable.
+    val currentPlaylistId = successState?.playlistPage?.playlist?.id
+    val isNonEditableAutoPlaylist = currentPlaylistId != null &&
+        (currentPlaylistId == "SE" || currentPlaylistId.startsWith("RD"))
+    val canEditPlaylist = !isNonEditableAutoPlaylist &&
+        (currentPlaylistId?.startsWith("LOCAL_") == true || successState?.isSaved == true)
 
     val actions = remember(viewModel, successState != null, canEditPlaylist) {
         PlaylistActions(
