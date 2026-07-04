@@ -986,7 +986,6 @@ fun QueueItem(
                         placeholderType = PlaceholderType.SONG,
                         iconSize = 22.dp,
                         contentScale = ContentScale.Crop,
-                        isLowRes = true
                     )
 
                     if (isCurrent) {

@@ -236,7 +236,6 @@ private fun OverlayContent(
                 contentScale = ContentScale.Crop,
                 placeholderType = PlaceholderType.SONG,
                 iconSize = 22.dp,
-                isLowRes = true,
             )
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -690,7 +689,6 @@ private fun SongRow(
             contentScale = ContentScale.Crop,
             placeholderType = placeholder,
             iconSize = 18.dp,
-            isLowRes = true,
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
