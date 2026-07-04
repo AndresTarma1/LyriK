@@ -260,11 +260,18 @@ class SyncUtils(
         }
     }
 
+    /**
+     * Re-pulls every playlist that's linked to a real YouTube playlist (has a `browseId`),
+     * reconciling any edit made from the YouTube app/site since LyriK last saw it. Callers gate
+     * this behind the "Sincronizar con YouTube Music" setting — there's no separate per-playlist
+     * toggle (the `isAutoSync` column exists in the schema but nothing sets it; this operates on
+     * ALL linked playlists instead of requiring one).
+     */
     private suspend fun executeAutoSyncPlaylists() = withContext(Dispatchers.IO) {
         updateState { copy(currentOperation = "Syncing auto-sync playlists") }
         try {
             database.allPlaylists().first()
-                .filter { it.isAutoSync && it.browseId != null }
+                .filter { it.browseId != null }
                 .forEach { playlist ->
                     executeSinglePlaylist(playlist.id, playlist.browseId!!)
                     delay(50.milliseconds)

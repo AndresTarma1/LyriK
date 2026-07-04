@@ -10,13 +10,15 @@ import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.data.repository.YouTubeRegion
+import com.example.melodist.utils.SyncUtils
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(
-    private val preferencesRepository: UserPreferencesRepository
+    private val preferencesRepository: UserPreferencesRepository,
+    private val syncUtils: SyncUtils,
 ) : ViewModel() {
 
     val audioQuality: StateFlow<AudioQuality> = preferencesRepository.audioQuality
@@ -148,7 +150,12 @@ class SettingsViewModel(
     }
 
     fun setYtmSyncEnabled(enabled: Boolean) {
-        viewModelScope.launch { preferencesRepository.setYtmSyncEnabled(enabled) }
+        viewModelScope.launch {
+            preferencesRepository.setYtmSyncEnabled(enabled)
+            // Give immediate feedback that turning this on does something: reconcile YouTube-linked
+            // playlists right away instead of waiting for the next login/session-restore.
+            if (enabled) syncUtils.syncAutoSyncPlaylists()
+        }
     }
 
     fun setOverlayHotkeyEnabled(enabled: Boolean) {

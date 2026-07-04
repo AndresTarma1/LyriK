@@ -22,6 +22,11 @@ class PlaylistRepository(
     val database: MelodistDatabase
 ) {
 
+    /** The YouTube `browseId` for a local playlist, or null if it isn't linked to a real YT playlist. */
+    suspend fun getBrowseId(playlistId: String): String? = withContext(Dispatchers.IO) {
+        database.playlistQueries.playlistById(playlistId).executeAsOneOrNull()?.browseId
+    }
+
     suspend fun createPlaylist(playlist: Playlist) {
         database.transaction {
             database.playlistQueries.insertPlaylist(

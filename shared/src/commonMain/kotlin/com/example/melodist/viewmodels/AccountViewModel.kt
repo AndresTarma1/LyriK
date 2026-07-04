@@ -4,6 +4,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.account.AccountManager
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.db.DatabaseDao
+import com.example.melodist.utils.SyncUtils
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.AccountInfo
 import com.metrolist.innertube.models.PlaylistItem
@@ -34,7 +35,20 @@ sealed class AccountState {
 class AccountViewModel(
     private val databaseDao: DatabaseDao,
     private val userPreferences: UserPreferencesRepository,
+    private val syncUtils: SyncUtils,
 ) : MelodistViewModel() {
+
+    /**
+     * Pulls the account's library (liked songs/albums/artists, saved playlists) after every
+     * successful login or session restore — previously nothing ever triggered this. Also
+     * reconciles YouTube-linked playlists' song lists when "Sincronizar con YouTube Music" is on.
+     */
+    private suspend fun triggerPostLoginSync() {
+        syncUtils.performFullSync()
+        if (userPreferences.ytmSyncEnabled.first()) {
+            syncUtils.syncAutoSyncPlaylists()
+        }
+    }
 
     /**
      * Detects a YouTube account switch and wipes the previous account's library so it doesn't
@@ -105,6 +119,7 @@ class AccountViewModel(
                     )
                     handleAccountChange(info)
                     loadPlaylists()
+                    triggerPostLoginSync()
                 }
                 .onFailure { error ->
                     AccountManager.clearCookie()
@@ -159,6 +174,7 @@ class AccountViewModel(
                     )
                     handleAccountChange(info)
                     loadPlaylists()
+                    triggerPostLoginSync()
                 }
                 .onFailure { err ->
                     val isAuthError = isAuthenticationError(err)

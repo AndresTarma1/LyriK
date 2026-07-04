@@ -480,6 +480,11 @@ class LibraryPlaylistsViewModel(
 
     private suspend fun mirrorAddToYtm(localPlaylistId: String, song: SongItem) {
         if (!ytmSyncActive()) return
+        // Playlists that already have a browseId are real YouTube playlists (saved from YTM);
+        // PlaylistRepository.addSongToPlaylist already pushed to them unconditionally. Mirroring
+        // here too would create a SECOND, duplicate playlist (resolveOrCreateRemotePlaylist has no
+        // way to know this one already exists remotely) and double-add the song.
+        if (playlistRepository.getBrowseId(localPlaylistId) != null) return
         runCatching {
             withContext(Dispatchers.IO) {
                 val remoteId = resolveOrCreateRemotePlaylist(localPlaylistId) ?: return@withContext
@@ -493,6 +498,9 @@ class LibraryPlaylistsViewModel(
 
     private suspend fun mirrorRemoveFromYtm(localPlaylistId: String, songId: String, setVideoId: String?) {
         if (setVideoId == null || !ytmSyncActive()) return
+        // Same reasoning as mirrorAddToYtm: browseId-linked playlists are handled by
+        // PlaylistRepository.removeSongFromPlaylist already.
+        if (playlistRepository.getBrowseId(localPlaylistId) != null) return
         val remoteId = userPreferences.getRemotePlaylistId(localPlaylistId) ?: return
         runCatching {
             withContext(Dispatchers.IO) { YouTube.removeFromPlaylist(remoteId, songId, setVideoId) }
