@@ -14,7 +14,7 @@ import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.models.oddElements
 import com.metrolist.innertube.models.splitBySeparator
 import com.metrolist.innertube.utils.parseTime
-import timber.log.Timber
+import io.github.aakira.napier.Napier
 
 data class LibraryPage(
     val items: List<YTItem>,
@@ -125,7 +125,7 @@ data class LibraryPage(
                     val artists = PageHelper.extractArtists(subtitleRuns?.firstOrNull())
                     
                     if (artists.isEmpty() && (subtitleRuns?.firstOrNull()?.size ?: 0) > 0) {
-                        Timber.w("LibraryPage: Song '$title' (id=$videoId) - ARTIST RUNS EXIST but extractArtists returned EMPTY")
+                        Napier.w("LibraryPage: Song '$title' (id=$videoId) - ARTIST RUNS EXIST but extractArtists returned EMPTY")
                     }
                     
                     SongItem(
@@ -195,7 +195,7 @@ data class LibraryPage(
                             ?.content?.confirmDialogRenderer?.confirmButton?.buttonRenderer
                             ?.command?.musicDeletePrivatelyOwnedEntityCommand?.entityId
                     }
-                    timber.log.Timber.d("Parsed uploaded song: id=$videoId, entityId=$uploadEntityId")
+                    Napier.d("Parsed uploaded song: id=$videoId, entityId=$uploadEntityId")
 
                     SongItem(
                         id = videoId,

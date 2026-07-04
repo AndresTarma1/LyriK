@@ -11,7 +11,7 @@ import com.metrolist.innertube.models.YTItem
 import com.metrolist.innertube.models.splitArtistsByConjunction
 import com.metrolist.innertube.models.splitBySeparator
 import com.metrolist.innertube.utils.parseTime
-import timber.log.Timber
+import io.github.aakira.napier.Napier
 
 data class ArtistItemsPage(
     val title: String,
@@ -116,7 +116,7 @@ data class ArtistItemsPage(
                     }
                     
                     if (artists.isEmpty() && renderer.subtitle?.runs != null) {
-                        Timber.w("ArtistItemsPage.fromMusicTwoRowItemRenderer: Song '$title' (id=$videoId) - SUBTITLE RUNS EXIST but parsing returned EMPTY")
+                        Napier.w("ArtistItemsPage.fromMusicTwoRowItemRenderer: Song '$title' (id=$videoId) - SUBTITLE RUNS EXIST but parsing returned EMPTY")
                     }
 
                     SongItem(
