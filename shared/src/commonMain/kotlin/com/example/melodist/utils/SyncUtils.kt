@@ -6,6 +6,7 @@ import com.example.melodist.data.repository.PlaylistRepository
 import com.example.melodist.data.repository.SongRepository
 import com.example.melodist.db.DatabaseDao
 import com.example.melodist.db.entities.PlaylistEntity
+import com.example.melodist.models.toMediaMetadata
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.PlaylistItem
 import com.metrolist.innertube.utils.completed
@@ -114,12 +115,36 @@ class SyncUtils(
         }
     }
 
+    /**
+     * Pulls "LM" (Liked Music) and reconciles the actual `Song.liked` flag — the one the
+     * like/heart button and `PlayerViewModel.toggleLike()` read/write — not just the separate
+     * `SavedSong` cache table (which only feeds the Library "songs" list). Without this, a song
+     * liked from your phone/YTM web never showed as liked inside LyriK itself.
+     */
     private suspend fun executeLikedSongs() = withContext(Dispatchers.IO) {
         updateState { copy(currentOperation = "Syncing liked songs") }
         try {
             val remoteSongs = YouTube.playlist("LM").completed().getOrNull()?.songs.orEmpty()
-            remoteSongs.forEach { song ->
+            val remoteIds = remoteSongs.map { it.id }.toSet()
+
+            // Reflect unlikes made from YouTube itself.
+            database.likedSongs().first()
+                .filterNot { it.id in remoteIds }
+                .forEach { database.insertSong(it.localToggleLike()) }
+
+            val now = java.time.LocalDateTime.now()
+            remoteSongs.forEachIndexed { index, song ->
                 songRepository.saveSong(song)
+
+                val timestamp = now.minusSeconds(index.toLong())
+                val existing = database.songById(song.id).first()
+                if (existing == null) {
+                    database.insertSong(
+                        song.toMediaMetadata().toSongEntity().copy(liked = true, likedDate = timestamp)
+                    )
+                } else if (!existing.liked || existing.likedDate != timestamp) {
+                    database.insertSong(existing.copy(liked = true, likedDate = timestamp))
+                }
             }
         } catch (e: Exception) {
             Napier.e("Failed syncing liked songs", e)
