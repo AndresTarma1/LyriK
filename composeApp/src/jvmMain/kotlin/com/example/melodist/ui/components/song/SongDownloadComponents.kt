@@ -155,7 +155,9 @@ fun AddToPlaylistDialog(
     playlistsViewModel: LibraryPlaylistsViewModel,
     onDismiss: () -> Unit
 ) {
-    val localPlaylists by playlistsViewModel.localPlaylists.collectAsState()
+    // All saved playlists (local + YouTube-saved) — adding to a YouTube-saved playlist pushes the
+    // change to the real playlist on the account (PlaylistRepository.addSongToPlaylist).
+    val savedPlaylists by playlistsViewModel.savedPlaylists.collectAsState()
     var newPlaylistName by remember { mutableStateOf("") }
     var isCreatingNew by remember { mutableStateOf(false) }
     val snackbar = LocalSnackbarHostState.current
@@ -178,9 +180,9 @@ fun AddToPlaylistDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-            } else if (localPlaylists.isEmpty()) {
+            } else if (savedPlaylists.isEmpty()) {
                 Text(
-                    "No tienes playlists locales creadas todavía.",
+                    "No tienes playlists guardadas todavía.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -188,7 +190,7 @@ fun AddToPlaylistDialog(
                 LazyColumn(
                     modifier = Modifier.fillMaxWidth().heightIn(min = 40.dp, max = 260.dp)
                 ) {
-                    items(localPlaylists) { playlist ->
+                    items(savedPlaylists) { playlist ->
                         var isHovered by remember { mutableStateOf(false) }
                         Row(
                             modifier = Modifier

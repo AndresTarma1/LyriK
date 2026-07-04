@@ -22,9 +22,17 @@ class PlaylistRepository(
     val database: MelodistDatabase
 ) {
 
-    /** The YouTube `browseId` for a local playlist, or null if it isn't linked to a real YT playlist. */
+    /**
+     * The YouTube `browseId` for a local playlist, or null if it isn't linked to a real YT
+     * playlist. Two independent paths lead here: [SyncUtils]'s SavedPlaylists pull writes a
+     * `Playlist` row with an explicit `browseId` column; the normal "save this YouTube playlist"
+     * flow ([savePlaylistWithSongs], via the playlist screen's bookmark button) only ever writes
+     * to `SavedPlaylist` and never touches `Playlist` at all — for those, the playlist's own `id`
+     * IS the browseId (that's how the rest of the app already treats non-local playlist ids).
+     */
     suspend fun getBrowseId(playlistId: String): String? = withContext(Dispatchers.IO) {
         database.playlistQueries.playlistById(playlistId).executeAsOneOrNull()?.browseId
+            ?: playlistId.takeIf { !it.startsWith("LOCAL_") && it != "LM" && it != "SE" }
     }
 
     suspend fun createPlaylist(playlist: Playlist) {
@@ -223,7 +231,7 @@ class PlaylistRepository(
 
         // Push to the linked YouTube playlist (best-effort: local state is already saved above,
         // so a network failure here doesn't lose the user's action, just leaves it un-synced).
-        val browseId = database.playlistQueries.playlistById(playlistId).executeAsOneOrNull()?.browseId
+        val browseId = getBrowseId(playlistId)
         if (browseId != null) {
             retryWithBackoff { YouTube.addToPlaylist(browseId, song.id) }
                 .onSuccess { setVideoId ->
@@ -252,7 +260,7 @@ class PlaylistRepository(
         // Push the removal to the linked YouTube playlist (best-effort, same rationale as add).
         // Without a stored setVideoId (e.g. the song was added before this sync feature existed)
         // there's no way to identify the item to YouTube's API, so we just skip the remote call.
-        val browseId = database.playlistQueries.playlistById(playlistId).executeAsOneOrNull()?.browseId
+        val browseId = getBrowseId(playlistId)
         val setVideoId = row.setVideoId
         if (browseId != null && setVideoId != null) {
             retryWithBackoff { YouTube.removeFromPlaylist(browseId, songId, setVideoId) }
