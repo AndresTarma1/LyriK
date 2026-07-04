@@ -246,6 +246,26 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                             else viewModel.setYtmSyncEnabled(false)
                         }
                     )
+                    val syncState by viewModel.syncState.collectAsState()
+                    val isSyncing = syncState.overallStatus is com.example.melodist.utils.SyncStatus.Syncing
+                    SettingsMenuLink(
+                        icon = { Icon(Icons.Rounded.Sync, null) },
+                        title = { Text(stringResource(Res.string.sync_now)) },
+                        subtitle = {
+                            Text(
+                                if (isSyncing) syncState.currentOperation.ifBlank { stringResource(Res.string.sync_now_syncing) }
+                                else stringResource(Res.string.sync_now_subtitle)
+                            )
+                        },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        action = {
+                            if (isSyncing) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            }
+                        },
+                        onClick = { if (!isSyncing) viewModel.syncNow() }
+                    )
                 }
 
                 Spacer(Modifier.height(8.dp))
