@@ -273,6 +273,15 @@
     <string name="mp_expand">Abrir reproducción</string>
     <string name="mp_error">Error</string>
 
+    <!-- Now Playing / Lyrics -->
+    <string name="lyrics_header_title">Letras</string>
+    <string name="lyrics_synced_badge">Sincronizadas</string>
+    <string name="lyrics_loading">Buscando letras…</string>
+    <string name="lyrics_not_found">No se encontraron letras para esta canción</string>
+    <string name="toggle_lyrics_menu">Alternar letras</string>
+    <string name="queue_download_added">%1$d canciones agregadas a descargas</string>
+    <string name="queue_saved_as">Cola guardada como «%1$s»</string>
+
     <!-- Items subtitles -->
     <string name="item_album">Álbum</string>
     <string name="item_artist">Artista</string>
@@ -370,6 +379,14 @@
     <string name="region_system">Predeterminado del sistema</string>
     <string name="region_us">Estados Unidos</string>
     <string name="region_co">Colombia</string>
+    <string name="region_mx">México</string>
+    <string name="region_ar">Argentina</string>
+    <string name="region_br">Brasil</string>
+    <string name="region_cl">Chile</string>
+    <string name="region_pe">Perú</string>
+    <string name="region_ec">Ecuador</string>
+    <string name="region_ve">Venezuela</string>
+    <string name="region_ca">Canadá</string>
 
     <!-- Sort orders -->
     <string name="sort_name_asc_label">Nombre A-Z</string>

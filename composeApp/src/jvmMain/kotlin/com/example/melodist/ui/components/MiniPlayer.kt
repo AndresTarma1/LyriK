@@ -10,15 +10,20 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.border
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.automirrored.rounded.VolumeDown
@@ -38,11 +43,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.melodist.data.repository.LayoutMode
@@ -60,6 +68,7 @@ import ir.mahozad.multiplatform.wavyslider.material3.WavySlider
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
+import kotlin.math.roundToInt
 
 
 @OptIn(
@@ -392,22 +401,13 @@ fun MiniPlayer(
                         )
                         Spacer(Modifier.width(4.dp))
 
-                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-                            Slider(
-                                value = volumeFloat,
-                                onValueChange = { playerViewModel.setVolume((it * 100).toInt()) },
-                                modifier = Modifier
-                                    .width(80.dp)
-                                    .height(16.dp),
-                                colors = SliderDefaults.colors(
-                                    thumbColor = MaterialTheme.colorScheme.onSurface,
-                                    activeTrackColor = MaterialTheme.colorScheme.onSurface,
-                                    inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
-                                    activeTickColor = Color.Transparent,
-                                    inactiveTickColor = Color.Transparent
-                                )
-                            )
-                        }
+                        SlimVolumeSlider(
+                            value = volumeFloat,
+                            onValueChange = { playerViewModel.setVolume((it * 100).toInt()) },
+                            modifier = Modifier.width(80.dp),
+                            activeColor = MaterialTheme.colorScheme.onSurface,
+                            inactiveColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.18f),
+                        )
 
 
                         IconButton(
@@ -488,5 +488,73 @@ fun TimeText(millis: Long, seekValue: Float? = null) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.width(36.dp)
     )
+}
+
+/**
+ * Thin, custom volume slider — the stock M3 Slider in this Compose version uses the "Expressive"
+ * design tokens (16dp track, 44dp thumb), which looks oversized for the mini-player. Click anywhere
+ * on the track to jump, drag to adjust; the thumb grows slightly while dragging for feedback.
+ */
+@Composable
+private fun SlimVolumeSlider(
+    value: Float,
+    onValueChange: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+    activeColor: Color,
+    inactiveColor: Color,
+) {
+    val density = LocalDensity.current
+    var isDragging by remember { mutableStateOf(false) }
+    val thumbDiameter by animateDpAsState(if (isDragging) 12.dp else 8.dp)
+    val fraction = value.coerceIn(0f, 1f)
+
+    BoxWithConstraints(
+        modifier = modifier
+            .height(20.dp)
+            .pointerHoverIcon(PointerIcon.Hand)
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    onValueChange((offset.x / size.width).coerceIn(0f, 1f))
+                }
+            }
+            .pointerInput(Unit) {
+                detectHorizontalDragGestures(
+                    onDragStart = { isDragging = true },
+                    onDragEnd = { isDragging = false },
+                    onDragCancel = { isDragging = false },
+                ) { change, _ ->
+                    change.consume()
+                    onValueChange((change.position.x / size.width).coerceIn(0f, 1f))
+                }
+            },
+    ) {
+        val widthPx = with(density) { maxWidth.toPx() }
+        val thumbRadiusPx = with(density) { (thumbDiameter / 2).toPx() }
+
+        Box(
+            Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxWidth()
+                .height(3.dp)
+                .clip(RoundedCornerShape(50))
+                .background(inactiveColor)
+        )
+        Box(
+            Modifier
+                .align(Alignment.CenterStart)
+                .fillMaxWidth(fraction)
+                .height(3.dp)
+                .clip(RoundedCornerShape(50))
+                .background(activeColor)
+        )
+        Box(
+            Modifier
+                .align(Alignment.CenterStart)
+                .offset { IntOffset((widthPx * fraction - thumbRadiusPx).roundToInt(), 0) }
+                .size(thumbDiameter)
+                .clip(CircleShape)
+                .background(activeColor)
+        )
+    }
 }
 

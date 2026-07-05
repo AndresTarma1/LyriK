@@ -16,6 +16,7 @@ object AppEnvironment {
         AppDirs.ensureDirectories()
         // redirectStandardStreams()
         Napier.base(DebugAntilog())
+        cleanupOrphanedTrayIcons()
         val tmpDir = AppDirs.tmpDir.also { it.mkdirs() }
 
         System.setProperty("org.sqlite.tmpdir", tmpDir.absolutePath)
@@ -23,6 +24,21 @@ object AppEnvironment {
         System.setProperty("compose.swing.render.on.graphics", "true")
 
         configureYouTubeLocale()
+    }
+
+    /**
+     * The system-tray library (composenativetray) re-renders every menu icon to a brand-new
+     * "tray_icon_*.ico/.png" file on each menu rebuild (song change, play/pause, ...), ignores our
+     * tmpdir override below, and relies solely on deleteOnExit() — which never runs on a forced
+     * kill. Sweep leftovers from previous runs before they pile up indefinitely in the real OS temp
+     * dir; must run before the tmpdir property is overridden, since it reads the real one.
+     */
+    private fun cleanupOrphanedTrayIcons() {
+        runCatching {
+            File(System.getProperty("java.io.tmpdir"))
+                .listFiles { f -> f.isFile && f.name.startsWith("tray_icon_") }
+                ?.forEach { it.delete() }
+        }
     }
 
     private fun redirectStandardStreams() {

@@ -96,4 +96,12 @@ fun YouTubeRegion.displayName(): String = when (this) {
     YouTubeRegion.SYSTEM -> stringResource(Res.string.region_system)
     YouTubeRegion.US -> stringResource(Res.string.region_us)
     YouTubeRegion.CO -> stringResource(Res.string.region_co)
+    YouTubeRegion.MX -> stringResource(Res.string.region_mx)
+    YouTubeRegion.AR -> stringResource(Res.string.region_ar)
+    YouTubeRegion.BR -> stringResource(Res.string.region_br)
+    YouTubeRegion.CL -> stringResource(Res.string.region_cl)
+    YouTubeRegion.PE -> stringResource(Res.string.region_pe)
+    YouTubeRegion.EC -> stringResource(Res.string.region_ec)
+    YouTubeRegion.VE -> stringResource(Res.string.region_ve)
+    YouTubeRegion.CA -> stringResource(Res.string.region_ca)
 }

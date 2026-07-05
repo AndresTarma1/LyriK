@@ -31,8 +31,10 @@ import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.QueueMusic
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -91,6 +93,7 @@ import io.github.aakira.napier.Napier
 import org.jetbrains.jewel.foundation.modifier.onHover
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
@@ -357,7 +360,7 @@ private fun LyricsHeader(modifier: Modifier = Modifier) {
             tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
         )
         Text(
-            "Letras",
+            stringResource(Res.string.lyrics_header_title),
             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
         )
@@ -378,7 +381,7 @@ private fun LyricsHeader(modifier: Modifier = Modifier) {
                         tint = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                        "Sincronizadas",
+                        stringResource(Res.string.lyrics_synced_badge),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -411,14 +414,37 @@ private fun BoxScope.LyricsContent(
             )
         }
         lyrics == null -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 LoadingIndicator()
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    stringResource(Res.string.lyrics_loading),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                )
             }
         }
         lyrics.isBlank() -> {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    Icons.Rounded.Lyrics,
+                    contentDescription = null,
+                    modifier = Modifier.size(56.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.25f)
+                )
+                Spacer(Modifier.height(20.dp))
                 Text(
-                    "No se encontraron letras para esta canción.",
+                    stringResource(Res.string.lyrics_not_found),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
                 )
@@ -490,7 +516,7 @@ private fun BoxScope.TopActionOverlay(
                 leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
             )
             DropdownMenuItem(
-                text = { Text("Alternar Letras") },
+                text = { Text(stringResource(Res.string.toggle_lyrics_menu)) },
                 onClick = {
                     onMenuToggle(false)
                     onToggleLyrics?.invoke()
@@ -611,7 +637,7 @@ fun PlaybackQueuePanel(
                                     showMenu = false
                                     downloadViewModel.downloadAll(queueSongs)
                                     scope.launch {
-                                        snackbar.showSnackbar("${queueSongs.size} canciones agregadas a descargas")
+                                        snackbar.showSnackbar(getString(Res.string.queue_download_added, queueSongs.size))
                                     }
                                 },
                                 text = { Text(stringResource(Res.string.download_queue)) },
@@ -767,7 +793,7 @@ fun PlaybackQueuePanel(
                     enabled = queuePlaylistName.isNotBlank(),
                     onClick = {
                         playlistsViewModel.createLocalPlaylist(queuePlaylistName.trim(), queueSongs)
-                        scope.launch { snackbar.showSnackbar("Cola guardada como «${queuePlaylistName.trim()}»") }
+                        scope.launch { snackbar.showSnackbar(getString(Res.string.queue_saved_as, queuePlaylistName.trim())) }
                         showSaveQueueDialog = false
                     }
                 ) { Text(stringResource(Res.string.btn_save)) }
@@ -881,6 +907,21 @@ fun SongHeader(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+
+            Spacer(Modifier.width(4.dp))
+
+            val playerViewModel = LocalPlayerViewModel.current
+            IconButton(
+                onClick = { playerViewModel.toggleLike() },
+                modifier = Modifier.size(if (compact) 20.dp else 24.dp).pointerHoverIcon(PointerIcon.Hand)
+            ) {
+                Icon(
+                    imageVector = if (song.liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                    contentDescription = stringResource(Res.string.mp_like),
+                    tint = if (song.liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(if (compact) 14.dp else 16.dp)
+                )
             }
         }
 

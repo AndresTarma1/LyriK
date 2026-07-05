@@ -195,10 +195,15 @@ class WindowsThumbBar(
     }
 
     private fun loadIcon(name: String): Pointer? = runCatching {
-        val tmp = File.createTempFile("lyrik-thb-$name", ".ico").apply { deleteOnExit() }
-        javaClass.getResourceAsStream("/thumbbar/$name.ico")?.use { input ->
-            tmp.outputStream().use { input.copyTo(it) }
-        } ?: return@runCatching null
+        // Fixed, reused path instead of a fresh createTempFile() per launch: deleteOnExit() only
+        // fires on a clean JVM shutdown, so a unique name per run left orphaned .ico files in
+        // %TEMP% behind every time the app was killed (IDE stop, crash, task manager).
+        val tmp = File(System.getProperty("java.io.tmpdir"), "lyrik-thb-$name.ico")
+        if (!tmp.exists()) {
+            javaClass.getResourceAsStream("/thumbbar/$name.ico")?.use { input ->
+                tmp.outputStream().use { input.copyTo(it) }
+            } ?: return@runCatching null
+        }
         User32X.INSTANCE.LoadImageW(null, WString(tmp.absolutePath), IMAGE_ICON, 0, 0, LR_LOADFROMFILE or LR_DEFAULTSIZE)
     }.getOrNull()
 }

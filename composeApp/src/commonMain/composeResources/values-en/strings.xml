@@ -273,6 +273,15 @@
     <string name="mp_expand">Open now playing</string>
     <string name="mp_error">Error</string>
 
+    <!-- Now Playing / Lyrics -->
+    <string name="lyrics_header_title">Lyrics</string>
+    <string name="lyrics_synced_badge">Synced</string>
+    <string name="lyrics_loading">Finding lyrics…</string>
+    <string name="lyrics_not_found">No lyrics found for this song</string>
+    <string name="toggle_lyrics_menu">Toggle lyrics</string>
+    <string name="queue_download_added">%1$d songs added to downloads</string>
+    <string name="queue_saved_as">Queue saved as “%1$s”</string>
+
     <!-- Items subtitles -->
     <string name="item_album">Album</string>
     <string name="item_artist">Artist</string>
@@ -370,6 +379,14 @@
     <string name="region_system">System default</string>
     <string name="region_us">United States</string>
     <string name="region_co">Colombia</string>
+    <string name="region_mx">Mexico</string>
+    <string name="region_ar">Argentina</string>
+    <string name="region_br">Brazil</string>
+    <string name="region_cl">Chile</string>
+    <string name="region_pe">Peru</string>
+    <string name="region_ec">Ecuador</string>
+    <string name="region_ve">Venezuela</string>
+    <string name="region_ca">Canada</string>
 
     <!-- Sort orders -->
     <string name="sort_name_asc_label">Name A-Z</string>

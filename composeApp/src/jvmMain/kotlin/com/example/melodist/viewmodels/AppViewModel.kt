@@ -47,7 +47,7 @@ class AppViewModel : ViewModel() {
 
     companion object {
         /** Single source of truth for the displayed/compared app version (also shown in Settings). */
-        const val CURRENT_VERSION = "0.3.0"
+        const val CURRENT_VERSION = "0.4.0"
     }
 
     private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)

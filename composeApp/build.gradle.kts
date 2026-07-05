@@ -29,6 +29,13 @@ val melodistJvmArgs = listOf(
     // JIT code-cache reservation (≈46 MB used of a 240 MB default reservation).
     "-XX:MaxMetaspaceSize=192m",
     "-XX:ReservedCodeCacheSize=128m",
+    // This limit is a purge threshold, not a hard cap (Skia's own default is 256MB/window) — too low
+    // (32MB) forces constant evict/recreate cycles that fragment the native heap and inflate working
+    // set instead of shrinking it. 128MB measured ~95MB lower than 32MB right after launch, but over
+    // a longer session with heavier navigation, growth showed up outside the JVM (confirmed via NMT:
+    // heap/metaspace/threads/code cache all stayed small and healthy) that VMMap traced to generic
+    // native "Private Data"/"Heap" blocks — Skia/mpv runtime allocations, not attributable to this
+    // flag specifically. Back to 64MB, the longest-standing known-good value.
     "-Dskiko.gpu.resourceCacheLimit=67108864",
 )
 
@@ -146,16 +153,16 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Msi, TargetFormat.Exe)
             packageName = "LyriK"
-            packageVersion = "0.3.0"
+            packageVersion = "0.4.0"
 
             windows {
-                msiPackageVersion = "0.3.0"
+                msiPackageVersion = "0.4.0"
                 packageName = "LyriK"
                 iconFile.set(project.file("icons/Music_note_circle.ico"))
                 menu = true
                 menuGroup = "LyriK"
                 shortcut = true
-                dirChooser = false
+                dirChooser = true
                 perUserInstall = true
                 upgradeUuid = "4A2F8B6C-1D3E-4F5A-B7C8-9D0E1F2A3B4C"
             }

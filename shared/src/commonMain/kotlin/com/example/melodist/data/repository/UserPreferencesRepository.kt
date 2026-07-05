@@ -40,6 +40,14 @@ enum class YouTubeRegion(val gl: String, val hl: String) {
     SYSTEM("", ""),
     US("US", "en"),
     CO("CO", "es"),
+    MX("MX", "es"),
+    AR("AR", "es"),
+    BR("BR", "pt"),
+    CL("CL", "es"),
+    PE("PE", "es"),
+    EC("EC", "es"),
+    VE("VE", "es"),
+    CA("CA", "en"),
 }
 
 enum class ThemePalette(val primary: Long, val secondary: Long) {
