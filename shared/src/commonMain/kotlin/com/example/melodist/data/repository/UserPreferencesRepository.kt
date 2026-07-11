@@ -7,9 +7,12 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import com.example.melodist.utils.PendingAction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
 
 /** Sentinel for an overlay position that has never been set by the user. */
 const val OVERLAY_POS_UNSET = Int.MIN_VALUE
@@ -95,6 +98,8 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val OVERLAY_POS_Y = intPreferencesKey("overlay_pos_y")
         val LT_USERNAME = stringPreferencesKey("listen_together_username")
         val LAST_ACCOUNT_ID = stringPreferencesKey("last_account_id")
+        val OFFLINE_MODE = booleanPreferencesKey("offline_mode_enabled")
+        val PENDING_ACTIONS = stringPreferencesKey("pending_sync_actions")
     }
 
     /** Last overlay window position in dp, or [OVERLAY_POS_UNSET] when never moved (→ default corner). */
@@ -343,6 +348,52 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     suspend fun setYoutubeRegion(region: YouTubeRegion) {
         dataStore.edit { it[PreferencesKeys.YOUTUBE_REGION] = region.name }
+    }
+
+    /**
+     * Manual "offline mode" — when on, the app never attempts network calls (search, home feed,
+     * lyrics fetch, library sync) and only plays downloaded/cached songs, regardless of whether a
+     * connection is actually available. Independent from automatic offline DETECTION
+     * ([com.example.melodist.utils.NetworkMonitor]), which reacts to a connection actually being
+     * down; this is the user proactively opting out of network use.
+     */
+    val offlineModeEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.OFFLINE_MODE] ?: false }
+
+    suspend fun setOfflineModeEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.OFFLINE_MODE] = enabled }
+    }
+
+    // ── Deferred remote-sync actions (offline queue) ────────────────────────
+    // Remote pushes to YouTube (like, subscribe, ...) that failed while offline get queued here as
+    // JSON and retried by PendingSyncQueue once connectivity is back. See [PendingAction].
+
+    private val pendingActionsJson = Json { ignoreUnknownKeys = true }
+
+    val pendingActions: Flow<List<PendingAction>> = dataStore.data.map { pref ->
+        val raw = pref[PreferencesKeys.PENDING_ACTIONS] ?: return@map emptyList()
+        try {
+            pendingActionsJson.decodeFromString<List<PendingAction>>(raw)
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun addPendingAction(action: PendingAction) {
+        dataStore.edit { pref ->
+            val current = pref[PreferencesKeys.PENDING_ACTIONS]?.let {
+                try { pendingActionsJson.decodeFromString<List<PendingAction>>(it) } catch (_: Exception) { emptyList() }
+            } ?: emptyList()
+            pref[PreferencesKeys.PENDING_ACTIONS] = pendingActionsJson.encodeToString(current + action)
+        }
+    }
+
+    suspend fun removePendingAction(action: PendingAction) {
+        dataStore.edit { pref ->
+            val current = pref[PreferencesKeys.PENDING_ACTIONS]?.let {
+                try { pendingActionsJson.decodeFromString<List<PendingAction>>(it) } catch (_: Exception) { emptyList() }
+            } ?: emptyList()
+            pref[PreferencesKeys.PENDING_ACTIONS] = pendingActionsJson.encodeToString(current - action)
+        }
     }
 
 }

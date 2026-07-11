@@ -47,7 +47,7 @@ object AppEnvironment {
             val sysErrFile = File(AppDirs.logsDir, "syserr.log")
             System.setOut(PrintStream(FileOutputStream(sysOutFile, true), true))
             System.setErr(PrintStream(FileOutputStream(sysErrFile, true), true))
-            System.out.println("[${LocalDateTime.now()}] --- Application Starting ---")
+            println("[${LocalDateTime.now()}] --- Application Starting ---")
             System.err.println("[${LocalDateTime.now()}] --- Application Starting ---")
         } catch (_: Exception) {
             // Ignore logging setup failures to avoid blocking startup.

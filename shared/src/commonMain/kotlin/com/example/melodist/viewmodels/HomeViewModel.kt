@@ -2,14 +2,19 @@ package com.example.melodist.viewmodels
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.db.DatabaseDao
+import com.example.melodist.utils.NetworkMonitor
+import com.example.melodist.utils.awaitOnline
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.Album
 import com.metrolist.innertube.models.Artist
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.pages.ChartsPage
 import com.metrolist.innertube.pages.HomePage
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +32,7 @@ sealed class HomeState {
         val selectedParams: String? = null,
         val isLoadingMore: Boolean = false,
     ) : HomeState()
-    data class Error(val message: String) : HomeState()
+    data class Error(val message: String, val isOffline: Boolean = false) : HomeState()
     object Loading : HomeState()
 }
 
@@ -39,8 +44,23 @@ sealed class HomeUiEvent {
 
 class HomeViewModel(
     private val databaseDao: DatabaseDao? = null,
-    loginState: StateFlow<Boolean>? = null
+    loginState: StateFlow<Boolean>? = null,
+    private val preferencesRepository: UserPreferencesRepository? = null,
 ) : ViewModel() {
+
+    /** True when the user opted into offline mode, or a connectivity probe says we're down. */
+    private suspend fun isEffectivelyOffline(): Boolean =
+        preferencesRepository?.offlineModeEnabled?.first() == true || !NetworkMonitor.isOnline()
+
+    private var reconnectWatchJob: Job? = null
+
+    /** Auto-retries [fetchHome] once connectivity is back, so the offline banner clears itself. */
+    private fun watchForReconnect(params: String?) {
+        reconnectWatchJob = viewModelScope.launch {
+            NetworkMonitor.awaitOnline()
+            fetchHome(params)
+        }
+    }
 
     val recentSongs: StateFlow<List<SongItem>> = databaseDao?.let { dao ->
         dao.recentPlayedSongs(15)
@@ -81,6 +101,7 @@ class HomeViewModel(
 
     private fun loadCharts() {
         viewModelScope.launch {
+            if (isEffectivelyOffline()) return@launch
             YouTube.getChartsPage()
                 .onSuccess { _charts.value = it }
         }
@@ -114,7 +135,13 @@ class HomeViewModel(
     }
 
     private fun fetchHome(params: String?) {
+        reconnectWatchJob?.cancel()
         viewModelScope.launch {
+            if (isEffectivelyOffline()) {
+                _uiState.value = HomeState.Error("Sin conexión a internet", isOffline = true)
+                watchForReconnect(params)
+                return@launch
+            }
             YouTube.home(params = params)
                 .onSuccess { page ->
                     _uiState.value = HomeState.Success(page = page, selectedParams = params)

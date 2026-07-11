@@ -79,6 +79,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val youtubeRegion by viewModel.youtubeRegion.collectAsState()
     val crossfadeEnabled by viewModel.crossfadeEnabled.collectAsState()
     val ytmSyncEnabled by viewModel.ytmSyncEnabled.collectAsState()
+    val offlineModeEnabled by viewModel.offlineModeEnabled.collectAsState()
     val overlayHotkeyEnabled by viewModel.overlayHotkeyEnabled.collectAsState()
     val overlayHotkeyLabel by viewModel.overlayHotkeyLabel.collectAsState()
     val defaultHotkeyLabel = remember { com.example.melodist.overlay.HotkeyCombo.DEFAULT.label() }
@@ -233,6 +234,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                     title = { Text(stringResource(Res.string.section_sync)) },
                     colors = colors,
                 ) {
+                    SettingsSwitch(
+                        icon = { Icon(Icons.Rounded.WifiOff, null) },
+                        title = { Text(stringResource(Res.string.offline_mode)) },
+                        subtitle = { Text(stringResource(Res.string.offline_mode_subtitle)) },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        state = offlineModeEnabled,
+                        onCheckedChange = { viewModel.setOfflineModeEnabled(it) }
+                    )
                     SettingsSwitch(
                         icon = { Icon(Icons.Rounded.CloudSync, null) },
                         title = { Text(stringResource(Res.string.ytm_sync)) },

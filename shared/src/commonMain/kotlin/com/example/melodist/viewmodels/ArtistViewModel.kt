@@ -4,6 +4,8 @@ import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.remote.ApiService
 import com.example.melodist.data.repository.ArtistRepository
 import com.example.melodist.data.repository.UserPreferencesRepository
+import com.example.melodist.utils.PendingAction
+import com.example.melodist.utils.PendingSyncQueue
 import com.example.melodist.utils.retryWithBackoff
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.pages.ArtistPage
@@ -30,6 +32,7 @@ class ArtistViewModel(
     private val apiService: ApiService,
     private val repository: ArtistRepository,
     private val userPreferences: UserPreferencesRepository,
+    private val pendingSyncQueue: PendingSyncQueue,
 ) : MelodistViewModel() {
 
     private val log = Logger.getLogger("ArtistViewModel")
@@ -82,7 +85,10 @@ class ArtistViewModel(
             val channelId = artist.channelId
             if (channelId != null && userPreferences.ytmSyncEnabled.first()) {
                 retryWithBackoff { YouTube.subscribeChannel(channelId, subscribe = !wasSaved) }
-                    .onFailure { Napier.w("Failed to push subscribe state for $channelId: ${it.message}") }
+                    .onFailure {
+                        Napier.w("Failed to push subscribe state for $channelId: ${it.message}")
+                        pendingSyncQueue.enqueue(PendingAction.SubscribeArtist(channelId, subscribed = !wasSaved))
+                    }
             }
         }
     }

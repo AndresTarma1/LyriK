@@ -50,6 +50,26 @@ tasks.withType<JavaExec>().configureEach {
     }
 }
 
+// afterEvaluate so this runs after the Compose plugin's own task configuration (which sets its own
+// `executable`, later in this same file via the `compose.desktop {}` block below) — otherwise ours
+// gets silently overwritten. JavaExec does NOT honor `kotlin { jvmToolchain { vendor = JETBRAINS } }`
+// on its own; without forcing it, `run` silently uses whatever `java`/JAVA_HOME launched Gradle.
+// Jewel's DecoratedWindow (our title bar) hard-requires JBR specifically and throws
+// IllegalStateException on a plain OpenJDK — a likely default on Linux/macOS, so this is a real crash,
+// not just a perf nuance. `executable` (a raw path), not `javaLauncher`, because the Compose plugin's
+// own configuration uses `executable` and the two properties are mutually exclusive.
+afterEvaluate {
+    tasks.withType<JavaExec>().configureEach {
+        if (name.contains("run", ignoreCase = true)) {
+            val jbrLauncher = javaToolchains.launcherFor {
+                languageVersion.set(JavaLanguageVersion.of(21))
+                vendor.set(JvmVendorSpec.JETBRAINS)
+            }
+            executable(jbrLauncher.get().executablePath.asFile.absolutePath)
+        }
+    }
+}
+
 kotlin {
     jvm()
 
@@ -151,7 +171,9 @@ compose.desktop {
         jvmArgs(*melodistJvmArgs.toTypedArray())
 
         nativeDistributions {
-            targetFormats(TargetFormat.Msi, TargetFormat.Exe)
+            // jpackage only builds formats for the host OS, so listing all three is safe:
+            // packageDistributionForCurrentOS picks Msi/Exe on Windows and Deb on Linux.
+            targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "LyriK"
             packageVersion = "0.4.0"
 
@@ -166,11 +188,23 @@ compose.desktop {
                 perUserInstall = true
                 upgradeUuid = "4A2F8B6C-1D3E-4F5A-B7C8-9D0E1F2A3B4C"
             }
+            linux {
+                // .deb package names must be lowercase. Linux relies on the system mpv + yt-dlp
+                // (not bundled) — see README for the runtime dependencies to install.
+                packageName = "lyrik"
+                debMaintainer = "andrestormenta1@gmail.com"
+                menuGroup = "AudioVideo"
+                appCategory = "Audio"
+                iconFile.set(project.file("icons/music.png"))
+                shortcut = true
+            }
             vendor = "Tarma"
             description = "Reproductor de música de escritorio"
 
             includeAllModules = true
 
+            // Bundled native resources (libmpv/yt-dlp) only exist for Windows; on Linux we use the
+            // system-installed mpv, so there's nothing to bundle from here.
             appResourcesRootDir.set(project.layout.projectDirectory.dir("../mpv-resources"))
         }
     }

@@ -70,6 +70,8 @@ class InnerTube {
     private fun createClient() = HttpClient(OkHttp) {
         expectSuccess = true
 
+        install(OfflineGatePlugin)
+
         install(ContentNegotiation) {
             json(Json {
                 ignoreUnknownKeys = true

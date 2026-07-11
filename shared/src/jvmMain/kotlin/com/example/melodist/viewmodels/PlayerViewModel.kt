@@ -16,6 +16,10 @@ import com.metrolist.kugou.KuGou
 import com.example.melodist.models.MediaMetadata
 import com.example.melodist.models.toMediaMetadata
 import com.example.melodist.player.*
+import com.example.melodist.utils.NetworkMonitor
+import com.example.melodist.utils.PendingAction
+import com.example.melodist.utils.PendingSyncQueue
+import com.example.melodist.utils.awaitOnline
 import com.example.melodist.utils.withMissingMetadataResolved
 import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.YouTube
@@ -36,6 +40,7 @@ class PlayerViewModel(
     private val userPreferences: UserPreferencesRepository,
     val databaseDao: DatabaseDao,
     private val queueManager: QueueManager,
+    private val pendingSyncQueue: PendingSyncQueue,
 ) : ViewModel() {
     private val log = Logger.getLogger("PlayerViewModel")
 
@@ -82,8 +87,13 @@ class PlayerViewModel(
     private var resolveJob: Job? = null
     private var fetchMoreJob: Job? = null
     private var prefetchJob: Job? = null
+    private var reconnectWatchJob: Job? = null
     private var playRequestId = 0L
     private var currentQueue: Queue? = null
+
+    /** True when the user opted into offline mode, or a connectivity probe says we're down. */
+    private suspend fun isEffectivelyOffline(): Boolean =
+        userPreferences.offlineModeEnabled.first() || !NetworkMonitor.isOnline()
 
     /**
      * ✅ Inicialización diferida de PlayerService (mpv).
@@ -232,7 +242,10 @@ class PlayerViewModel(
             }
             if (AccountManager.isLoggedIn) {
                 com.example.melodist.utils.retryWithBackoff { YouTube.likeVideo(song.id, newLiked) }
-                    .onFailure { Napier.w("Failed to push like state for ${song.id}: ${it.message}") }
+                    .onFailure {
+                        Napier.w("Failed to push like state for ${song.id}: ${it.message}")
+                        pendingSyncQueue.enqueue(PendingAction.LikeSong(song.id, newLiked))
+                    }
             }
         }
     }
@@ -271,7 +284,10 @@ class PlayerViewModel(
 
             if (AccountManager.isLoggedIn) {
                 com.example.melodist.utils.retryWithBackoff { YouTube.likeVideo(song.id, newLiked) }
-                    .onFailure { Napier.w("Failed to push like state for ${song.id}: ${it.message}") }
+                    .onFailure {
+                        Napier.w("Failed to push like state for ${song.id}: ${it.message}")
+                        pendingSyncQueue.enqueue(PendingAction.LikeSong(song.id, newLiked))
+                    }
             }
         }
     }
@@ -830,6 +846,7 @@ class PlayerViewModel(
      */
     private fun resolveAndPlay(song: MediaMetadata) {
         resolveJob?.cancel()
+        reconnectWatchJob?.cancel()
         playRequestId += 1
         val requestId = playRequestId
 
@@ -845,6 +862,15 @@ class PlayerViewModel(
                     DownloadService.getCachedFile(song.id)
                 }
                 if (requestId != playRequestId) return@launch
+
+                // Non-cached songs need a live resolve; fail fast if we're offline (or the user
+                // opted into offline mode) instead of burning through the whole in-process + yt-dlp
+                // cascade only to time out anyway.
+                val offline = cachedFile == null && isEffectivelyOffline()
+                if (offline) {
+                    if (requestId == playRequestId) handlePlaybackFailure(song)
+                    return@launch
+                }
 
                 // videostatsPlaybackUrl of the resolved track — used to register the play on the
                 // account afterwards (history/recommendations). Only the in-process path has it.
@@ -940,12 +966,28 @@ class PlayerViewModel(
     }
 
     /**
-     * A track couldn't be resolved/played. Notify the user and auto-advance to the next track,
-     * unless too many tracks in a row have failed (likely a broader problem) — then stop.
+     * A track couldn't be resolved/played. If it's because we're offline, stop and let the user
+     * retry once connectivity is back — auto-advancing would just fail the same way on every
+     * remaining track in the queue. Otherwise notify and auto-advance to the next track, unless too
+     * many tracks in a row have failed (likely a broader problem) — then stop too.
      */
-    private fun handlePlaybackFailure(song: MediaMetadata) {
+    private suspend fun handlePlaybackFailure(song: MediaMetadata) {
         consecutiveFailures++
         _uiState.update { it.copy(error = null) }
+
+        val manualOffline = userPreferences.offlineModeEnabled.first()
+        if (manualOffline || !NetworkMonitor.isOnline()) {
+            consecutiveFailures = 0
+            val message = if (manualOffline) "Modo sin conexión activado. Reproducción pausada."
+            else "Sin conexión a internet. Reproducción pausada."
+            _playbackMessages.tryEmit(message)
+            _uiState.update { it.copy(playbackState = PlaybackState.ERROR, error = message) }
+            // Only auto-resume for an actual connectivity drop — manual offline mode is a deliberate
+            // choice the user has to switch off themselves, not something we override on their behalf.
+            if (!manualOffline) watchForReconnect(song)
+            return
+        }
+
         val hasNext = PlayerQueueCoordinator.nextIndex(_uiState.value) != null
         if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES || !hasNext) {
             consecutiveFailures = 0
@@ -954,6 +996,21 @@ class PlayerViewModel(
         } else {
             _playbackMessages.tryEmit("No se pudo reproducir «${song.title}», pasando a la siguiente")
             next()
+        }
+    }
+
+    /**
+     * Watches for connectivity to come back and automatically retries [song] once it does — the
+     * user shouldn't have to notice and manually hit play again. Cancelled by the next
+     * [resolveAndPlay] call (song change, manual retry, etc.) so it never fires for a stale song.
+     */
+    private fun watchForReconnect(song: MediaMetadata) {
+        reconnectWatchJob?.cancel()
+        reconnectWatchJob = viewModelScope.launch {
+            NetworkMonitor.awaitOnline()
+            if (!userPreferences.offlineModeEnabled.first() && _uiState.value.currentSong?.id == song.id) {
+                retry()
+            }
         }
     }
 
@@ -1136,6 +1193,7 @@ class PlayerViewModel(
 
     override fun onCleared() {
         resolveJob?.cancel()
+        reconnectWatchJob?.cancel()
         playRequestId += 1
         resolveJob = null
         playerService.stopAudioOnly()

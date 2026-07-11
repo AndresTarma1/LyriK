@@ -3,11 +3,12 @@
 
   # LyriK
 
-  **Un reproductor de música de escritorio para YouTube Music.**
+  **Un reproductor de música de escritorio para YouTube Music, en Windows y Linux.**
 
   Streaming en alta calidad, letras sincronizadas y escucha compartida — en una interfaz limpia con temas que se adaptan a cada carátula.
 
   ![Plataforma](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)
+  ![Plataforma](https://img.shields.io/badge/Linux-deb-FCC624?logo=linux&logoColor=black)
   ![UI](https://img.shields.io/badge/Compose-Multiplatform-4285F4?logo=jetpackcompose&logoColor=white)
   ![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?logo=kotlin&logoColor=white)
   ![Versión](https://img.shields.io/badge/versión-0.4.0-orange)
@@ -40,15 +41,34 @@ Descarga el instalador más reciente (`.msi` o `.exe`) desde la [página de rele
 
 ### Construir desde el código fuente
 
-Requisitos: **JDK 21+** (se recomienda el [JetBrains Runtime](https://github.com/JetBrains/JetBrainsRuntime)) y **Windows 10/11**.
+Requisitos: **JDK 21+** (se recomienda el [JetBrains Runtime](https://github.com/JetBrains/JetBrainsRuntime)).
 
-```powershell
+```bash
 # Ejecutar en modo desarrollo
-.\gradlew :composeApp:run
+./gradlew :composeApp:run
 
-# Generar el instalador (.msi / .exe)
-.\gradlew :composeApp:packageDistributionForCurrentOS
+# Generar el instalador nativo del sistema actual
+#   Windows → .msi / .exe    ·    Linux → .deb
+./gradlew :composeApp:packageDistributionForCurrentOS
 ```
+
+**Windows**: libmpv y yt-dlp vienen incluidos, no hay que instalar nada más.
+
+**Linux**: la app usa el **mpv** y **yt-dlp** del sistema (no se empaquetan, para evitar
+problemas de dependencias). Instálalos con tu gestor de paquetes:
+
+```bash
+# Debian / Ubuntu — libmpv2 is the actual client library LyriK links against;
+# the "mpv" package alone doesn't pull it in.
+sudo apt install mpv libmpv2 yt-dlp
+# Fedora
+sudo dnf install mpv-libs yt-dlp
+# Arch
+sudo pacman -S mpv yt-dlp
+```
+
+El indicador de la bandeja del sistema requiere `libayatana-appindicator3` (o
+`libappindicator3`) en la mayoría de distros.
 
 ---
 

@@ -1,1 +1,7 @@
+# Force LF regardless of the checkout platform's core.autocrlf — a Windows checkout with
+# autocrlf=true otherwise mangles these to CRLF, which breaks execution on Linux/macOS the moment
+# the repo is copied/cloned there (the shebang line becomes invalid).
+gradlew text eol=lf
+*.sh text eol=lf
+
 mpv-resources/windows/libmpv-2.dll filter=lfs diff=lfs merge=lfs -text

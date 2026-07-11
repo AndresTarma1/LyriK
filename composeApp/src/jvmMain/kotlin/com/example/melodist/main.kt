@@ -47,6 +47,10 @@ fun main() {
 
     koin.get<JvmConfigLauncher>().applySync()
 
+    // Eagerly resolve so the network kill-switch reflects reality before the first request goes
+    // out — Koin singles are lazy, and nothing else depends on this one to trigger its creation.
+    koin.get<com.example.melodist.utils.OfflineModeController>()
+
     // Construct the VM now (the UI binds to it), but defer its native init (mpv) — see the thread below.
     val playerViewModel = PlatformCrashHandler.runSafely("Error creando PlayerViewModel") {
         koin.get<PlayerViewModel>()

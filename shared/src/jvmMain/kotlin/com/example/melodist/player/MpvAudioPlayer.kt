@@ -1,5 +1,6 @@
 package com.example.melodist.player
 
+import com.example.melodist.platform.Platform
 import com.sun.jna.Pointer
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -53,11 +54,12 @@ class MpvAudioPlayer {
     }
 
     /**
-     * Initializes the mpv audio playback instance with audio-only configuration and Windows WASAPI output.
+     * Initializes the mpv audio playback instance with audio-only configuration (native WASAPI
+     * output on Windows; mpv's own auto-detected backend elsewhere).
      *
      * If the mpv instance is already initialized, this method returns immediately. Otherwise, it creates
-     * a new mpv instance and configures it for stereo audio playback with video rendering disabled,
-     * native Windows audio output, and optimized buffering parameters.
+     * a new mpv instance and configures it for stereo audio playback with video rendering disabled
+     * and optimized buffering parameters.
      *
      * @throws Exception if mpv initialization fails.
      */
@@ -74,7 +76,13 @@ class MpvAudioPlayer {
                 MpvLib.INSTANCE.mpv_set_property_string(it, "video", "no")
                 MpvLib.INSTANCE.mpv_set_property_string(it, "audio-display", "no")
                 MpvLib.INSTANCE.mpv_set_property_string(it, "audio-channels", "stereo")
-                MpvLib.INSTANCE.mpv_set_property_string(it, "ao", "wasapi") // Forzar salida nativa de Windows
+                // WASAPI is Windows-only — forcing it on Linux/macOS silently fails to open an audio
+                // device (mpv_initialize succeeds, but playback then hangs waiting for one that never
+                // opens, with no obvious error). Elsewhere, leave "ao" unset: mpv's own auto-detection
+                // (pipewire/pulse/alsa, or coreaudio on macOS) is more robust than guessing one backend.
+                if (Platform.isWindows) {
+                    MpvLib.INSTANCE.mpv_set_property_string(it, "ao", "wasapi")
+                }
 
                 MpvLib.INSTANCE.mpv_set_property_string(it, "initial-audio-sync", "no")
                 MpvLib.INSTANCE.mpv_set_property_string(it, "hr-seek", "no")

@@ -49,6 +49,8 @@
     <string name="crossfade">Crossfade</string>
     <string name="crossfade_subtitle">Apply a 5-second crossfade between tracks</string>
     <string name="section_sync">Sync</string>
+    <string name="offline_mode">Offline mode</string>
+    <string name="offline_mode_subtitle">Make no network requests: only play downloaded songs and use the local library.</string>
     <string name="ytm_sync">Sync with YouTube Music</string>
     <string name="ytm_sync_subtitle">Experimental: adding or removing songs from a local playlist is mirrored to your YouTube Music account.</string>
     <string name="ytm_sync_warning_title">Experimental feature</string>
@@ -204,6 +206,8 @@
     <string name="recently_played">Recently played</string>
     <string name="home_error">Oops! Something went wrong</string>
     <string name="home_retry">Retry</string>
+    <string name="home_offline_title">No internet connection</string>
+    <string name="home_offline_message">Showing your local library meanwhile. We'll retry automatically once you're back online.</string>
     <string name="refresh">Refresh</string>
     <string name="explore">Explore</string>
 
@@ -281,6 +285,14 @@
     <string name="toggle_lyrics_menu">Toggle lyrics</string>
     <string name="queue_download_added">%1$d songs added to downloads</string>
     <string name="queue_saved_as">Queue saved as “%1$s”</string>
+    <string name="tab_lyrics">Lyrics</string>
+    <string name="tab_queue">Queue</string>
+    <string name="tab_info">Info</string>
+    <string name="info_duration">Duration</string>
+    <string name="info_origin">Origin</string>
+    <string name="info_liked">Liked</string>
+    <string name="info_downloaded">Downloaded</string>
+    <string name="info_explicit">Explicit</string>
 
     <!-- Items subtitles -->
     <string name="item_album">Album</string>

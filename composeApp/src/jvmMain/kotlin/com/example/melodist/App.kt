@@ -423,20 +423,35 @@ fun ApplicationScope.App(
 
                     DisposableEffect(Unit) {
                         val startMaximized = windowState.placement == WindowPlacement.Maximized
-                        val listener = object : ComponentAdapter() {
-                            override fun componentResized(e: ComponentEvent) {
-                                window.removeComponentListener(this)
-                                if (startMaximized) {
-                                    window.extendedState = Frame.MAXIMIZED_BOTH
-                                }
-                                EventQueue.invokeLater {
-                                    isVisible = true
-                                    if (isWindows) runCatching { thumbBar.init(window) }
+                        if (isWindows) {
+                            // Wait for the first layout pass before showing: applying MAXIMIZED_BOTH
+                            // and only then flipping isVisible avoids the "opens floating, then jumps
+                            // to maximized" flicker — an AWT/Windows-specific quirk.
+                            val listener = object : ComponentAdapter() {
+                                override fun componentResized(e: ComponentEvent) {
+                                    window.removeComponentListener(this)
+                                    if (startMaximized) {
+                                        window.extendedState = Frame.MAXIMIZED_BOTH
+                                    }
+                                    EventQueue.invokeLater {
+                                        isVisible = true
+                                        runCatching { thumbBar.init(window) }
+                                    }
                                 }
                             }
+                            window.addComponentListener(listener)
+                            onDispose { window.removeComponentListener(listener) }
+                        } else {
+                            // Other window managers (confirmed on WSLg) don't reliably fire
+                            // componentResized for a freshly-created window — waiting for it left the
+                            // window created (visible in the taskbar) but never actually shown. Just
+                            // apply the state and show immediately.
+                            if (startMaximized) {
+                                window.extendedState = Frame.MAXIMIZED_BOTH
+                            }
+                            isVisible = true
+                            onDispose {}
                         }
-                        window.addComponentListener(listener)
-                        onDispose { window.removeComponentListener(listener) }
                     }
 
                     // Keep the middle button's glyph in sync with playback state.

@@ -41,6 +41,8 @@ import com.example.melodist.player.QueueManager
 import com.example.melodist.player.WindowsMediaSession
 import com.example.melodist.listentogether.ListenTogetherClient
 import com.example.melodist.listentogether.ListenTogetherManager
+import com.example.melodist.utils.OfflineModeController
+import com.example.melodist.utils.PendingSyncQueue
 import com.example.melodist.utils.SyncUtils
 import com.example.melodist.overlay.GlobalHotkeyManager
 import com.example.melodist.overlay.OverlayController
@@ -72,10 +74,14 @@ val appModule = module {
     single<DownloadService> { DownloadService(get(), get()) }
     single<QueueManager> { QueueManager() }
     single<AppViewModel> { AppViewModel() }
+    // Offline remote-sync queue (likes/subscribes that failed to push while offline).
+    single<PendingSyncQueue> { PendingSyncQueue(get()) }
+    // Global network kill-switch — must be resolved eagerly at startup (see main()).
+    single<OfflineModeController> { OfflineModeController(get()) }
     // ✅ DownloadViewModel singleton — mantiene estado de descargas compartido
     single<DownloadViewModel> { DownloadViewModel(get(), get(), get()) }
     // ✅ PlayerViewModel singleton, pero inicialización pesada diferida al init{} interno
-    single<PlayerViewModel> { PlayerViewModel(get(), get(), get(), get(), get(), get(), get()) }
+    single<PlayerViewModel> { PlayerViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<PlayerCoordinator> { PlayerCoordinatorImpl(get<PlayerViewModel>(), get<DownloadViewModel>()) }
 
     // Listen Together (WebSocket sync with the meowery relay server)
@@ -90,7 +96,7 @@ val appModule = module {
     // ViewModels — loginState de AccountManager para reaccionar a cambios de sesión
     factory { AccountViewModel(get(), get(), get()) }
     factory { YouTubeBrowseViewModel() }
-    single { HomeViewModel(databaseDao = get(), loginState = AccountManager.loginState) }
+    single { HomeViewModel(databaseDao = get(), loginState = AccountManager.loginState, preferencesRepository = get()) }
     single { SearchViewModel(get()) }
     single { LibraryViewModel(get(), get(), get(), get(), get(), loginState = AccountManager.loginState) }
     single { LibrarySongsViewModel(get(), get(), get(), get()) }
@@ -100,7 +106,7 @@ val appModule = module {
     single { LibraryMixedViewModel(get()) }
     factory { AlbumViewModel(get(), get(), get()) }
     factory { PlaylistViewModel(get(), get(), get(), get(), get()) }
-    factory { ArtistViewModel(get(), get(), get()) }
+    factory { ArtistViewModel(get(), get(), get(), get()) }
     single { SettingsViewModel(get(), get()) }
     single { JvmSettingsViewModel(get()) }
 }

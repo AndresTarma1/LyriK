@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.WifiOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -105,6 +106,7 @@ fun HomeScreen(
 
             is HomeState.Error -> HomeScreenError(
                 message = uiState.message,
+                isOffline = uiState.isOffline,
                 onRetry = { onEvent(HomeUiEvent.Retry) },
             )
         }
@@ -449,7 +451,7 @@ fun HomeScreenLoading(
 }
 
 @Composable
-fun HomeScreenError(message: String, onRetry: () -> Unit) {
+fun HomeScreenError(message: String, isOffline: Boolean = false, onRetry: () -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -458,19 +460,19 @@ fun HomeScreenError(message: String, onRetry: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(
-            Icons.Default.ErrorOutline,
+            if (isOffline) Icons.Default.WifiOff else Icons.Default.ErrorOutline,
             contentDescription = null,
             modifier = Modifier.size(48.dp),
-            tint = MaterialTheme.colorScheme.error,
+            tint = if (isOffline) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
-            text = stringResource(Res.string.home_error),
+            text = stringResource(if (isOffline) Res.string.home_offline_title else Res.string.home_error),
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = message,
+            text = if (isOffline) stringResource(Res.string.home_offline_message) else message,
             style = MaterialTheme.typography.bodyMedium,
         )
         Spacer(modifier = Modifier.height(24.dp))

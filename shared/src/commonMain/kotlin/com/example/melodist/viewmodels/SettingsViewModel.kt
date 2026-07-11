@@ -76,6 +76,9 @@ class SettingsViewModel(
     val ytmSyncEnabled: StateFlow<Boolean> = preferencesRepository.ytmSyncEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
+    val offlineModeEnabled: StateFlow<Boolean> = preferencesRepository.offlineModeEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
     /** Sync progress for the manual "Sincronizar ahora" button — ignores the login cooldown. */
     val syncState = syncUtils.syncState
 
@@ -160,6 +163,10 @@ class SettingsViewModel(
             // playlists right away instead of waiting for the next login/session-restore.
             if (enabled) syncUtils.syncAutoSyncPlaylists()
         }
+    }
+
+    fun setOfflineModeEnabled(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setOfflineModeEnabled(enabled) }
     }
 
     /**

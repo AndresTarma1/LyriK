@@ -9,30 +9,42 @@ actual object AppPaths {
     private val log = Logger.getLogger("AppPaths")
     private const val VENDOR_NAME = "Tarma"
 
-    // --- Resolución de carpetas base del sistema ---
+    private val home get() = File(System.getProperty("user.home"))
+    private fun env(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
 
-    private fun roamingBase(): File {
-        val fromEnv = System.getenv("APPDATA")
-        return when {
-            !fromEnv.isNullOrBlank() -> File(fromEnv)
-            else -> File(File(System.getProperty("user.home"), "AppData"), "Roaming")
-        }
-    }
-
-    private fun localBase(): File {
-        val fromEnv = System.getenv("LOCALAPPDATA")
-        return when {
-            !fromEnv.isNullOrBlank() -> File(fromEnv)
-            else -> File(File(System.getProperty("user.home"), "AppData"), "Local")
-        }
-    }
+    // --- Resolución de carpetas base del sistema (per-OS) ---
+    //
+    // roamingRoot = persistent (db, settings, cookie); localRoot = volatile (cache, tmp, logs).
+    //   Windows: %APPDATA%\Tarma\LyriK  and  %LOCALAPPDATA%\Tarma\LyriK
+    //   Linux:   $XDG_DATA_HOME/LyriK   and  $XDG_CACHE_HOME/LyriK   (~/.local/share, ~/.cache)
+    //   macOS:   ~/Library/Application Support/LyriK  and  ~/Library/Caches/LyriK
 
     private val roamingRootFile: File by lazy {
-        File(File(roamingBase(), VENDOR_NAME), appName)
+        when (Platform.current) {
+            OperatingSystem.WINDOWS -> {
+                val base = env("APPDATA")?.let(::File) ?: File(home, "AppData/Roaming")
+                File(File(base, VENDOR_NAME), appName)
+            }
+            OperatingSystem.MAC -> File(home, "Library/Application Support/$appName")
+            else -> {
+                val base = env("XDG_DATA_HOME")?.let(::File) ?: File(home, ".local/share")
+                File(base, appName)
+            }
+        }
     }
 
     private val localRootFile: File by lazy {
-        File(File(localBase(), VENDOR_NAME), appName)
+        when (Platform.current) {
+            OperatingSystem.WINDOWS -> {
+                val base = env("LOCALAPPDATA")?.let(::File) ?: File(home, "AppData/Local")
+                File(File(base, VENDOR_NAME), appName)
+            }
+            OperatingSystem.MAC -> File(home, "Library/Caches/$appName")
+            else -> {
+                val base = env("XDG_CACHE_HOME")?.let(::File) ?: File(home, ".cache")
+                File(base, appName)
+            }
+        }
     }
 
     // --- Puntos de montaje ---

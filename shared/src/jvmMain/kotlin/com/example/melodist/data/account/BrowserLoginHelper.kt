@@ -1,6 +1,7 @@
 package com.example.melodist.data.account
 
 import com.example.melodist.platform.AppPaths
+import com.example.melodist.platform.Platform
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -9,7 +10,10 @@ import java.io.File
 
 object BrowserLoginHelper {
 
-    fun findBrowserExecutable(): File? {
+    fun findBrowserExecutable(): File? =
+        if (Platform.isWindows) findBrowserWindows() else findBrowserUnix()
+
+    private fun findBrowserWindows(): File? {
         val localAppData = System.getenv("LOCALAPPDATA") ?: ""
         val programFiles = System.getenv("ProgramFiles") ?: "C:\\Program Files"
         val programFilesX86 = System.getenv("ProgramFiles(x86)") ?: "C:\\Program Files (x86)"
@@ -29,11 +33,35 @@ object BrowserLoginHelper {
         return candidates.map(::File).firstOrNull { it.exists() }
     }
 
-    private fun getBrowserName(browser: File): String = when {
-        browser.absolutePath.contains("Edge", ignoreCase = true) -> "Edge"
-        browser.absolutePath.contains("Chrome", ignoreCase = true) -> "Chrome"
-        browser.absolutePath.contains("Brave", ignoreCase = true) -> "Brave"
-        else -> "Browser"
+    /** Linux/macOS: Chromium-family binaries live on PATH or in well-known locations. */
+    private fun findBrowserUnix(): File? {
+        val names = listOf(
+            "google-chrome", "google-chrome-stable", "chromium", "chromium-browser",
+            "brave-browser", "brave", "microsoft-edge", "microsoft-edge-stable",
+        )
+        val dirs = listOf(
+            "/usr/bin", "/usr/local/bin", "/snap/bin", "/opt/google/chrome",
+            "/opt/brave.com/brave", "/opt/microsoft/msedge",
+            "/Applications/Google Chrome.app/Contents/MacOS", // macOS
+        )
+        for (dir in dirs) for (name in names) {
+            val f = File(dir, name)
+            if (f.exists() && f.canExecute()) return f
+        }
+        // macOS app bundles use spaced binary names
+        File("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome").takeIf { it.exists() }?.let { return it }
+        return null
+    }
+
+    private fun getBrowserName(browser: File): String {
+        val p = browser.absolutePath.lowercase()
+        return when {
+            p.contains("edge") -> "Edge"
+            p.contains("brave") -> "Brave"
+            p.contains("chromium") -> "Chromium"
+            p.contains("chrome") -> "Chrome"
+            else -> "Browser"
+        }
     }
 
     private fun getLoginProfileDir(): File {
@@ -55,14 +83,19 @@ object BrowserLoginHelper {
         Napier.i("Launching $browserName with profile at ${profileDir.absolutePath}")
         onStatus("Opening $browserName...")
 
-        val process = ProcessBuilder(
-            browser.absolutePath,
-            "--user-data-dir=${profileDir.absolutePath}",
-            "--no-first-run",
-            "--no-default-browser-check",
-            "--disable-default-apps",
-            "https://music.youtube.com"
-        ).redirectErrorStream(true).start()
+        val args = buildList {
+            add(browser.absolutePath)
+            add("--user-data-dir=${profileDir.absolutePath}")
+            add("--no-first-run")
+            add("--no-default-browser-check")
+            add("--disable-default-apps")
+            // Linux: force the "basic" password store so cookies are encrypted with the fixed
+            // "peanuts" password (v10) instead of the GNOME/KWallet keyring key we can't read.
+            // This is what makes the fresh-profile cookies decryptable without keyring integration.
+            if (Platform.isLinux) add("--password-store=basic")
+            add("https://music.youtube.com")
+        }
+        val process = ProcessBuilder(args).redirectErrorStream(true).start()
 
         delay(3000)
         if (!process.isAlive) {

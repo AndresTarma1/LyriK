@@ -49,6 +49,8 @@
     <string name="crossfade">Crossfade</string>
     <string name="crossfade_subtitle">Aplicar un crossfade entre pistas de 5s</string>
     <string name="section_sync">Sincronización</string>
+    <string name="offline_mode">Modo sin conexión</string>
+    <string name="offline_mode_subtitle">No hacer peticiones de red: solo reproduce canciones descargadas y usa la biblioteca local.</string>
     <string name="ytm_sync">Sincronizar con YouTube Music</string>
     <string name="ytm_sync_subtitle">Experimental: al añadir o quitar canciones de una playlist local, se reflejan en tu cuenta de YouTube Music.</string>
     <string name="ytm_sync_warning_title">Función experimental</string>
@@ -204,6 +206,8 @@
     <string name="recently_played">Reproducido recientemente</string>
     <string name="home_error">¡Oops! Algo salió mal</string>
     <string name="home_retry">Reintentar</string>
+    <string name="home_offline_title">Sin conexión a internet</string>
+    <string name="home_offline_message">Mostraremos tu biblioteca local mientras tanto. Reintentaremos solos cuando vuelva la conexión.</string>
     <string name="refresh">Actualizar</string>
     <string name="explore">Explorar</string>
 
@@ -281,6 +285,14 @@
     <string name="toggle_lyrics_menu">Alternar letras</string>
     <string name="queue_download_added">%1$d canciones agregadas a descargas</string>
     <string name="queue_saved_as">Cola guardada como «%1$s»</string>
+    <string name="tab_lyrics">Letras</string>
+    <string name="tab_queue">Cola</string>
+    <string name="tab_info">Información</string>
+    <string name="info_duration">Duración</string>
+    <string name="info_origin">Origen</string>
+    <string name="info_liked">En Me gusta</string>
+    <string name="info_downloaded">Descargada</string>
+    <string name="info_explicit">Explícita</string>
 
     <!-- Items subtitles -->
     <string name="item_album">Álbum</string>

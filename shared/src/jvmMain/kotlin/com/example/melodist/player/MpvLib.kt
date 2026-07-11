@@ -1,5 +1,6 @@
 package com.example.melodist.player
 
+import com.example.melodist.platform.Platform
 import com.sun.jna.Library
 import com.sun.jna.Native
 import com.sun.jna.Pointer
@@ -49,6 +50,14 @@ interface MpvLib : Library {
         private val log = Logger.getLogger("MpvLib")
 
         val INSTANCE: MpvLib by lazy {
+            if (Platform.isWindows) loadWindows() else loadUnix()
+        }
+
+        /**
+         * Windows: libmpv is bundled as `libmpv-2.dll` next to the app; point JNA at that dir and
+         * load by JNA's short name (it maps to `libmpv-2.dll`).
+         */
+        private fun loadWindows(): MpvLib {
             val userDir = File(System.getProperty("user.dir"))
             val rootDir = userDir.parentFile ?: userDir
             val resProp = System.getProperty("compose.application.resources.dir")
@@ -77,7 +86,45 @@ interface MpvLib : Library {
                 )
             }
 
-            Native.load("libmpv-2", MpvLib::class.java)
+            return Native.load("libmpv-2", MpvLib::class.java)
+        }
+
+        /**
+         * Linux/macOS: prefer the system libmpv (mpv is packaged by every distro; bundling it is
+         * fragile because of glibc/dependency skew). Distros ship the versioned `libmpv.so.2` and
+         * only add the unversioned `libmpv.so` symlink with the `-dev` package, so search the
+         * versioned names by absolute path first, then fall back to JNA's own name resolution
+         * (which finds `libmpv.so` / `libmpv.dylib` when present, e.g. via LD_LIBRARY_PATH).
+         */
+        private fun loadUnix(): MpvLib {
+            val soNames = if (Platform.isMac)
+                listOf("libmpv.2.dylib", "libmpv.dylib")
+            else
+                listOf("libmpv.so.2", "libmpv.so.1", "libmpv.so")
+
+            val searchDirs = listOf(
+                "/usr/lib/x86_64-linux-gnu", // Debian/Ubuntu multiarch
+                "/usr/lib64",                // Fedora/RHEL/openSUSE
+                "/usr/lib",
+                "/usr/local/lib",
+                "/opt/homebrew/lib",         // macOS arm64
+                "/usr/local/opt/mpv/lib",    // macOS Homebrew mpv keg
+                "/app/lib",                  // Flatpak
+            )
+
+            for (dir in searchDirs) {
+                for (name in soNames) {
+                    val f = File(dir, name)
+                    if (f.exists()) {
+                        log.info("MpvLib: cargando libmpv del sistema desde ${f.absolutePath}")
+                        return Native.load(f.absolutePath, MpvLib::class.java)
+                    }
+                }
+            }
+
+            // Last resort: let JNA resolve "mpv" via the linker (LD_LIBRARY_PATH, default paths).
+            log.info("MpvLib: libmpv del sistema no encontrada en rutas conocidas; probando resolución por JNA")
+            return Native.load("mpv", MpvLib::class.java)
         }
     }
 }

@@ -93,7 +93,14 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val currentLyrics by playerViewModel.currentLyrics.collectAsState()
     var isNowPlayingExpanded by remember { mutableStateOf(false) }
     var isQueueVisible by remember { mutableStateOf(false) }
-    var isLyricsVisible by remember { mutableStateOf(false) }
+    var nowPlayingTab by remember { mutableStateOf(com.example.melodist.ui.components.player.NowPlayingTab.QUEUE) }
+
+    // Fetch lyrics on demand the moment the Letras tab is selected, same as the old toggle did.
+    LaunchedEffect(nowPlayingTab, playerState.currentSong?.id) {
+        if (nowPlayingTab == com.example.melodist.ui.components.player.NowPlayingTab.LYRICS) {
+            playerViewModel.fetchLyrics()
+        }
+    }
 
     val queueWidth = 420.dp
     val animatedWidth by animateDpAsState(queueWidth)
@@ -229,13 +236,8 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                                 isNowPlayingExpanded = false
                                                 rootComponent.navigateTo(route.toConfig())
                                             },
-                                            onToggleLyrics = {
-                                                if (!isLyricsVisible) {
-                                                    playerViewModel.fetchLyrics()
-                                                }
-                                                isLyricsVisible = !isLyricsVisible
-                                            },
-                                            showLyrics = isLyricsVisible,
+                                            selectedTab = nowPlayingTab,
+                                            onTabSelected = { nowPlayingTab = it },
                                             lyrics = currentLyrics,
                                             sharedTransitionScope = sharedTransitionScope,
                                             animatedVisibilityScope = this,
@@ -244,8 +246,10 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                 }
                             }
 
+                            // Only the standalone slide-in panel when NowPlaying isn't expanded —
+                            // NowPlaying has its own Cola tab, showing both at once just duplicates it.
                             AnimatedVisibility(
-                                visible = isQueueVisible,
+                                visible = isQueueVisible && !isNowPlayingExpanded,
                                 enter = slideInHorizontally(initialOffsetX = { it }) + fadeIn(),
                                 exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
                             ) {
@@ -279,11 +283,22 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                 ) {
                     MiniPlayer(
                         progressState = progressState,
-                        onClickExpand = { isNowPlayingExpanded = true },
-                        onToggleNowPlaying = { isNowPlayingExpanded = !isNowPlayingExpanded },
+                        onClickExpand = { isNowPlayingExpanded = true; isQueueVisible = false },
+                        onToggleNowPlaying = {
+                            isNowPlayingExpanded = !isNowPlayingExpanded
+                            if (isNowPlayingExpanded) isQueueVisible = false
+                        },
                         isNowPlayingExpanded = isNowPlayingExpanded,
-                        onToggleQueue = { isQueueVisible = !isQueueVisible },
-                        isQueueVisible = isQueueVisible,
+                        onToggleQueue = {
+                            if (isNowPlayingExpanded) {
+                                // NowPlaying is open: just switch its own tab instead of opening the
+                                // separate panel too (that would show the queue twice).
+                                nowPlayingTab = com.example.melodist.ui.components.player.NowPlayingTab.QUEUE
+                            } else {
+                                isQueueVisible = !isQueueVisible
+                            }
+                        },
+                        isQueueVisible = isQueueVisible || (isNowPlayingExpanded && nowPlayingTab == com.example.melodist.ui.components.player.NowPlayingTab.QUEUE),
                         modifier = Modifier.fillMaxWidth(),
                         sharedTransitionScope = sharedTransitionScope,
                     )

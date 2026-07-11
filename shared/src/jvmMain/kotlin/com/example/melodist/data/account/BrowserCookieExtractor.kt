@@ -1,12 +1,16 @@
 package com.example.melodist.data.account
 
+import com.example.melodist.platform.Platform
 import io.github.aakira.napier.Napier
 import java.io.File
 import java.nio.file.Files
 import java.sql.DriverManager
 import java.util.Base64
 import javax.crypto.Cipher
+import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.GCMParameterSpec
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.PBEKeySpec
 import javax.crypto.spec.SecretKeySpec
 
 enum class BrowserType {
@@ -28,7 +32,10 @@ sealed class CookieExtractResult {
 
 object BrowserCookieExtractor {
 
-    fun detectBrowsers(): List<BrowserProfile> {
+    fun detectBrowsers(): List<BrowserProfile> =
+        if (Platform.isWindows) detectBrowsersWindows() else detectBrowsersUnix()
+
+    private fun detectBrowsersWindows(): List<BrowserProfile> {
         val browsers = mutableListOf<BrowserProfile>()
         val localAppData = System.getenv("LOCALAPPDATA") ?: return browsers
         val appData = System.getenv("APPDATA") ?: return browsers
@@ -55,13 +62,35 @@ object BrowserCookieExtractor {
             }
         }
 
-        detectFirefoxProfiles(appData)?.let { browsers.add(it) }
+        detectFirefoxInRoot(File(appData, "Mozilla/Firefox"))?.let { browsers.add(it) }
 
         return browsers
     }
 
-    private fun detectFirefoxProfiles(appData: String): BrowserProfile? {
-        val firefoxDir = File(appData, "Mozilla/Firefox")
+    /**
+     * Linux/macOS. Existing Chromium-family profiles encrypt cookies with a key stored in the OS
+     * keyring (GNOME Keyring/KWallet) we can't read, so we don't offer them — the browser-login
+     * flow (fresh profile forced to the "basic" store) is the supported path there. Firefox stores
+     * cookies unencrypted, so detecting existing Firefox profiles works directly.
+     */
+    private fun detectBrowsersUnix(): List<BrowserProfile> {
+        val browsers = mutableListOf<BrowserProfile>()
+        val home = System.getProperty("user.home") ?: return browsers
+
+        val firefoxRoots = listOf(
+            File(home, ".mozilla/firefox"),
+            File(home, "snap/firefox/common/.mozilla/firefox"),
+            File(home, ".var/app/org.mozilla.firefox/.mozilla/firefox"), // Flatpak
+            File(home, "Library/Application Support/Firefox"),            // macOS
+        )
+        for (root in firefoxRoots) {
+            if (!root.exists()) continue
+            detectFirefoxInRoot(root)?.let { browsers.add(it); break }
+        }
+        return browsers
+    }
+
+    private fun detectFirefoxInRoot(firefoxDir: File): BrowserProfile? {
         val profilesIni = File(firefoxDir, "profiles.ini")
         if (!profilesIni.exists()) return null
 
@@ -177,8 +206,14 @@ object BrowserCookieExtractor {
 
     private fun extractChromiumCookies(browser: BrowserProfile): CookieExtractResult {
         Napier.i("Extracting cookies from ${browser.name}: db=${browser.cookieDbPath}, localState=${browser.localStatePath}")
-        val masterKey = decryptMasterKey(browser.localStatePath)
-            ?: return CookieExtractResult.Error("Failed to decrypt ${browser.name}'s encryption key. Make sure ${browser.name} is installed properly.")
+        // Windows wraps the AES key with DPAPI in Local State; Linux/macOS derive it from a fixed
+        // password ("peanuts" for the basic store we force during browser login).
+        val masterKey = if (Platform.isWindows) {
+            decryptMasterKey(browser.localStatePath)
+                ?: return CookieExtractResult.Error("Failed to decrypt ${browser.name}'s encryption key. Make sure ${browser.name} is installed properly.")
+        } else {
+            linuxChromiumKey()
+        }
 
         val tempDb = Files.createTempFile("ml_cookies_", ".db").toFile()
         val tempWal = File(tempDb.absolutePath + "-wal")
@@ -244,6 +279,10 @@ object BrowserCookieExtractor {
     }
 
     private fun copyLockedFile(source: File, dest: File) {
+        // robocopy can copy a file Chrome holds an exclusive lock on (Windows-only). On Linux/macOS
+        // SQLite files aren't exclusively locked, so the plain copyTo already succeeded — if we got
+        // here on those platforms, there's nothing more to try.
+        if (!Platform.isWindows) throw Exception("locked-file copy unsupported on this platform")
         val sourceDir = source.parentFile.absolutePath
         val destDir = dest.parentFile.absolutePath
         val dbName = source.name
@@ -331,7 +370,11 @@ object BrowserCookieExtractor {
         }
     }
 
-    private fun decryptCookieValue(encrypted: ByteArray, masterKey: ByteArray): String? {
+    private fun decryptCookieValue(encrypted: ByteArray, masterKey: ByteArray): String? =
+        if (Platform.isWindows) decryptCookieValueWindows(encrypted, masterKey)
+        else decryptCookieValueLinux(encrypted, masterKey)
+
+    private fun decryptCookieValueWindows(encrypted: ByteArray, masterKey: ByteArray): String? {
         return try {
             if (encrypted.size < 16) return null
             val prefix = String(encrypted, 0, 3)
@@ -354,6 +397,47 @@ object BrowserCookieExtractor {
         } catch (e: Exception) {
             null
         }
+    }
+
+    /**
+     * Linux Chromium cookie decryption: `v10`/`v11` prefix, then AES-128-CBC with a 16-space IV and
+     * PKCS#7 padding (contrast to Windows' AES-GCM). Newer Chrome also prepends a 32-byte SHA-256
+     * domain-binding hash, stripped by [stripBindingHash].
+     */
+    private fun decryptCookieValueLinux(encrypted: ByteArray, key: ByteArray): String? {
+        return try {
+            if (encrypted.size < 3) return null
+            val prefix = String(encrypted, 0, 3)
+            if (prefix != "v10" && prefix != "v11") {
+                // Unencrypted plaintext (older/basic profiles occasionally store it raw).
+                return String(encrypted, Charsets.UTF_8)
+            }
+            val ciphertext = encrypted.copyOfRange(3, encrypted.size)
+            if (ciphertext.isEmpty() || ciphertext.size % 16 != 0) return null
+
+            val cipher = Cipher.getInstance("AES/CBC/NoPadding")
+            cipher.init(
+                Cipher.DECRYPT_MODE,
+                SecretKeySpec(key, "AES"),
+                IvParameterSpec(ByteArray(16) { 0x20 }) // 16 spaces
+            )
+            var decrypted = cipher.doFinal(ciphertext)
+
+            // Remove PKCS#7 padding.
+            val pad = decrypted.lastOrNull()?.toInt()?.and(0xFF) ?: 0
+            if (pad in 1..16 && pad <= decrypted.size) {
+                decrypted = decrypted.copyOfRange(0, decrypted.size - pad)
+            }
+            stripBindingHash(decrypted)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
+    /** AES-128 key for Linux "basic" password store: PBKDF2(HMAC-SHA1, "peanuts", "saltysalt", 1). */
+    private fun linuxChromiumKey(): ByteArray {
+        val spec = PBEKeySpec("peanuts".toCharArray(), "saltysalt".toByteArray(), 1, 128)
+        return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(spec).encoded
     }
 
     private fun stripBindingHash(decrypted: ByteArray): String {

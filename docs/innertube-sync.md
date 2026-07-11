@@ -45,6 +45,11 @@ merge can silently overwrite them if upstream also touched the same file:
    home-screen grid-shelf rendering, populated from
    `MusicCarouselShelfRenderer.numItemsPerColumn` in `fromMusicCarouselShelfRenderer`. Not present
    upstream; re-add if a sync drops it.
+5. **`OfflineGate.kt` + the `install(OfflineGatePlugin)` line in `InnerTube.createClient()`** —
+   LyriK's offline-mode kill switch. Every `YouTube.*` call goes through this one `HttpClient`, so
+   this single plugin is what blocks all network traffic app-wide when offline mode is on
+   (`com.example.melodist.utils.OfflineModeController` in `shared` flips the flag). Not present
+   upstream — re-add the file and the `install()` line if a sync drops them.
 
 After resolving conflicts and reapplying the above, run `./gradlew :composeApp:compileKotlinJvm`
 — any other upstream API signature changes will surface as compile errors in `shared`/`composeApp`

@@ -37,10 +37,13 @@ import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.ClosedCaption
+import androidx.compose.material.icons.rounded.Explicit
 import androidx.compose.material.icons.rounded.GraphicEq
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -96,6 +99,9 @@ import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
+/** The three views available in the right-hand panel of the expanded Now Playing screen. */
+enum class NowPlayingTab { LYRICS, QUEUE, INFO }
+
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun NowPlayingLayout(
@@ -103,8 +109,8 @@ fun NowPlayingLayout(
     song: MediaMetadata,
     onCollapse: () -> Unit,
     onNavigate: ((Route) -> Unit)? = null,
-    onToggleLyrics: (() -> Unit)? = null,
-    showLyrics: Boolean = false,
+    selectedTab: NowPlayingTab = NowPlayingTab.QUEUE,
+    onTabSelected: (NowPlayingTab) -> Unit = {},
     lyrics: String? = null,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
@@ -134,31 +140,31 @@ fun NowPlayingLayout(
                 .fillMaxSize()
                 .padding(horizontal = 20.dp, vertical = 14.dp)
         ) {
-            val isCompactHorizontal = maxWidth < 960.dp
-            val isCompactVertical = maxHeight < 640.dp
-            val useCompactLyrics = isCompactHorizontal || isCompactVertical
+            val isCompact = maxWidth < 900.dp || maxHeight < 560.dp
 
-            // --- Capa de Contenido Principal ---
+            // --- Capa de Contenido Principal: portada a la izquierda, tabs a la derecha ---
             Box(modifier = Modifier.fillMaxSize()) {
-                if (showLyrics) {
-                    LyricsLayout(
+                if (isCompact) {
+                    CompactNowPlayingLayout(
                         song = song,
                         highRes = highRes,
                         state = state,
                         lyrics = lyrics,
-                        isCompact = useCompactLyrics,
+                        selectedTab = selectedTab,
+                        onTabSelected = onTabSelected,
                         onNavigate = onNavigate,
                         onCollapse = onCollapse,
-                        onToggleLyrics = onToggleLyrics,
                         sharedTransitionScope = sharedTransitionScope,
                         animatedVisibilityScope = animatedVisibilityScope,
                     )
                 } else {
-                    PlaybackMainLayout(
+                    ExpandedNowPlayingLayout(
                         song = song,
                         highRes = highRes,
                         state = state,
-                        isCompact = isCompactVertical,
+                        lyrics = lyrics,
+                        selectedTab = selectedTab,
+                        onTabSelected = onTabSelected,
                         onNavigate = onNavigate,
                         onCollapse = onCollapse,
                         sharedTransitionScope = sharedTransitionScope,
@@ -171,7 +177,6 @@ fun NowPlayingLayout(
             TopActionOverlay(
                 showMenu = showMenu,
                 onMenuToggle = { showMenu = it },
-                onToggleLyrics = onToggleLyrics,
                 onOpenEqualizer = { showEqualizer = true }
             )
         }
@@ -202,192 +207,281 @@ fun NowPlayingLayout(
 // COMPONENTES AUXILIARES EXTRAÍDOS
 // ==========================================
 
+/**
+ * Spotify-style expanded layout: cover art + song info stay fixed on the left; the right side is
+ * a tabbed panel (Letras / Cola / Información) that swaps content without disturbing the left side.
+ */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-private fun PlaybackMainLayout(
-    song: MediaMetadata,
-    highRes: Boolean,
-    state: PlayerUiState,
-    isCompact: Boolean,
-    onNavigate: ((Route) -> Unit)?,
-    onCollapse: () -> Unit,
-    sharedTransitionScope: SharedTransitionScope? = null,
-    animatedVisibilityScope: AnimatedVisibilityScope? = null,
-) {
-    // Usamos Column si falta altura, o Row si la pantalla es muy ancha pero chata
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        CoverArt(
-            url = song.thumbnailUrl,
-            title = song.title,
-            modifier = Modifier
-                .weight(1f, fill = false) // Permite que la portada encoja si falta espacio vertical
-                .sizeIn(maxHeight = if (isCompact) 240.dp else 380.dp, maxWidth = if (isCompact) 240.dp else 380.dp)
-                .heroCoverElement(song.id, sharedTransitionScope, animatedVisibilityScope),
-            highRes = highRes
-        )
-
-        Spacer(Modifier.height(if (isCompact) 12.dp else 18.dp))
-
-        SongHeader(
-            state = state,
-            song = song,
-            textAlign = TextAlign.Center,
-            onNavigate = onNavigate,
-            onCollapse = onCollapse
-        )
-
-        // NOTA: Aquí deberías incluir tus controles de reproducción (Play, Pause, Sliders)
-        // para que también respondan a la jerarquía y no queden flotando.
-    }
-}
-
-@OptIn(ExperimentalSharedTransitionApi::class)
-@Composable
-private fun LyricsLayout(
+private fun ExpandedNowPlayingLayout(
     song: MediaMetadata,
     highRes: Boolean,
     state: PlayerUiState,
     lyrics: String?,
-    isCompact: Boolean,
+    selectedTab: NowPlayingTab,
+    onTabSelected: (NowPlayingTab) -> Unit,
     onNavigate: ((Route) -> Unit)?,
     onCollapse: () -> Unit,
-    onToggleLyrics: (() -> Unit)?,
     sharedTransitionScope: SharedTransitionScope? = null,
     animatedVisibilityScope: AnimatedVisibilityScope? = null,
 ) {
-    if (isCompact) {
-        // Diseño Vertical (Móviles / Ventanas pequeñas)
+    Row(
+        modifier = Modifier.fillMaxSize(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(28.dp)
+    ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.weight(0.42f).fillMaxHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(end = 48.dp), // Espacio para el botón cerrar global
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                CoverArt(
-                    url = song.thumbnailUrl,
-                    title = song.title,
-                    modifier = Modifier.size(80.dp) // Tamaño controlado para que no rompa el Layout
-                        .heroCoverElement(song.id, sharedTransitionScope, animatedVisibilityScope),
-                    highRes = highRes
-                )
-                SongHeader(
-                    state = state,
-                    song = song,
-                    textAlign = TextAlign.Start,
-                    onNavigate = onNavigate,
-                    onCollapse = onCollapse,
-                    compact = true
-                )
-            }
-            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
-            LyricsHeader()
-            Box(modifier = Modifier.weight(1f)) {
-                LyricsContent(lyrics = lyrics, textAlign = TextAlign.Start, style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-    } else {
-        // Diseño Horizontal / Pantallas Grandes (Tablets, Desktop)
-        Row(
-            modifier = Modifier.fillMaxSize(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(28.dp)
-        ) {
-            Column(
-                modifier = Modifier.weight(0.4f).fillMaxHeight(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
-            ) {
-                CoverArt(
-                    url = song.thumbnailUrl,
-                    title = song.title,
-                    modifier = Modifier.sizeIn(maxHeight = 320.dp, maxWidth = 320.dp)
-                        .heroCoverElement(song.id, sharedTransitionScope, animatedVisibilityScope),
-                    highRes = highRes
-                )
-                Spacer(Modifier.height(18.dp))
-                SongHeader(
-                    state = state,
-                    song = song,
-                    textAlign = TextAlign.Center,
-                    onNavigate = onNavigate,
-                    onCollapse = onCollapse,
-                    compact = false
-                )
-            }
-
-            Box(
+            CoverArt(
+                url = song.thumbnailUrl,
+                title = song.title,
                 modifier = Modifier
-                    .width(1.dp)
-                    .fillMaxHeight()
-                    .padding(vertical = 24.dp)
-                    .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+                    .weight(1f, fill = false)
+                    .sizeIn(maxHeight = 380.dp, maxWidth = 380.dp)
+                    .heroCoverElement(song.id, sharedTransitionScope, animatedVisibilityScope),
+                highRes = highRes
             )
+            Spacer(Modifier.height(18.dp))
+            SongHeader(
+                state = state,
+                song = song,
+                textAlign = TextAlign.Center,
+                onNavigate = onNavigate,
+                onCollapse = onCollapse,
+                compact = false
+            )
+        }
 
-            Column(
-                modifier = Modifier.weight(0.6f).fillMaxHeight()
-            ) {
-                LyricsHeader(modifier = Modifier.padding(top = 16.dp, bottom = 12.dp))
-                Box(modifier = Modifier.weight(1f)) {
-                    LyricsContent(lyrics = lyrics, textAlign = TextAlign.Start, style = MaterialTheme.typography.headlineSmall)
-                }
+        Box(
+            modifier = Modifier
+                .width(1.dp)
+                .fillMaxHeight()
+                .padding(vertical = 24.dp)
+                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
+        )
+
+        Column(modifier = Modifier.weight(0.58f).fillMaxHeight()) {
+            NowPlayingTabRow(
+                selectedTab = selectedTab,
+                onTabSelected = onTabSelected,
+                queueCount = state.queue.size,
+                modifier = Modifier.padding(top = 16.dp, bottom = 12.dp)
+            )
+            Box(modifier = Modifier.weight(1f)) {
+                NowPlayingTabContent(
+                    tab = selectedTab,
+                    song = song,
+                    state = state,
+                    lyrics = lyrics,
+                    lyricsTextStyle = MaterialTheme.typography.headlineSmall,
+                    onNavigate = onNavigate,
+                    onCollapse = onCollapse,
+                )
             }
         }
     }
 }
 
+/** Narrow-window fallback: cover + info on top, the selected tab fills the rest below. */
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
-private fun LyricsHeader(modifier: Modifier = Modifier) {
-    val playerViewModel = LocalPlayerViewModel.current
-    val synced by playerViewModel.syncedLyrics.collectAsState()
-    val isSynced = !synced.isNullOrEmpty()
+private fun CompactNowPlayingLayout(
+    song: MediaMetadata,
+    highRes: Boolean,
+    state: PlayerUiState,
+    lyrics: String?,
+    selectedTab: NowPlayingTab,
+    onTabSelected: (NowPlayingTab) -> Unit,
+    onNavigate: ((Route) -> Unit)?,
+    onCollapse: () -> Unit,
+    sharedTransitionScope: SharedTransitionScope? = null,
+    animatedVisibilityScope: AnimatedVisibilityScope? = null,
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(end = 48.dp), // espacio para el botón cerrar global
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CoverArt(
+                url = song.thumbnailUrl,
+                title = song.title,
+                modifier = Modifier.size(80.dp)
+                    .heroCoverElement(song.id, sharedTransitionScope, animatedVisibilityScope),
+                highRes = highRes
+            )
+            SongHeader(
+                state = state,
+                song = song,
+                textAlign = TextAlign.Start,
+                onNavigate = onNavigate,
+                onCollapse = onCollapse,
+                compact = true
+            )
+        }
+        HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f))
+        NowPlayingTabRow(selectedTab = selectedTab, onTabSelected = onTabSelected, queueCount = state.queue.size)
+        Box(modifier = Modifier.weight(1f)) {
+            NowPlayingTabContent(
+                tab = selectedTab,
+                song = song,
+                state = state,
+                lyrics = lyrics,
+                lyricsTextStyle = MaterialTheme.typography.bodyLarge,
+                onNavigate = onNavigate,
+                onCollapse = onCollapse,
+            )
+        }
+    }
+}
 
-    Row(
+/** Spotify-style pill "button tabs" for switching the right-hand panel. */
+@Composable
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun tabIcon(tab: NowPlayingTab) = when (tab) {
+    NowPlayingTab.LYRICS -> Icons.Rounded.Lyrics
+    NowPlayingTab.QUEUE -> Icons.AutoMirrored.Filled.QueueMusic
+    NowPlayingTab.INFO -> Icons.Rounded.Info
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun NowPlayingTabRow(
+    selectedTab: NowPlayingTab,
+    onTabSelected: (NowPlayingTab) -> Unit,
+    queueCount: Int,
+    modifier: Modifier = Modifier,
+) {
+    val lyricsLabel = stringResource(Res.string.tab_lyrics)
+    val queueLabel = stringResource(Res.string.tab_queue) + if (queueCount > 0) " ($queueCount)" else ""
+    val infoLabel = stringResource(Res.string.tab_info)
+
+    ButtonGroup(
+        overflowIndicator = { menuState -> ButtonGroupDefaults.OverflowIndicator(menuState) },
         modifier = modifier,
+    ) {
+        NowPlayingTab.entries.forEach { tab ->
+            toggleableItem(
+                checked = tab == selectedTab,
+                onCheckedChange = { onTabSelected(tab) },
+                label = when (tab) {
+                    NowPlayingTab.LYRICS -> lyricsLabel
+                    NowPlayingTab.QUEUE -> queueLabel
+                    NowPlayingTab.INFO -> infoLabel
+                },
+                icon = { Icon(tabIcon(tab), contentDescription = null, modifier = Modifier.size(18.dp)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun BoxScope.NowPlayingTabContent(
+    tab: NowPlayingTab,
+    song: MediaMetadata,
+    state: PlayerUiState,
+    lyrics: String?,
+    lyricsTextStyle: androidx.compose.ui.text.TextStyle,
+    onNavigate: ((Route) -> Unit)?,
+    onCollapse: () -> Unit,
+) {
+    when (tab) {
+        NowPlayingTab.LYRICS -> LyricsContent(lyrics = lyrics, textAlign = TextAlign.Start, style = lyricsTextStyle)
+        NowPlayingTab.QUEUE -> PlaybackQueuePanel(
+            state = state,
+            onDismiss = {},
+            modifier = Modifier.fillMaxSize(),
+            containerColor = Color.Transparent,
+            showCloseButton = false,
+        )
+        NowPlayingTab.INFO -> SongInfoContent(song = song, state = state, onNavigate = onNavigate, onCollapse = onCollapse)
+    }
+}
+
+@Composable
+private fun SongInfoContent(
+    song: MediaMetadata,
+    state: PlayerUiState,
+    onNavigate: ((Route) -> Unit)?,
+    onCollapse: () -> Unit,
+) {
+    val scrollState = rememberScrollState()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+            .padding(top = 8.dp, end = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        song.album?.let { album ->
+            InfoRow(
+                icon = Icons.Rounded.Album,
+                label = album.title,
+                onClick = { onCollapse(); onNavigate?.invoke(Route.Album(album.id)) }
+            )
+        }
+        if (song.duration > 0) {
+            InfoRow(
+                icon = Icons.Rounded.Timer,
+                label = "${stringResource(Res.string.info_duration)} · ${formatPlayerTimeValue(song.duration * 1000L)}"
+            )
+        }
+        state.queueSource?.let { source ->
+            val originLabel = when (source) {
+                is QueueSource.Album -> stringResource(Res.string.from_album, source.title)
+                is QueueSource.Playlist -> stringResource(Res.string.from_playlist, source.title)
+                is QueueSource.Single -> stringResource(Res.string.song_radio)
+                QueueSource.Custom -> stringResource(Res.string.custom_queue)
+            }
+            InfoRow(icon = Icons.AutoMirrored.Filled.QueueMusic, label = originLabel)
+        }
+        if (song.liked) {
+            InfoRow(icon = Icons.Filled.Favorite, label = stringResource(Res.string.info_liked), tint = MaterialTheme.colorScheme.primary)
+        }
+        if (song.isDownloaded) {
+            InfoRow(icon = Icons.Default.Download, label = stringResource(Res.string.info_downloaded))
+        }
+        if (song.explicit) {
+            InfoRow(icon = Icons.Rounded.Explicit, label = stringResource(Res.string.info_explicit))
+        }
+    }
+}
+
+@Composable
+private fun InfoRow(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    tint: Color? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick).pointerHoverIcon(PointerIcon.Hand) else Modifier)
+            .padding(horizontal = 8.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         Icon(
-            Icons.Rounded.Lyrics,
+            icon,
             contentDescription = null,
             modifier = Modifier.size(20.dp),
-            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.85f)
+            tint = tint ?: MaterialTheme.colorScheme.onSurfaceVariant,
         )
         Text(
-            stringResource(Res.string.lyrics_header_title),
-            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.9f),
+            label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = tint ?: MaterialTheme.colorScheme.onSurface,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
-        if (isSynced) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.16f),
-            ) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(
-                        Icons.Rounded.GraphicEq,
-                        contentDescription = null,
-                        modifier = Modifier.size(12.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        stringResource(Res.string.lyrics_synced_badge),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
     }
 }
 
@@ -484,7 +578,6 @@ private fun BoxScope.LyricsContent(
 private fun BoxScope.TopActionOverlay(
     showMenu: Boolean,
     onMenuToggle: (Boolean) -> Unit,
-    onToggleLyrics: (() -> Unit)?,
     onOpenEqualizer: () -> Unit
 ) {
     Box(
@@ -515,14 +608,6 @@ private fun BoxScope.TopActionOverlay(
                 onClick = { onMenuToggle(false); onOpenEqualizer() },
                 leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
             )
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.toggle_lyrics_menu)) },
-                onClick = {
-                    onMenuToggle(false)
-                    onToggleLyrics?.invoke()
-                },
-                leadingIcon = { Icon(Icons.Rounded.ClosedCaption, null) }
-            )
         }
     }
 }
@@ -532,7 +617,9 @@ private fun BoxScope.TopActionOverlay(
 fun PlaybackQueuePanel(
     state: PlayerUiState,
     onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    containerColor: Color = MaterialTheme.colorScheme.background,
+    showCloseButton: Boolean = true,
 ) {
     val playerViewModel = LocalPlayerViewModel.current
     val downloadViewModel = LocalDownloadViewModel.current
@@ -571,7 +658,7 @@ fun PlaybackQueuePanel(
 
     Surface(
         modifier = modifier,
-        color = MaterialTheme.colorScheme.background,
+        color = containerColor,
         tonalElevation = 0.dp,
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
@@ -682,16 +769,18 @@ fun PlaybackQueuePanel(
                         }
                     }
 
-                    Spacer(Modifier.width(8.dp))
-                    IconButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.size(36.dp).pointerHoverIcon(PointerIcon.Hand) // Botón más grande
-                    ) {
-                        Icon(
-                            Icons.Default.Close, stringResource(Res.string.close_queue),
-                            modifier = Modifier.size(22.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    if (showCloseButton) {
+                        Spacer(Modifier.width(8.dp))
+                        IconButton(
+                            onClick = onDismiss,
+                            modifier = Modifier.size(36.dp).pointerHoverIcon(PointerIcon.Hand) // Botón más grande
+                        ) {
+                            Icon(
+                                Icons.Default.Close, stringResource(Res.string.close_queue),
+                                modifier = Modifier.size(22.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }
