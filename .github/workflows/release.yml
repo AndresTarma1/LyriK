@@ -19,8 +19,10 @@ jobs:
         include:
           - os: windows-latest
             name: windows
+            lfs: true          # libmpv-2.dll (116 MB) está en Git LFS y solo se empaqueta en Windows
           - os: ubuntu-latest
             name: linux
+            lfs: false         # Linux usa el mpv del sistema; no necesita descargar el DLL de LFS
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -28,6 +30,25 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          lfs: ${{ matrix.lfs }}
+
+      # yt-dlp.exe está gitignored (no se versiona); se descarga la última versión para el bundle de Windows.
+      - name: Fetch yt-dlp (Windows bundle)
+        if: runner.os == 'Windows'
+        run: curl -L --fail -o mpv-resources/windows/yt-dlp.exe https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe
+
+      # Falla ruidosamente si el DLL real de libmpv no llegó (p. ej. LFS no se descargó): así no se
+      # publica un MSI roto con un puntero LFS de 134 bytes en vez del binario de 116 MB.
+      - name: Verify native mpv binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          size=$(stat -c%s mpv-resources/windows/libmpv-2.dll)
+          echo "libmpv-2.dll = $size bytes"
+          if [ "$size" -lt 1000000 ]; then
+            echo "::error::libmpv-2.dll parece un puntero LFS ($size bytes), no el DLL real. Falló la descarga de Git LFS."
+            exit 1
+          fi
 
       # JBR 21: el proyecto pide toolchain JDK 21 con vendor JetBrains.
       - name: Set up JetBrains Runtime 21
