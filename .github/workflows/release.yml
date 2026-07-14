@@ -45,7 +45,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y rpm fakeroot
 
       - name: Package for current OS
-        run: ./gradlew :composeApp:packageDistributionForCurrentOS --no-daemon --stacktrace
+        run: bash ./gradlew :composeApp:packageDistributionForCurrentOS --no-daemon --stacktrace
 
       - name: Upload installers
         uses: actions/upload-artifact@v4
