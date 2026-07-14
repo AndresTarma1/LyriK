@@ -14,11 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.melodist.models.MediaMetadata
 import com.example.melodist.ui.components.CornerQuickPlayConfig
 import com.example.melodist.ui.components.PlaceholderType
 import com.example.melodist.ui.components.YouTubeGridItem
 import com.example.melodist.ui.components.context.CollectionContextMenuPopup
 import com.example.melodist.ui.components.context.SongContextMenuPopup
+import com.example.melodist.ui.components.dialogs.ArtistsModal
 import com.example.melodist.ui.components.song.DownloadIndicator
 import com.example.melodist.ui.helpers.rememberSongDownloadState
 import com.example.melodist.ui.utils.circleAwareShape
@@ -40,12 +42,14 @@ import org.jetbrains.compose.resources.stringResource
 fun SongHomeItem(
     item: SongItem,
     modifier: Modifier = Modifier,
+    onClickSubtitle: (String) -> Unit,
     onClick: (YTItem) -> Unit
 ) {
     val downloadViewModel = LocalDownloadViewModel.current
     val downloadState by rememberSongDownloadState(item.id, downloadViewModel)
 
     var showMenu by remember { mutableStateOf(false) }
+    var showModalSheet by remember { mutableStateOf(false) }
 
     YouTubeGridItem(
         item = item,
@@ -55,6 +59,7 @@ fun SongHomeItem(
         titleAlign = TextAlign.Start,
         placeholderType = PlaceholderType.SONG,
         centerPlayVisible = true,
+        onClickSubtitle = { showModalSheet = true},
         contextMenuEnabled = true,
         onContextMenuAction = { showMenu = true },
         subtitle = item.artists.firstOrNull()?.name.orEmpty(),
@@ -79,6 +84,17 @@ fun SongHomeItem(
             )
         }
     )
+
+    if(showModalSheet){
+        ArtistsModal(
+            artists = item.artists,
+            onClickArtist = { artistId ->
+                showModalSheet = false;
+                onClickSubtitle(artistId)
+            },
+            onDismiss = { showModalSheet = false }
+        )
+    }
 }
 
 @OptIn(ExperimentalComposeUiApi::class)

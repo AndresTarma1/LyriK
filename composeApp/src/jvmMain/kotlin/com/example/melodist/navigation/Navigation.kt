@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -81,16 +82,10 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val playerState by playerViewModel.uiState.collectAsState()
     val progressState by playerViewModel.progressState.collectAsState()
     val currentLyrics by playerViewModel.currentLyrics.collectAsState()
+    val currentSongMediaInfo by playerViewModel.currentMediaInfo.collectAsState()
     var isNowPlayingExpanded by remember { mutableStateOf(false) }
     var isQueueVisible by remember { mutableStateOf(false) }
     var nowPlayingTab by remember { mutableStateOf(NowPlayingTab.QUEUE) }
-
-    // Busca las letras de la canción actual cuando se cambia la pestaña a "Lyrics" o cuando cambia la canción.
-    LaunchedEffect(nowPlayingTab, playerState.currentSong?.id) {
-        if (nowPlayingTab == NowPlayingTab.LYRICS) {
-            playerViewModel.fetchLyrics()
-        }
-    }
 
     val queueWidth = 420.dp
 
@@ -203,6 +198,7 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                         if (islands) Modifier.border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, contentShape)
                                         else Modifier
                                     )
+                                    .background(MaterialTheme.colorScheme.background)
                             ) {
                                 Children(
                                     stack = rootComponent.childStack,
@@ -231,6 +227,7 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                             selectedTab = nowPlayingTab,
                                             onTabSelected = { nowPlayingTab = it },
                                             lyrics = currentLyrics,
+                                            mediaInfo = currentSongMediaInfo,
                                             sharedTransitionScope = sharedTransitionScope,
                                             animatedVisibilityScope = this,
                                         )

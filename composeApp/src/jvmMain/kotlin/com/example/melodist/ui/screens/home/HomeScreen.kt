@@ -83,7 +83,6 @@ fun HomeScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
     ) {
         when (uiState) {
 
@@ -223,7 +222,6 @@ fun HomeScreenContent(
 }
 
 // Sub-composables tontos — solo renderizan, no deciden
-
 @Composable
 private fun ChipFilterRow(
     chips: List<HomePage.Chip>,
@@ -358,6 +356,7 @@ private fun HomeSectionItem(
         is SongItem -> SongHomeItem(
             item = item,
             onClick = { playerViewModel?.playSingle(item) },
+            onClickSubtitle = { onNavigate(Route.Artist(it)) },
             modifier = modifier,
         )
 

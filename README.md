@@ -3,18 +3,22 @@
 
   # LyriK
 
-  **Un reproductor de música de escritorio para YouTube Music, en Windows y Linux.**
+  **Un reproductor de música de escritorio para YouTube Music — Windows (y Linux en _alpha_).**
 
   Streaming en alta calidad, letras sincronizadas y escucha compartida — en una interfaz limpia con temas que se adaptan a cada carátula.
 
   ![Plataforma](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)
-  ![Plataforma](https://img.shields.io/badge/Linux-deb-FCC624?logo=linux&logoColor=black)
+  ![Plataforma](https://img.shields.io/badge/Linux-alpha-FCC624?logo=linux&logoColor=black)
   ![UI](https://img.shields.io/badge/Compose-Multiplatform-4285F4?logo=jetpackcompose&logoColor=white)
   ![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?logo=kotlin&logoColor=white)
-  ![Versión](https://img.shields.io/badge/versión-0.4.0-orange)
+  ![Versión](https://img.shields.io/badge/versión-0.5.0-orange)
   ![Licencia](https://img.shields.io/badge/licencia-GPL--3.0-blue)
 
   [Descargar](../../releases) · [Reportar un problema](../../issues)
+
+  <br>
+
+  <img src="docs/screenshots/home.png" alt="Pantalla principal de LyriK" width="90%">
 
 </div>
 
@@ -29,7 +33,22 @@
 - 🔎 **Búsqueda e historial** — con biblioteca local persistente (playlists, "Me gusta", suscripciones a artistas) sincronizada de forma bidireccional con tu cuenta de YouTube Music.
 - ⬇️ **Descargas y caché** — guarda canciones para escuchar sin conexión o sin gastar datos.
 - ⌨️ **Integración de escritorio** — controles desde la miniatura de la barra de tareas, bandeja del sistema, tecla multimedia global (SMTC) y un overlay estilo Steam activable con atajo global.
-- 🎚️ **Ecualizador de 10 bandas** y control fino de volumen/calidad de streaming.
+- 🎚️ **Ecualizador de 10 bandas**, velocidad de reproducción ajustable y control fino de volumen/calidad de streaming.
+
+---
+
+## 📸 Capturas
+
+<div align="center">
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/screenshots/search.png" alt="Búsqueda y géneros"><br><sub><b>Búsqueda</b> · novedades, estados de ánimo y géneros</sub></td>
+    <td width="50%"><img src="docs/screenshots/library.png" alt="Biblioteca"><br><sub><b>Biblioteca</b> · álbumes, artistas y playlists sincronizados con tu cuenta</sub></td>
+  </tr>
+</table>
+
+</div>
 
 ---
 
@@ -52,7 +71,14 @@ Requisitos: **JDK 21+** (se recomienda el [JetBrains Runtime](https://github.com
 ./gradlew :composeApp:packageDistributionForCurrentOS
 ```
 
-**Windows**: libmpv y yt-dlp vienen incluidos, no hay que instalar nada más.
+**Windows**: libmpv y yt-dlp vienen incluidos, no hay que instalar nada más. Es la
+plataforma principal y la mejor soportada.
+
+> [!WARNING]
+> **Linux está en fase _alpha_.** El soporte es experimental y aún contiene diversos
+> errores (integración con la bandeja del sistema, teclas multimedia, empaquetado y
+> resolución de streams pueden fallar según la distro). Úsalo bajo tu propio riesgo y
+> reporta lo que encuentres en los [issues](../../issues).
 
 **Linux**: la app usa el **mpv** y **yt-dlp** del sistema (no se empaquetan, para evitar
 problemas de dependencias). Instálalos con tu gestor de paquetes:

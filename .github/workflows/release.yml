@@ -1,0 +1,80 @@
+name: Build installers
+
+# Genera los 4 instaladores nativos de LyriK:
+#   Windows (windows-latest) → .msi + .exe
+#   Linux   (ubuntu-latest)  → .deb + .rpm
+# jpackage solo puede empaquetar para el SO en el que corre, por eso se usa una matriz.
+
+on:
+  push:
+    tags:
+      - 'v*'            # p. ej. v0.5.0 → crea un Release con los 4 instaladores
+  workflow_dispatch: {} # permite lanzarlo manualmente desde la pestaña Actions
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+          - os: ubuntu-latest
+            name: linux
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash          # ./gradlew funciona igual en Windows y Linux
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # JBR 21: el proyecto pide toolchain JDK 21 con vendor JetBrains.
+      - name: Set up JetBrains Runtime 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'jetbrains'
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # rpmbuild no viene en ubuntu-latest; se necesita para el .rpm.
+      - name: Install rpm tooling (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y rpm fakeroot
+
+      - name: Package for current OS
+        run: ./gradlew :composeApp:packageDistributionForCurrentOS --no-daemon --stacktrace
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.name }}
+          if-no-files-found: ignore
+          path: |
+            composeApp/build/compose/binaries/main/msi/*.msi
+            composeApp/build/compose/binaries/main/exe/*.exe
+            composeApp/build/compose/binaries/main/deb/*.deb
+            composeApp/build/compose/binaries/main/rpm/*.rpm
+
+  release:
+    # Solo cuando se empuja un tag v*: junta los artefactos de ambos SO en un Release.
+    needs: package
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all installers
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          draft: true            # queda como borrador para que revises antes de publicar
+          generate_release_notes: true

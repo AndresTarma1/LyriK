@@ -308,7 +308,6 @@ fun LibraryScreen(
     var showFilterMenu by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background.copy(alpha = 0f),
         topBar = {
             TopAppBar(
                 title = {

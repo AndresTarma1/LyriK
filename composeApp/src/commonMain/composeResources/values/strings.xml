@@ -591,6 +591,9 @@
     <string name="eq_preset_acoustic">Acoustic</string>
     <string name="eq_presets">Presets</string>
 
+    <!-- Títulos -->
+    <string name="artist_title">Artistas</string>
+
     <!-- Loading -->
     <string name="loading_more_songs">Cargando más canciones…</string>
 </resources>

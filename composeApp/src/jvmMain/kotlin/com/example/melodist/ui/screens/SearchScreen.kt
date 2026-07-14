@@ -175,7 +175,7 @@ fun SearchScreen(
     var active by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        modifier = Modifier.fillMaxSize(),
     ) { paddingValues ->
         Column(
             Modifier

@@ -23,6 +23,7 @@ import com.example.melodist.utils.awaitOnline
 import com.example.melodist.utils.withMissingMetadataResolved
 import com.example.melodist.viewmodels.queues.YouTubePlaylistQueue
 import com.metrolist.innertube.YouTube
+import com.metrolist.innertube.models.MediaInfo
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import io.github.aakira.napier.Napier
@@ -195,7 +196,7 @@ class PlayerViewModel(
             _uiState.map { it.currentSong?.id }
                 .distinctUntilChanged()
                 .filterNotNull()
-                .collectLatest { fetchLyrics() }
+                .collectLatest { fetchLyrics(); fetchMetadataInfo() }
         }
     }
 
@@ -1175,12 +1176,34 @@ class PlayerViewModel(
     private val _currentLyrics = MutableStateFlow<String?>(null)
     val currentLyrics: StateFlow<String?> = _currentLyrics.asStateFlow()
 
+    private val _currentMediaInfo = MutableStateFlow<MediaInfo?>(null)
+    val currentMediaInfo: StateFlow<MediaInfo?> = _currentMediaInfo.asStateFlow()
+
+    fun fetchMetadataInfo() {
+        val song = _uiState.value.currentSong ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            _currentMediaInfo.value = null
+            try {
+                val mediaInfo = YouTube.getMediaInfo(song.id).getOrNull()
+                _currentMediaInfo.value = mediaInfo
+            } catch (_: Exception) {
+                _currentMediaInfo.value = null
+            }
+        }
+    }
+
     /** Letras sincronizadas por tiempo (BetterLyrics o LRC sincronizado de YouTube). Nulo cuando solo existe texto plano. */
     private val _syncedLyrics = MutableStateFlow<List<LyricLine>?>(null)
     val syncedLyrics: StateFlow<List<LyricLine>?> = _syncedLyrics.asStateFlow()
 
+    // Canción para la que ya se pidieron (o están en curso) las letras. Evita re-fetch al solo
+    // cambiar de pestaña (Cola/Info -> Letras) sobre la misma canción.
+    private var lastLyricsSongId: String? = null
+
     fun fetchLyrics() {
         val song = _uiState.value.currentSong ?: return
+        if (song.id == lastLyricsSongId) return
+        lastLyricsSongId = song.id
         viewModelScope.launch(Dispatchers.IO) {
             _currentLyrics.value = null
             _syncedLyrics.value = null
@@ -1191,10 +1214,10 @@ class PlayerViewModel(
             // Intentar proveedores sincronizados en orden de fiabilidad. El primer LRC utilizable gana.
             //   1) LrcLib  — gratuito, confiable, sincronizado por líneas
             //   2) KuGou   — sincronizado por líneas
-            //   3) BetterLyrics — sincronizado por palabras (mejor UX, pero puede requerir autenticación/no estar disponible)
+            //   3) (Deshabilitado) BetterLyrics — sincronizado por palabras (mejor UX, pero puede requerir autenticación/no estar disponible)
             val lrc = runCatching { LrcLib.getLyrics(song.title, artist, song.duration, album).getOrNull() }.getOrNull()
                 ?: runCatching { KuGou.getLyrics(song.title, artist, song.duration, album).getOrNull() }.getOrNull()
-                ?: runCatching { BetterLyrics.getLyrics(song.title, artist, song.duration, album) }.getOrNull()
+                // ?: runCatching { BetterLyrics.getLyrics(song.title, artist, song.duration, album) }.getOrNull()
 
             if (lrc != null) {
                 if (SyncedLyrics.isSynced(lrc)) {

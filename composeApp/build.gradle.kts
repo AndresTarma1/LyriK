@@ -143,12 +143,12 @@ compose.desktop {
         jvmArgs(*melodistJvmArgs.toTypedArray())
 
         nativeDistributions {
-            targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
+            targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "LyriK"
-            packageVersion = "0.4.0"
+            packageVersion = "0.5.0"
 
             windows {
-                msiPackageVersion = "0.4.0"
+                msiPackageVersion = "0.5.0"
                 packageName = "LyriK"
                 iconFile.set(project.file("icons/Music_note_circle.ico"))
                 menu = true

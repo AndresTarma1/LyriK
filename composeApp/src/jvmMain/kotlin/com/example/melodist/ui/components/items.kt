@@ -130,6 +130,7 @@ fun YouTubeGridItem(
     onContextMenuAction: () -> Unit = {},
     onMoreClick: (() -> Unit)? = null,
     quickPlay: CornerQuickPlayConfig? = null,
+    onClickSubtitle: (() -> Unit)? = null,
     subtitle: String,
     topStartOverlay: (@Composable BoxScope.() -> Unit)? = null,
     overlayContent: @Composable BoxScope.() -> Unit = {},
@@ -256,7 +257,8 @@ fun YouTubeGridItem(
                     modifier = Modifier
                         .fillMaxWidth()
                         .pointerHoverIcon(PointerIcon.Hand)
-                        .onHover { subtitleHover = it },
+                        .onHover { subtitleHover = it }
+                        .clickable{ onClickSubtitle?.invoke() },
                     textAlign = titleAlign
                 )
             }
