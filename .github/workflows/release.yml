@@ -72,9 +72,13 @@ jobs:
           path: dist
           merge-multiple: true
 
+      - name: List downloaded files
+        run: find dist -type f -printf '%p  (%s bytes)\n'
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
-          draft: true            # queda como borrador para que revises antes de publicar
+          files: dist/**/*        # recursivo: los instaladores quedan en dist/<fmt>/archivo
+          fail_on_unmatched_files: true
+          draft: false
           generate_release_notes: true
