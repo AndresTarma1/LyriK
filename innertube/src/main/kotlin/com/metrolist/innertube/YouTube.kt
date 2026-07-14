@@ -2170,7 +2170,10 @@ object YouTube {
                                 ?.firstOrNull()
                                 ?.text ?: return null,
                         artists =
-                            renderer.subtitle?.runs?.oddElements()?.drop(1)?.mapNotNull {
+                            // oddElements() already filters to browseId-linked runs, dropping the
+                            // leading type label ("Album"/"Playlist") that isn't itself a link — no
+                            // need to additionally drop(1), which would instead chop the first artist.
+                            renderer.subtitle?.runs?.oddElements()?.mapNotNull {
                                 it.navigationEndpoint?.browseEndpoint?.browseId?.let { id ->
                                     Artist(name = it.text, id = id)
                                 }

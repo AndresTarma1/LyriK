@@ -50,7 +50,7 @@ class PlayerService {
         mpvPlayer.init()
         startPositionTicker()
 
-        // Natural end-of-track, reported by mpv's END_FILE(EOF) event (authoritative).
+        // Fin natural de la pista, reportado por el evento END_FILE(EOF) de mpv (autoritativo).
         scope.launch {
             mpvPlayer.ended.collect {
                 if (!endNotified) {
@@ -62,10 +62,10 @@ class PlayerService {
     }
 
     /**
-     * Loads and initiates playback of the specified audio URL.
+     * Carga e inicia la reproducción de la URL de audio especificada.
      *
-     * Resets the playback position and duration. If loading fails, the playback state is
-     * set to ERROR and the error is logged.
+     * Reinicia la posición y duración de reproducción. Si la carga falla, el estado de
+     * reproducción se establece en ERROR y el error se registra en el log.
      */
     fun play(url: String) {
         init()
@@ -82,9 +82,9 @@ class PlayerService {
             prevPlayingPos = 0L
             _position.value = 0L
             _duration.value = 0L
-            // openUri is non-blocking (it launches its own IO job) and arms the load-result
-            // synchronously, so a subsequent awaitPlaybackStarted() observes THIS load, not a
-            // stale result from the previous track.
+            // openUri es no bloqueante (lanza su propio job de IO) y prepara el resultado de
+            // carga sincrónicamente, por lo que un awaitPlaybackStarted() posterior observa ESTA
+            // carga, no un resultado obsoleto de la pista anterior.
             mpvPlayer.openUri(url)
         } catch (e: Exception) {
             _playbackState.value = PlaybackState.ERROR
@@ -93,9 +93,9 @@ class PlayerService {
     }
 
     /**
-     * Waits for playback to start within a specified timeout.
+     * Espera a que la reproducción inicie dentro de un tiempo de espera especificado.
      *
-     * @return `true` if playback started within the timeout, `false` otherwise.
+     * @return `true` si la reproducción inició dentro del tiempo de espera, `false` en caso contrario.
      */
     suspend fun awaitPlaybackStarted(timeoutMs: Long = 6000): Boolean {
         if (isMpvDisabled) return false
@@ -103,7 +103,7 @@ class PlayerService {
     }
 
     /**
-     * Pauses playback and updates the playback state to `PAUSED`.
+     * Pausa la reproducción y actualiza el estado a `PAUSED`.
      */
     fun pause() {
         isTransitioning = false
@@ -166,13 +166,18 @@ class PlayerService {
 
     fun setEqualizer(bands: List<Float>) {
         if (isMpvDisabled) return
-        // Send values to mpv
+        // Enviar valores a mpv
         mpvPlayer.setEqualizer(bands)
     }
 
     fun setCrossfadeEnabled(enabled: Boolean) {
         if (isMpvDisabled) return
         mpvPlayer.setGaplessAudio(enabled)
+    }
+
+    fun setPlaybackSpeed(value: Float) {
+        if (isMpvDisabled) return
+        mpvPlayer.setSpeed(value)
     }
 
     fun release() {
@@ -192,8 +197,8 @@ class PlayerService {
                             _playbackState.value == PlaybackState.LOADING
 
                     if (shouldPoll) {
-                        // Progress only (end-of-track now comes from mpv's END_FILE event, not a
-                        // pos≈dur heuristic). 250ms keeps the seek bar smooth.
+                        // Solo progreso (el fin de la pista ahora viene del evento END_FILE de mpv,
+                        // no de una heurística pos≈dur). 250ms mantiene la barra de búsqueda suave.
                         _duration.value = mpvPlayer.getDuration()
                         _position.value = mpvPlayer.getCurrentPosition()
 
@@ -208,7 +213,7 @@ class PlayerService {
                         }
                     }
                 } catch (e: Throwable) {
-                    // silent catch for background ticker
+                    // Captura silenciosa para el ticker en segundo plano
                 }
                 delay(250.milliseconds)
             }
@@ -225,7 +230,7 @@ class PlayerService {
         scope.launch {
             try {
                 mpvPlayer.pause()
-            } catch (e: Throwable) { /* ignore */ }
+            } catch (e: Throwable) { /* ignorar */ }
         }
     }
 }

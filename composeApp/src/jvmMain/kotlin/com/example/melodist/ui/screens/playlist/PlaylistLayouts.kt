@@ -42,6 +42,9 @@ import com.example.melodist.data.account.AccountManager
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.pages.PlaylistPage
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
 
 @Composable
@@ -234,12 +237,12 @@ internal fun PlaylistCompactLayout(
                         ) {
                             Icon(
                                 imageVector = if (isFullyDownloaded()) Icons.Default.Delete else Icons.Default.Download,
-                                contentDescription = if (isFullyDownloaded()) "Eliminar descargas" else "Descargar playlist"
+                                contentDescription = if (isFullyDownloaded()) stringResource(Res.string.cd_delete_downloads) else stringResource(Res.string.cd_download_playlist)
                             )
                         }
 
                         IconButton(onClick = actions.onPlay) {
-                            Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Reproducir")
+                            Icon(imageVector = Icons.Default.PlayArrow, contentDescription = stringResource(Res.string.cd_play))
                         }
                     }
                 }
@@ -459,34 +462,7 @@ internal fun PlaylistInfoPanel(
                 placeholderType = PlaceholderType.PLAYLIST,
                 contentScale = ContentScale.Crop,
                 iconSize = coverSize * 0.35f,
-                isLowRes = false
             )
-            if (AccountManager.isLoggedIn && actions.onEditCover != null) {
-                var hovered by remember { mutableStateOf(false) }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clip(RoundedCornerShape(16.dp))
-                        .onHover { hovered = it }
-                        .pointerHoverIcon(PointerIcon.Hand)
-                        .clickable { actions.onEditCover.invoke() },
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (hovered) {
-                        Surface(
-                            modifier = Modifier.fillMaxSize(),
-                            color = Color.Black.copy(alpha = 0.4f)
-                        ) {
-                            Icon(
-                                Icons.Default.Edit,
-                                null,
-                                tint = Color.White,
-                                modifier = Modifier.size(coverSize * 0.3f).align(Alignment.Center)
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -511,7 +487,7 @@ internal fun PlaylistInfoPanel(
         horizontalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Playlist",
+            text = stringResource(Res.string.item_playlist),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -558,7 +534,7 @@ internal fun PlaylistInfoPanel(
             containerColor = MaterialTheme.colorScheme.primary,
             elevation = FloatingActionButtonDefaults.elevation(8.dp, 12.dp),
             modifier = Modifier
-                .size(64.dp) // Un pelín más grande para destacar
+                .size(64.dp)
         ) {
             if (controls.isLoadingForPlay) {
                 CircularProgressIndicator(
@@ -578,7 +554,7 @@ internal fun PlaylistInfoPanel(
         PlaylistActionButton(
             onClick = { actions.onShuffle() },
             icon = Icons.Default.Shuffle,
-            isActive = false, // El shuffle suele ser un trigger, no un estado persistente aquí
+            isActive = false,
             isLoading = false
         )
 

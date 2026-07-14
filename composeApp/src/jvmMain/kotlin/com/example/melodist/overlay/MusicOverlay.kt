@@ -91,12 +91,14 @@ private sealed interface OverlaySearchState {
 }
 
 /**
- * Steam-style always-on-top music overlay, anchored bottom-right and draggable by its top bar.
- * Toggled by a global hotkey (see [GlobalHotkeyManager]) so the user can manage the queue, search,
- * browse saved playlists/albums or run Listen Together without leaving their game.
+ * Superposición de música estilo Steam siempre visible, anclada abajo a la derecha y arrastrable
+ * desde su barra superior. Se activa con un atajo de teclado global (ver [GlobalHotkeyManager])
+ * para que el usuario pueda gestionar la cola de reproducción, buscar, explorar listas de
+ * reproducción/álbumes guardados o usar Escuchar Juntos sin salir de su juego.
  *
- * NOTE: appears over **borderless / windowed** games; exclusive (true) fullscreen won't show it.
- * Must be called from within an `application { }` scope (renders its own [Window]).
+ * NOTA: aparece sobre juegos en modo **sin bordes / ventana**; el modo pantalla completa
+ * exclusiva (true fullscreen) no la muestra.
+ * Debe llamarse desde dentro de un scope `application { }` (renderiza su propia [Window]).
  */
 @OptIn(FlowPreview::class)
 @Composable
@@ -110,7 +112,7 @@ fun MusicOverlayWindow(
 ) {
     if (!visible) return
 
-    // Restore the last position the user dragged to; otherwise default to the bottom-right corner.
+    // Restaurar la última posición a la que el usuario arrastró; de lo contrario, usar la esquina inferior derecha.
     val position = remember(savedPosX, savedPosY) {
         if (savedPosX != OVERLAY_POS_UNSET && savedPosY != OVERLAY_POS_UNSET) {
             WindowPosition(savedPosX.dp, savedPosY.dp)
@@ -128,7 +130,7 @@ fun MusicOverlayWindow(
 
     val state = rememberWindowState(width = OVERLAY_W.dp, height = OVERLAY_H.dp, position = position)
 
-    // Persist the position whenever the user drags the window (debounced).
+    // Guardar la posición cada vez que el usuario arrastra la ventana (con debounce).
     LaunchedEffect(state) {
         snapshotFlow { state.position }
             .drop(1)
@@ -158,8 +160,8 @@ fun MusicOverlayWindow(
             window.requestFocus()
         }
 
-        // Undecorated window → the title bar is the drag handle (WindowDraggableArea updates
-        // state.position, which the effect above persists). Close button stays outside it.
+        // Ventana sin decoración → la barra de título es el área de arrastre (WindowDraggableArea
+        // actualiza state.position, que el efecto anterior persiste). El botón de cerrar está fuera de ella.
         val draggable: @Composable (@Composable () -> Unit) -> Unit = { content -> WindowDraggableArea(content = content) }
 
         MelodistTheme(userPreferences = userPreferences) {
@@ -197,7 +199,7 @@ private fun OverlayContent(
     var selectedTab by remember { mutableStateOf(OverlayTab.QUEUE) }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
-        // ── Draggable title bar (+ close button outside the drag area) ──
+        // ── Barra de título arrastrable (+ botón de cerrar fuera del área de arrastre) ──
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(modifier = Modifier.weight(1f)) {
                 draggable {
@@ -226,7 +228,7 @@ private fun OverlayContent(
 
         Spacer(Modifier.height(10.dp))
 
-        // ── Current track ──
+        // ── Pista actual ──
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             MelodistImage(
                 url = song?.thumbnailUrl,
@@ -265,7 +267,7 @@ private fun OverlayContent(
             Spacer(Modifier.height(10.dp))
         }
 
-        // ── Transport ──
+        // ── Controles de reproducción ──
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
@@ -326,7 +328,7 @@ private fun OverlayContent(
 
         Spacer(Modifier.height(10.dp))
 
-        // ── Tabs ──
+        // ── Pestañas ──
         val tabs = listOf(
             OverlayTab.QUEUE to stringResource(Res.string.overlay_tab_queue),
             OverlayTab.SEARCH to stringResource(Res.string.overlay_tab_search),
@@ -363,7 +365,7 @@ private fun OverlayContent(
     }
 }
 
-// ── Queue tab ───────────────────────────────────────────────────────────────
+// ── Pestaña de cola de reproducción ──────────────────────────────────────────
 
 @Composable
 private fun QueueTab(playerViewModel: PlayerViewModel) {
@@ -392,7 +394,7 @@ private fun QueueTab(playerViewModel: PlayerViewModel) {
     }
 }
 
-// ── Search tab ──────────────────────────────────────────────────────────────
+// ── Pestaña de búsqueda ─────────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -464,7 +466,7 @@ private fun SearchTab(playerViewModel: PlayerViewModel) {
     }
 }
 
-// ── Playlists tab ───────────────────────────────────────────────────────────
+// ── Pestaña de listas de reproducción ───────────────────────────────────────
 
 @Composable
 private fun PlaylistsTab(playerViewModel: PlayerViewModel) {
@@ -501,7 +503,7 @@ private fun PlaylistsTab(playerViewModel: PlayerViewModel) {
     }
 }
 
-// ── Albums tab ──────────────────────────────────────────────────────────────
+// ── Pestaña de álbumes ─────────────────────────────────────────────────────
 
 @Composable
 private fun AlbumsTab(playerViewModel: PlayerViewModel) {
@@ -530,7 +532,7 @@ private fun AlbumsTab(playerViewModel: PlayerViewModel) {
     }
 }
 
-// ── Listen Together tab ─────────────────────────────────────────────────────
+// ── Pestaña de Escuchar Juntos ──────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -571,7 +573,7 @@ private fun TogetherTab() {
         return
     }
 
-    // Lobby: create or join (username persisted).
+    // Sala de espera: crear o unirse (nombre de usuario persistido).
     var username by remember { mutableStateOf("") }
     var joinCode by remember { mutableStateOf("") }
     LaunchedEffect(savedName) { if (username.isBlank() && savedName.isNotBlank()) username = savedName }
@@ -658,7 +660,7 @@ private fun MemberRow(user: UserInfo) {
     }
 }
 
-// ── Shared row pieces ───────────────────────────────────────────────────────
+// ── Elementos compartidos de fila ───────────────────────────────────────────
 
 @Composable
 private fun SongRow(

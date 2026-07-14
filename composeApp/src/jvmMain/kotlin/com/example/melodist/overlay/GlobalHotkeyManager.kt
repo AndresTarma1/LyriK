@@ -8,8 +8,9 @@ import java.util.logging.Level
 import java.util.logging.Logger
 
 /**
- * A global keyboard shortcut (modifiers + key). Modifiers are persisted as a packed mask
- * (bit0 ctrl, bit1 alt, bit2 shift, bit3 meta) to match [com.example.melodist.data.repository.UserPreferencesRepository].
+ * Un atajo de teclado global (modificadores + tecla). Los modificadores se persisten como una
+ * máscara empaquetada (bit0 ctrl, bit1 alt, bit2 shift, bit3 meta) para coincidir con
+ * [com.example.melodist.data.repository.UserPreferencesRepository].
  */
 data class HotkeyCombo(
     val ctrl: Boolean,
@@ -30,7 +31,7 @@ data class HotkeyCombo(
     }.joinToString(" + ")
 
     companion object {
-        /** Sensible default: Ctrl + Shift + M. */
+        /** Valor por defecto razonable: Ctrl + Shift + M. */
         val DEFAULT = HotkeyCombo(ctrl = true, alt = false, shift = true, meta = false, keyCode = NativeKeyEvent.VC_M)
 
         fun fromPrefs(code: Int, mods: Int): HotkeyCombo =
@@ -46,11 +47,13 @@ data class HotkeyCombo(
 }
 
 /**
- * Registers a system-wide keyboard hook (via jnativehook) that fires [onTrigger] when the
- * configured [HotkeyCombo] is pressed — even while another app/game is focused. Also offers a
- * one-shot "capture" mode so the settings screen can record a new combo from the user.
+ * Registra un gancho de teclado a nivel del sistema (mediante jnativehook) que ejecuta [onTrigger]
+ * cuando se presiona el [HotkeyCombo] configurado, incluso mientras otra aplicación/juego tiene el
+ * foco. También ofrece un modo de "captura" único para que la pantalla de configuración pueda
+ * registrar una nueva combinación del usuario.
  *
- * Callbacks are marshalled onto the AWT event thread so they can safely touch UI/Compose state.
+ * Las devoluciones de llamada se despachan al hilo de eventos AWT para que puedan manipular
+ * estado de UI/Compose de forma segura.
  */
 class GlobalHotkeyManager(
     private val onTrigger: () -> Unit,
@@ -63,7 +66,7 @@ class GlobalHotkeyManager(
 
     fun start() {
         if (started) return
-        // jnativehook is very chatty on java.util.logging — silence it.
+        // jnativehook es muy verboso con java.util.logging — silenciarlo.
         runCatching {
             val pkg = GlobalScreen::class.java.`package`?.name ?: "com.github.kwhat.jnativehook"
             Logger.getLogger(pkg).apply {
@@ -91,7 +94,7 @@ class GlobalHotkeyManager(
     fun updateCombo(c: HotkeyCombo) { combo = c }
     fun setEnabled(value: Boolean) { enabled = value }
 
-    /** Record the next non-modifier key press (with its held modifiers) as a new combo, once. */
+    /** Registrar la siguiente pulsación de tecla que no sea modificador (con sus modificadores activos) como una nueva combinación, una sola vez. */
     fun beginCapture(onCaptured: (HotkeyCombo) -> Unit) { captureCallback = onCaptured }
     fun cancelCapture() { captureCallback = null }
 
@@ -104,7 +107,7 @@ class GlobalHotkeyManager(
 
         val capture = captureCallback
         if (capture != null) {
-            if (isModifierKey(code)) return // wait for a real key, not a lone modifier
+            if (isModifierKey(code)) return // esperar una tecla real, no un modificador aislado
             captureCallback = null
             val captured = HotkeyCombo(ctrl, alt, shift, meta, code)
             dispatch { capture(captured) }

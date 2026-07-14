@@ -33,7 +33,7 @@ object BrowserLoginHelper {
         return candidates.map(::File).firstOrNull { it.exists() }
     }
 
-    /** Linux/macOS: Chromium-family binaries live on PATH or in well-known locations. */
+    /** Linux/macOS: los binarios de la familia Chromium están en PATH o en ubicaciones conocidas. */
     private fun findBrowserUnix(): File? {
         val names = listOf(
             "google-chrome", "google-chrome-stable", "chromium", "chromium-browser",
@@ -48,7 +48,7 @@ object BrowserLoginHelper {
             val f = File(dir, name)
             if (f.exists() && f.canExecute()) return f
         }
-        // macOS app bundles use spaced binary names
+        // Los paquetes de aplicaciones de macOS usan nombres de binarios con espacios
         File("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome").takeIf { it.exists() }?.let { return it }
         return null
     }
@@ -89,9 +89,10 @@ object BrowserLoginHelper {
             add("--no-first-run")
             add("--no-default-browser-check")
             add("--disable-default-apps")
-            // Linux: force the "basic" password store so cookies are encrypted with the fixed
-            // "peanuts" password (v10) instead of the GNOME/KWallet keyring key we can't read.
-            // This is what makes the fresh-profile cookies decryptable without keyring integration.
+            // Linux: forzar el almacén de contraseñas "básico" para que las cookies se cifren con la
+            // contraseña fija "peanuts" (v10) en lugar de la clave del depósito GNOME/KWallet que no
+            // podemos leer. Esto es lo que hace que las cookies del perfil nuevo sean descifrables sin
+            // integración con el depósito de claves.
             if (Platform.isLinux) add("--password-store=basic")
             add("https://music.youtube.com")
         }

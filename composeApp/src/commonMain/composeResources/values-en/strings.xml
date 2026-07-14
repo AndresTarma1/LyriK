@@ -29,6 +29,13 @@
     <string name="update_installing">Launching installer…</string>
     <string name="update_failed">Download failed. Please try again.</string>
     <string name="update_later">Later</string>
+    <string name="update_ready_title">Update ready</string>
+    <string name="update_ready_message">Version %1$s has been downloaded and is ready to install. Install now? The app will close to update.</string>
+    <string name="update_install_now">Install now</string>
+    <string name="update_install_later">Install later</string>
+    <string name="check_updates_downloading">Downloading update…</string>
+    <string name="check_updates_ready">Update ready to install</string>
+    <string name="btn_install_update">Install update</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
@@ -48,6 +55,13 @@
     <string name="show_images_subtitle">Display cover images</string>
     <string name="crossfade">Crossfade</string>
     <string name="crossfade_subtitle">Apply a 5-second crossfade between tracks</string>
+    <string name="seek_bar_style">Progress bar style</string>
+    <string name="seek_bar_style_subtitle">Choose how the player bar looks</string>
+    <string name="seek_bar_style_title">Bar style</string>
+    <string name="seek_bar_style_wavy">Wavy</string>
+    <string name="seek_bar_style_linear">Linear</string>
+    <string name="seek_bar_style_material">Material</string>
+    <string name="seek_bar_style_minimal">Minimal</string>
     <string name="section_sync">Sync</string>
     <string name="offline_mode">Offline mode</string>
     <string name="offline_mode_subtitle">Make no network requests: only play downloaded songs and use the local library.</string>
@@ -98,8 +112,19 @@
     <string name="btn_open">Open</string>
     <string name="clear_download_cache">Clear download cache</string>
     <string name="btn_clear">Clear</string>
+    <string name="btn_cancel">Cancel</string>
     <string name="skiko_rendering">Rendering (Skiko)</string>
     <string name="render_api_restart">Render API (requires restart)</string>
+    <string name="section_support">Help &amp; support</string>
+    <string name="check_updates">Check for updates</string>
+    <string name="check_updates_subtitle">Checks whether a new version of LyriK is available</string>
+    <string name="check_updates_checking">Checking…</string>
+    <string name="check_updates_up_to_date">You have the latest version</string>
+    <string name="check_updates_failed">Couldn\'t check. Check your connection.</string>
+    <string name="btn_check">Check</string>
+    <string name="report_bug">Report a bug</string>
+    <string name="report_bug_subtitle">Opens a GitHub issue with the app version and OS</string>
+    <string name="btn_report">Report</string>
     <string name="about_title">LyriK</string>
     <string name="about_subtitle">Desktop music player</string>
     <string name="version_prefix">v</string>
@@ -358,6 +383,10 @@
     <string name="dark_level_black">AMOLED (pure black)</string>
     <string name="layout_islands">Dynamic islands</string>
     <string name="layout_attached">Attached / compact</string>
+    <string name="settings_island_style">Island style</string>
+    <string name="island_style_compact">Compact</string>
+    <string name="island_style_comfortable">Comfortable</string>
+    <string name="island_style_spacious">Spacious</string>
 
     <!-- Theme palettes -->
     <string name="palette_default">Default</string>
@@ -471,4 +500,82 @@
     <string name="lt_connection_error">Connection error: %1$s</string>
     <string name="lt_default_host">Host</string>
     <string name="lt_default_guest">Guest</string>
+
+    <!-- Playlist bulk actions -->
+    <string name="confirm_delete_songs_title">Delete songs</string>
+    <string name="confirm_delete_songs_message">%1$d songs will be removed from the playlist. This action cannot be undone.</string>
+    <string name="confirm_delete_songs_btn">Delete</string>
+    <string name="songs_removed_from_playlist">%1$d songs removed from playlist</string>
+    <string name="selected_count">%1$d selected</string>
+    <string name="cd_deselect_all">Deselect all</string>
+    <string name="cd_select_all">Select all</string>
+    <string name="cd_add_to_playlist">Add to playlist</string>
+    <string name="cd_download">Download</string>
+    <string name="cd_remove_from_playlist">Remove from playlist</string>
+    <string name="unknown_artist">Unknown artist</string>
+
+    <!-- Song context menu snackbars -->
+    <string name="snackbar_added_to_downloads">%1$s added to downloads</string>
+    <string name="snackbar_download_cancelled">Download cancelled</string>
+    <string name="snackbar_download_removed">Download removed</string>
+    <string name="snackbar_play_next">%1$s will play next</string>
+    <string name="snackbar_added_to_queue">%1$s added to queue</string>
+    <string name="snackbar_removed_from_playlist">%1$s removed from playlist</string>
+
+    <!-- Add to playlist dialog -->
+    <string name="create_new_playlist">Create new playlist</string>
+    <string name="add_n_to_playlist">Add %1$d to playlist</string>
+    <string name="no_playlists_yet">You have no saved playlists yet.</string>
+    <string name="added_to_playlist">Added%1$s to \"%2$s\"</string>
+    <string name="playlist_created_with">Playlist \"%1$s\" created with %2$d songs</string>
+    <string name="create_and_add">Create and add</string>
+    <string name="new_playlist">New playlist</string>
+
+    <!-- Library empty states -->
+    <string name="no_saved_playlists">No saved playlists</string>
+    <string name="save_playlists_hint">Save playlists and they\'ll appear here</string>
+    <string name="ytm_playlists_section">YouTube Music Playlists</string>
+    <string name="downloads">Downloads</string>
+    <string name="n_songs">%1$d songs</string>
+    <string name="no_saved_albums">No saved albums</string>
+    <string name="save_albums_hint">Save albums and they\'ll appear here</string>
+    <string name="ytm_albums_section">YouTube Music Albums</string>
+    <string name="no_saved_artists">No saved artists</string>
+    <string name="save_artists_hint">Follow artists and they\'ll appear here</string>
+    <string name="empty_library">Empty library</string>
+    <string name="empty_library_hint">Save albums, artists or playlists</string>
+
+    <!-- Album / Playlist layouts -->
+    <string name="cd_delete_downloads">Delete downloads</string>
+    <string name="cd_download_album">Download album</string>
+    <string name="cd_download_playlist">Download playlist</string>
+    <string name="author_label">Author</string>
+    <string name="album_label">Album</string>
+    <string name="songs_duration">%1$d songs · %2$s</string>
+
+    <!-- Account screen (browser login) -->
+    <string name="browser_login_error">Error: %1$s</string>
+    <string name="opening_browser">Opening browser…</string>
+    <string name="sign_in_with_browser">Sign in with browser</string>
+    <string name="sign_in_with_browser_desc">Opens a browser window. Sign in to YouTube Music, then close it.</string>
+    <string name="import_from_browser">Import from existing browser session</string>
+    <string name="pick_browser_desc">Pick a browser where you\'re already signed in to YouTube Music.</string>
+    <string name="reading_cookies">Reading cookies from %1$s…</string>
+    <string name="cd_import">Import</string>
+    <string name="or_paste_cookie"> or paste cookie manually </string>
+    <string name="cookie_info">Cookie: %1$d bytes · %2$s</string>
+
+    <!-- Equalizer presets -->
+    <string name="eq_preset_flat">Flat</string>
+    <string name="eq_preset_rock">Rock</string>
+    <string name="eq_preset_pop">Pop</string>
+    <string name="eq_preset_jazz">Jazz</string>
+    <string name="eq_preset_classical">Classical</string>
+    <string name="eq_preset_bass_boost">Bass Boost</string>
+    <string name="eq_preset_dance">Dance</string>
+    <string name="eq_preset_acoustic">Acoustic</string>
+    <string name="eq_presets">Presets</string>
+
+    <!-- Loading -->
+    <string name="loading_more_songs">Loading more songs…</string>
 </resources>

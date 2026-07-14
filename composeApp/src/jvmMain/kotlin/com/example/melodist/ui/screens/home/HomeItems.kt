@@ -98,8 +98,8 @@ fun AlbumHomeItem(item: AlbumItem, modifier: Modifier = Modifier, onClick: (YTIt
         contextMenuEnabled = true,
         onContextMenuAction = { showMenu = true },
         quickPlay = CornerQuickPlayConfig(
-            size = 28.dp,
-            iconSize = 16.dp,
+            size = 42.dp,
+            iconSize = 20.dp,
             onClick = {
                 playerViewModel.playAlbumFromBrowseId(
                     browseId = item.browseId,

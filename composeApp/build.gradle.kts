@@ -21,43 +21,21 @@ val melodistJvmArgs = listOf(
     "-XX:+UseCompressedOops",
     "-XX:MaxHeapFreeRatio=30",
     "-XX:MinHeapFreeRatio=10",
-    // Cap the coroutine IO pool: blocking IO bursts (stream resolve, downloads, lyrics providers,
-    // thumbnails) were spawning ~58 "DefaultDispatcher-worker" threads (default limit 64). 16 is
-    // plenty for a player and keeps thread stacks / scheduler overhead down.
     "-Dkotlinx.coroutines.io.parallelism=16",
-    // Cap metaspace (≈100 MB in use from Compose/Skiko/libs) so it can't creep, and shrink the
-    // JIT code-cache reservation (≈46 MB used of a 240 MB default reservation).
     "-XX:MaxMetaspaceSize=192m",
     "-XX:ReservedCodeCacheSize=128m",
-    // This limit is a purge threshold, not a hard cap (Skia's own default is 256MB/window) — too low
-    // (32MB) forces constant evict/recreate cycles that fragment the native heap and inflate working
-    // set instead of shrinking it. 128MB measured ~95MB lower than 32MB right after launch, but over
-    // a longer session with heavier navigation, growth showed up outside the JVM (confirmed via NMT:
-    // heap/metaspace/threads/code cache all stayed small and healthy) that VMMap traced to generic
-    // native "Private Data"/"Heap" blocks — Skia/mpv runtime allocations, not attributable to this
-    // flag specifically. Back to 64MB, the longest-standing known-good value.
     "-Dskiko.gpu.resourceCacheLimit=67108864",
 )
 
 val melodistDevJvmArgs = melodistJvmArgs
 
-// We run/package on the plain JetBrains Runtime (the toolchain JBR). The poToken path (JCEF) is
-// disabled, so the jcef module is no longer required at runtime; the poToken sources still compile
-// because jcef-api is a compileOnly dependency in :shared.
 tasks.withType<JavaExec>().configureEach {
     if (name.contains("run", ignoreCase = true)) {
         jvmArgs(*melodistDevJvmArgs.toTypedArray())
     }
 }
 
-// afterEvaluate so this runs after the Compose plugin's own task configuration (which sets its own
-// `executable`, later in this same file via the `compose.desktop {}` block below) — otherwise ours
-// gets silently overwritten. JavaExec does NOT honor `kotlin { jvmToolchain { vendor = JETBRAINS } }`
-// on its own; without forcing it, `run` silently uses whatever `java`/JAVA_HOME launched Gradle.
-// Jewel's DecoratedWindow (our title bar) hard-requires JBR specifically and throws
-// IllegalStateException on a plain OpenJDK — a likely default on Linux/macOS, so this is a real crash,
-// not just a perf nuance. `executable` (a raw path), not `javaLauncher`, because the Compose plugin's
-// own configuration uses `executable` and the two properties are mutually exclusive.
+
 afterEvaluate {
     tasks.withType<JavaExec>().configureEach {
         if (name.contains("run", ignoreCase = true)) {
@@ -101,9 +79,6 @@ kotlin {
             implementation(libs.decompose.compose)
             implementation(libs.kotlinx.serialization.core)
 
-            // Coil pulls an old transitive Skiko (0.9.x) that clashes with Compose's (0.144.x) and
-            // triggers checkJvmMainComposeLibrariesCompatibility. Drop it; Compose provides Skiko.
-            // (Version-catalog accessors don't take an exclude lambda directly, hence get().toString().)
             implementation(libs.coil.compose.get().toString()) {
                 exclude(group = "org.jetbrains.skiko")
             }
@@ -149,9 +124,7 @@ kotlin {
                 implementation(libs.jna)
                 implementation(libs.jna.platform.jpms)
 
-                // Launch-at-Windows-startup (registry Run key). vinceglb/AutoLaunch.
                 implementation(libs.autolaunch)
-
 
                 implementation(libs.jewel.ui.standalone)
                 implementation(libs.jewel.ui.decorated.window)
@@ -167,12 +140,9 @@ compose.desktop {
     application {
         mainClass = "com.example.melodist.MainKt"
 
-        // Package with the toolchain's plain JBR (no JCEF). javaHome is left unset so Compose uses it.
         jvmArgs(*melodistJvmArgs.toTypedArray())
 
         nativeDistributions {
-            // jpackage only builds formats for the host OS, so listing all three is safe:
-            // packageDistributionForCurrentOS picks Msi/Exe on Windows and Deb on Linux.
             targetFormats(TargetFormat.Msi, TargetFormat.Exe, TargetFormat.Deb)
             packageName = "LyriK"
             packageVersion = "0.4.0"
@@ -189,8 +159,8 @@ compose.desktop {
                 upgradeUuid = "4A2F8B6C-1D3E-4F5A-B7C8-9D0E1F2A3B4C"
             }
             linux {
-                // .deb package names must be lowercase. Linux relies on the system mpv + yt-dlp
-                // (not bundled) — see README for the runtime dependencies to install.
+                // los nombres de paquete .deb deben ser en minúsculas. Linux usa el mpv + yt-dlp del sistema
+                // (no empaquetados) — ver el README para las dependencias de tiempo de ejecución a instalar.
                 packageName = "lyrik"
                 debMaintainer = "andrestormenta1@gmail.com"
                 menuGroup = "AudioVideo"
@@ -203,8 +173,8 @@ compose.desktop {
 
             includeAllModules = true
 
-            // Bundled native resources (libmpv/yt-dlp) only exist for Windows; on Linux we use the
-            // system-installed mpv, so there's nothing to bundle from here.
+            // Los recursos nativos empaquetados (libmpv/yt-dlp) solo existen para Windows; en Linux usamos el
+            // mpv instalado en el sistema, así que no hay nada que empaquetar desde aquí.
             appResourcesRootDir.set(project.layout.projectDirectory.dir("../mpv-resources"))
         }
     }

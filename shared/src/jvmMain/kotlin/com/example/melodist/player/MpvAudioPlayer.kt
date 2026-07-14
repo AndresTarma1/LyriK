@@ -14,22 +14,24 @@ class MpvAudioPlayer {
     private val log = Logger.getLogger("MpvAudioPlayer")
     private var handle: Pointer? = null
 
-    // Audio settings requested before the native handle exists (deferred/lazy mpv init) — cached
-    // here and re-applied in init() so nothing is lost.
+    // Ajustes de audio solicitados antes de que exista el handle nativo (init diferido/perezoso
+    // de mpv) — se almacenan aquí y se reaplican en init() para no perder nada.
     private var lastEqualizer: List<Float>? = null
     private var lastGapless: Boolean? = null
+    private var lastSpeed: Float? = null
     private val _isPlaying = MutableStateFlow(false)
     val isPlaying = _isPlaying.asStateFlow()
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
     private var openUriJob: Job? = null
 
-    // Emitted when the current track finishes naturally (mpv END_FILE with reason EOF).
+    // Se emite cuando la pista actual termina naturalmente (mpv END_FILE con razón EOF).
     private val _ended = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val ended: SharedFlow<Unit> = _ended.asSharedFlow()
 
-    // Result of the most recent openUri load: completed by the mpv event loop — true on the first
-    // PLAYBACK_RESTART (the new file is decoding/playing), false on END_FILE/ERROR (e.g. a 403).
-    // Event-driven instead of polling, and immune to the previous track's lingering state.
+    // Resultado de la carga más reciente de openUri: completado por el bucle de eventos de mpv —
+    // true en el primer PLAYBACK_RESTART (el nuevo archivo se está decodificando/reproduciendo),
+    // false en END_FILE/ERROR (por ejemplo, un 403). Basado en eventos en lugar de sondeo, y
+    // inmune al estado residual de la pista anterior.
     @Volatile
     private var loadResult: CompletableDeferred<Boolean> = CompletableDeferred<Boolean>().apply { complete(false) }
 
@@ -39,10 +41,10 @@ class MpvAudioPlayer {
     private var eventLoopRunning = false
 
     /**
-     * Retrieves an mpv property value as a string.
+     * Obtiene el valor de una propiedad de mpv como cadena.
      *
-     * @param name The name of the mpv property to retrieve.
-     * @return The property value as a string, or `null` if the handle is not initialized or the property is unavailable.
+     * @param name El nombre de la propiedad de mpv a obtener.
+     * @return El valor de la propiedad como cadena, o `null` si el handle no está inicializado o la propiedad no está disponible.
      */
     private fun getMpvPropertyString(name: String): String? {
         val ptr = handle?.let { MpvLib.INSTANCE.mpv_get_property_string(it, name) } ?: return null
@@ -54,32 +56,34 @@ class MpvAudioPlayer {
     }
 
     /**
-     * Initializes the mpv audio playback instance with audio-only configuration (native WASAPI
-     * output on Windows; mpv's own auto-detected backend elsewhere).
+     * Inicializa la instancia de reproducción de audio de mpv con configuración solo de audio
+     * (salida nativa WASAPI en Windows; el backend autodetectado por mpv en otros sistemas).
      *
-     * If the mpv instance is already initialized, this method returns immediately. Otherwise, it creates
-     * a new mpv instance and configures it for stereo audio playback with video rendering disabled
-     * and optimized buffering parameters.
+     * Si la instancia de mpv ya está inicializada, este método retorna inmediatamente. De lo
+     * contrario, crea una nueva instancia de mpv y la configura para reproducción de audio estéreo
+     * con renderizado de video desactivado y parámetros de búfer optimizados.
      *
-     * @throws Exception if mpv initialization fails.
+     * @throws Exception si la inicialización de mpv falla.
      */
     fun init() {
         if (handle != null) return
         try {
             handle = MpvLib.INSTANCE.mpv_create()
             handle?.let {
-                // We always pass fully-resolved direct stream URLs; don't let mpv invoke yt-dlp
-                // (its ytdl_hook fallback spawns yt-dlp on open failure, adding latency/noise).
+                // Siempre pasamos URLs de flujo directo completamente resueltas; no dejamos que mpv
+                // invoque yt-dlp (su fallback ytdl_hook lanza yt-dlp al fallar la apertura,
+                // añadiendo latencia/ruido).
                 MpvLib.INSTANCE.mpv_set_property_string(it, "ytdl", "no")
 
                 // Configuraciones críticas para estabilidad
                 MpvLib.INSTANCE.mpv_set_property_string(it, "video", "no")
                 MpvLib.INSTANCE.mpv_set_property_string(it, "audio-display", "no")
                 MpvLib.INSTANCE.mpv_set_property_string(it, "audio-channels", "stereo")
-                // WASAPI is Windows-only — forcing it on Linux/macOS silently fails to open an audio
-                // device (mpv_initialize succeeds, but playback then hangs waiting for one that never
-                // opens, with no obvious error). Elsewhere, leave "ao" unset: mpv's own auto-detection
-                // (pipewire/pulse/alsa, or coreaudio on macOS) is more robust than guessing one backend.
+                // WASAPI es solo para Windows — forzarlo en Linux/macOS falla silenciosamente al
+                // abrir un dispositivo de audio (mpv_initialize tiene éxito, pero la reproducción
+                // se bloquea esperando uno que nunca se abre, sin error aparente). En otros
+                // sistemas, dejar "ao" sin configurar: la autodetección de mpv
+                // (pipewire/pulse/alsa, o coreaudio en macOS) es más robusta que adivinar un backend.
                 if (Platform.isWindows) {
                     MpvLib.INSTANCE.mpv_set_property_string(it, "ao", "wasapi")
                 }
@@ -99,9 +103,10 @@ class MpvAudioPlayer {
 
                 startEventLoop(it)
             }
-            // Re-apply settings requested before the handle existed (deferred/lazy init).
+            // Reaplicar ajustes solicitados antes de que existiera el handle (init diferido/perezoso).
             lastEqualizer?.let { bands -> setEqualizer(bands) }
             lastGapless?.let { enabled -> setGaplessAudio(enabled) }
+            lastSpeed?.let { speed -> setSpeed(speed) }
         } catch (e: Exception) {
             log.severe("MpvAudioPlayer init failed: ${e.message}")
             throw e
@@ -109,11 +114,12 @@ class MpvAudioPlayer {
     }
 
     /**
-     * Background thread draining mpv's event queue. Core events (END_FILE, PLAYBACK_RESTART) are
-     * delivered without observing any property, so this needs no mpv_observe_property. It drives:
-     *  - load success/failure ([loadResult]) — replaces the old polling-based detection,
-     *  - the natural end-of-track signal ([ended]) — replaces the heuristic pos≈dur check,
-     *  - the real playing state ([_isPlaying]).
+     * Hilo en segundo plano que drena la cola de eventos de mpv. Los eventos principales
+     * (END_FILE, PLAYBACK_RESTART) se entregan sin observar ninguna propiedad, por lo que no
+     * se necesita mpv_observe_property. Controla:
+     *  - éxito/fallo de la carga ([loadResult]) — reemplaza la detección basada en sondeo,
+     *  - la señal de fin natural de la pista ([ended]) — reemplaza la heurística pos≈dur,
+     *  - el estado real de reproducción ([_isPlaying]).
      */
     private fun startEventLoop(h: Pointer) {
         if (eventThread != null) return
@@ -129,13 +135,14 @@ class MpvAudioPlayer {
                     MpvLib.MPV_EVENT_SHUTDOWN -> eventLoopRunning = false
 
                     MpvLib.MPV_EVENT_PLAYBACK_RESTART -> {
-                        // New file is decoding/playing (also fires after seeks — harmless).
+                        // El nuevo archivo se está decodificando/reproduciendo (también se dispara
+                        // después de búsquedas — inofensivo).
                         _isPlaying.value = true
                         loadResult.takeIf { !it.isCompleted }?.complete(true)
                     }
 
                     MpvLib.MPV_EVENT_END_FILE -> {
-                        // data @ offset 16 -> mpv_event_end_file; reason is its first int.
+                        // datos en offset 16 -> mpv_event_end_file; la razón es su primer int.
                         val reason = evPtr.getPointer(16)?.getInt(0) ?: -1
                         when (reason) {
                             MpvLib.MPV_END_FILE_REASON_ERROR -> {
@@ -147,7 +154,7 @@ class MpvAudioPlayer {
                                 loadResult.takeIf { !it.isCompleted }?.complete(true)
                                 _ended.tryEmit(Unit)
                             }
-                            // STOP/REDIRECT/QUIT: file was replaced or app closing — ignore.
+                            // STOP/REDIRECT/QUIT: el archivo fue reemplazado o la app se está cerrando — ignorar.
                         }
                     }
                 }
@@ -155,21 +162,24 @@ class MpvAudioPlayer {
         }, "mpv-events").apply { isDaemon = true; start() }
     }
     /**
-     * Initiates playback of the given URI.
+     * Inicia la reproducción de la URI dada.
      *
-     * Cancels any previously pending load operation. The outcome is available via `awaitPlaybackStarted()`.
+     * Cancela cualquier operación de carga pendiente anterior. El resultado está disponible
+     * mediante `awaitPlaybackStarted()`.
      *
-     * @param uri The URI to load.
+     * @param uri La URI a cargar.
      */
     fun openUri(uri: String) {
         handle?.let { h ->
             openUriJob?.cancel()
-            // Unblock any pending await from a superseded load, then arm a fresh result that the
-            // event loop will complete (PLAYBACK_RESTART => true, END_FILE/ERROR => false).
+            // Desbloquear cualquier await pendiente de una carga reemplazada, y preparar un nuevo
+            // resultado que el bucle de eventos completará (PLAYBACK_RESTART => true,
+            // END_FILE/ERROR => false).
             loadResult.takeIf { !it.isCompleted }?.complete(false)
             loadResult = CompletableDeferred()
-            // Until the new file actually starts, report not-playing so the UI stays in LOADING
-            // rather than flipping to PLAYING on the previous track's lingering state.
+            // Hasta que el nuevo archivo realmente inicie, reportar que no se reproduce para que la
+            // UI se mantenga en LOADING en lugar de cambiar a PLAYING con el estado residual de la
+            // pista anterior.
             _isPlaying.value = false
             openUriJob = scope.launch {
                 withContext(Dispatchers.IO) {
@@ -183,9 +193,9 @@ class MpvAudioPlayer {
     }
 
     /**
-     * Suspends until the most recent [openUri] load is known to have started (true) or failed
-     * (false). Resolved by the mpv event loop; [timeoutMs] guards against a load that never
-     * produces an event (e.g. a stuck connection).
+     * Se suspende hasta que se conozca que la carga más reciente de [openUri] ha iniciado
+     * (true) o fallado (false). Resuelto por el bucle de eventos de mpv; [timeoutMs] protege
+     * contra una carga que nunca produce un evento (por ejemplo, una conexión bloqueada).
      */
     suspend fun awaitPlaybackStarted(timeoutMs: Long = 10000): Boolean {
         val r = loadResult
@@ -193,7 +203,7 @@ class MpvAudioPlayer {
     }
 
     /**
-     * Resumes playback.
+     * Reanuda la reproducción.
      */
     fun play() {
         handle?.let {
@@ -233,6 +243,14 @@ class MpvAudioPlayer {
                 MpvLib.INSTANCE.mpv_set_property_string(it, "volume", "$vol")
             }
         }
+
+    fun setSpeed(value: Float) {
+        val clamped = value.coerceIn(0.25f, 3f)
+        lastSpeed = clamped
+        handle?.let {
+            MpvLib.INSTANCE.mpv_set_property_string(it, "speed", clamped.toString())
+        }
+    }
 
     fun setGaplessAudio(enabled: Boolean) {
         lastGapless = enabled
@@ -279,7 +297,7 @@ class MpvAudioPlayer {
         openUriJob?.cancel()
         eventLoopRunning = false
         handle?.let {
-            MpvLib.INSTANCE.mpv_wakeup(it) // unblock the event thread's mpv_wait_event
+            MpvLib.INSTANCE.mpv_wakeup(it) // desbloquear el mpv_wait_event del hilo de eventos
             eventThread = null
             MpvLib.INSTANCE.mpv_terminate_destroy(it)
             handle = null

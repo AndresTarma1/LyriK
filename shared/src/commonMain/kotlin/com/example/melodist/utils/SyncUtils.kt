@@ -29,11 +29,11 @@ import kotlin.time.Duration.Companion.milliseconds
 sealed class SyncOperation {
     data object FullSync : SyncOperation()
     data object SavedPlaylists : SyncOperation()
-    /** Pulls one playlist's full song list from YouTube and overwrites the local copy. */
+    /** Obtiene la lista completa de canciones de una playlist desde YouTube y sobrescribe la copia local. */
     data class SinglePlaylist(val playlistId: String, val browseId: String) : SyncOperation()
-    /** Runs [SinglePlaylist] for every local playlist flagged `isAutoSync`. */
+    /** Ejecuta [SinglePlaylist] para cada playlist local marcada con `isAutoSync`. */
     data object AutoSyncPlaylists : SyncOperation()
-    /** Local-only: collapses playlists that share the same `browseId`, keeping the fullest one. */
+    /** Solo local: colapsa playlists que comparten el mismo `browseId`, conservando la más completa. */
     data object CleanupDuplicates : SyncOperation()
 }
 
@@ -116,10 +116,11 @@ class SyncUtils(
     }
 
     /**
-     * Pulls "LM" (Liked Music) and reconciles the actual `Song.liked` flag — the one the
-     * like/heart button and `PlayerViewModel.toggleLike()` read/write — not just the separate
-     * `SavedSong` cache table (which only feeds the Library "songs" list). Without this, a song
-     * liked from your phone/YTM web never showed as liked inside LyriK itself.
+     * Obtiene "LM" (Liked Music) y reconcilia la bandera real `Song.liked` — la que el botón de
+     * like/corazón y `PlayerViewModel.toggleLike()` leen/escriben — no solo la tabla separada de
+     * caché `SavedSong` (que solo alimenta la lista de "canciones" de la Biblioteca). Sin esto,
+     * una canción marcada como favorita desde tu teléfono/web de YTM nunca se mostraba como
+     * favorita dentro del propio LyriK.
      */
     private suspend fun executeLikedSongs() = withContext(Dispatchers.IO) {
         updateState { copy(currentOperation = "Syncing liked songs") }
@@ -127,7 +128,7 @@ class SyncUtils(
             val remoteSongs = YouTube.playlist("LM").completed().getOrNull()?.songs.orEmpty()
             val remoteIds = remoteSongs.map { it.id }.toSet()
 
-            // Reflect unlikes made from YouTube itself.
+            // Refleja los des-likes hechos desde el propio YouTube.
             database.likedSongs().first()
                 .filterNot { it.id in remoteIds }
                 .forEach { database.insertSong(it.localToggleLike()) }
@@ -205,8 +206,9 @@ class SyncUtils(
             val remoteArtists = YouTube.library("FEmusic_library_corpus_artists").completed().getOrNull()?.items?.filterIsInstance<com.metrolist.innertube.models.ArtistItem>().orEmpty()
             val remoteIds = remoteArtists.map { it.id }.toSet()
 
-            // Reflect unsubscribes made from YouTube itself: drop locally-saved artists no longer
-            // in the remote subscription list (mirrors executeSavedPlaylists' same reconciliation).
+            // Refleja las des-suscripciones hechas desde el propio YouTube: elimina artistas guardados
+            // localmente que ya no están en la lista remota de suscripciones (refleja la misma
+            // reconciliación de executeSavedPlaylists).
             artistRepository.getSavedArtists().first()
                 .map { it.id }
                 .filterNot { it in remoteIds }
@@ -276,14 +278,15 @@ class SyncUtils(
     }
 
     /**
-     * Pulls the full song list for one playlist and overwrites the local copy. This is the
-     * counterpart to [PlaylistRepository.addSongToPlaylist]/`removeSongFromPlaylist`, which push
-     * local edits to YouTube immediately — by the time this runs, YouTube should already reflect
-     * any local change, so a full pull-and-replace here is safe (not a lossy overwrite of pending
-     * local-only edits).
+     * Obtiene la lista completa de canciones de una playlist y sobrescribe la copia local. Esta es la
+     * contraparte de [PlaylistRepository.addSongToPlaylist]/`removeSongFromPlaylist`, que envían las
+     * ediciones locales a YouTube inmediatamente — para cuando esto se ejecuta, YouTube ya debería
+     * reflejar cualquier cambio local, por lo que una obtención y reemplazo completos aquí es segura
+     * (no una sobrescritura con pérdida de ediciones locales pendientes).
      *
-     * Limitation: only the first page of songs is fetched (matches the rest of the app's playlist
-     * loading); a playlist beyond one page's worth of songs won't be fully mirrored.
+     * Limitación: solo se obtiene la primera página de canciones (coincide con el resto de la carga
+     * de playlists de la aplicación); una playlist con más canciones de las que caben en una página
+     * no se reflejará completamente.
      */
     private suspend fun executeSinglePlaylist(playlistId: String, browseId: String) = withContext(Dispatchers.IO) {
         try {
@@ -295,11 +298,11 @@ class SyncUtils(
     }
 
     /**
-     * Re-pulls every playlist that's linked to a real YouTube playlist (has a `browseId`),
-     * reconciling any edit made from the YouTube app/site since LyriK last saw it. Callers gate
-     * this behind the "Sincronizar con YouTube Music" setting — there's no separate per-playlist
-     * toggle (the `isAutoSync` column exists in the schema but nothing sets it; this operates on
-     * ALL linked playlists instead of requiring one).
+     * Vuelve a obtener cada playlist que está vinculada a una playlist real de YouTube (tiene un `browseId`),
+     * reconciliando cualquier edición hecha desde la aplicación/sitio de YouTube desde que LyriK la vio
+     * por última vez. Los llamadores controlan esto con la configuración "Sincronizar con YouTube Music" —
+     * no hay un interruptor separado por playlist (la columna `isAutoSync` existe en el esquema pero nada
+     * la establece; esto opera en TODAS las playlists vinculadas en lugar de requerir una por una).
      */
     private suspend fun executeAutoSyncPlaylists() = withContext(Dispatchers.IO) {
         updateState { copy(currentOperation = "Syncing auto-sync playlists") }
@@ -317,9 +320,9 @@ class SyncUtils(
         }
     }
 
-    /** Collapses playlists that share a `browseId` (can happen after account/library glitches),
-     * keeping the one with the most locally-cached songs and deleting the rest. Local-only, no
-     * network calls. */
+    /** Colapsa playlists que comparten un `browseId` (puede ocurrir después de fallos de cuenta/biblioteca),
+     * conservando la que tiene más canciones en caché local y eliminando el resto. Solo local, sin
+     * llamadas de red. */
     private suspend fun executeCleanupDuplicates() = withContext(Dispatchers.IO) {
         try {
             database.allPlaylists().first()

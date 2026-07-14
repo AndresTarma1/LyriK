@@ -178,9 +178,12 @@ object PageHelper {
             Napier.v("  run[$idx]: text='${run.text}', hasEndpoint=${run.navigationEndpoint != null}, browseId=${run.navigationEndpoint?.browseEndpoint?.browseId}")
         }
         
-        val filtered = runs.filter { run ->
-            run.text.trim().isNotBlank() && run.text != " • "
-        }
+        // Only runs with a browseId are real artist links. Everything else in this run list is
+        // decoration — separators (", ", " • ", " y ", " & ", ...) or trailing metadata like a view
+        // count ("1527 M de vistas") — and previously slipped through a literal `!= " • "` check
+        // that only matched one specific separator, leaving the rest (and the view count) rendered
+        // as bogus "artists".
+        val filtered = runs.filter { run -> run.navigationEndpoint?.browseEndpoint?.browseId != null }
         Napier.d("extractArtists: after separator filter count=${filtered.size}")
         
         val result = filtered.map { run ->

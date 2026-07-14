@@ -77,7 +77,7 @@ actual object AccountManager {
 
     actual fun init(dataStore: DataStore<Preferences>) {
         this.dataStore = dataStore
-        // Try loading from credentials.json first (richer data)
+        // Intentar cargar desde credentials.json primero (datos más completos)
         val loaded = loadFromCredentialsFile()
         if (loaded != null) {
             applyCredentials(loaded)
@@ -85,14 +85,14 @@ actual object AccountManager {
             Napier.i("AccountManager: sesion restaurada desde credentials.json (${loaded.cookie.length} chars)")
             return
         }
-        // Fallback: legacy DataStore cookie
+        // Respaldo: cookie antigua de DataStore
         val saved = readFromLocalStorage()
         if (!saved.isNullOrBlank()) {
             applyToYouTube(saved)
             _loginState.value = true
             Napier.i("AccountManager: sesion restaurada desde DataStore (${saved.length} chars)")
             diagnose(saved).forEach { Napier.w("AccountManager [init]: $it") }
-            // Migrate to credentials.json
+            // Migrar a credentials.json
             saveToCredentialsFile(AuthCredentials(cookie = saved))
         } else {
             Napier.i("AccountManager: no hay sesion guardada")
@@ -141,7 +141,7 @@ actual object AccountManager {
     }
 
     actual fun getCookie(): String? {
-        // Check credentials.json first, then DataStore
+        // Verificar credentials.json primero, luego DataStore
         loadFromCredentialsFile()?.let { return it.cookie }
         return readFromLocalStorage()?.takeIf { it.isNotBlank() }
     }
@@ -192,7 +192,7 @@ actual object AccountManager {
         return result
     }
 
-    // ─── Private helpers ──────────────────────────────────────
+    // ─── Funciones auxiliares privadas ────────────────────────
 
     private fun applyCredentials(credentials: AuthCredentials) {
         YouTube.cookie = credentials.cookie

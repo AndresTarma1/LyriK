@@ -50,14 +50,14 @@ import org.koin.dsl.module
 
 val appModule = module {
 
-    // Database
+    // Base de datos
     single<SqlDriver> { DatabaseDriverFactory.createDriver() }
     single<MelodistDatabase> { MelodistDatabase(get<SqlDriver>()) }
 
     single<MusicDatabase> { MusicDatabase(get<MelodistDatabase>()) }
     single<DatabaseDao> { get<MusicDatabase>().dao }
 
-    // Data layer
+    // Capa de datos
     single<ApiService> { ApiService() }
     single<AlbumRepository> { AlbumRepository(get()) }
     single<ArtistRepository> { ArtistRepository(get()) }
@@ -66,7 +66,7 @@ val appModule = module {
     single<SearchRepository> { SearchRepository(get()) }
     single<SyncUtils> { SyncUtils(get(), get(), get(), get(), get()) }
 
-    // Player (singletons — shared across entire app)
+    // Reproductor (singletons — compartidos en toda la app)
     // ✅ PlayerService se inicializa perezosamente — solo al primero play()
     single<PlayerService> { PlayerService() }
     single<AudioStreamResolver> { AudioStreamResolver(get()) }
@@ -74,9 +74,9 @@ val appModule = module {
     single<DownloadService> { DownloadService(get(), get()) }
     single<QueueManager> { QueueManager() }
     single<AppViewModel> { AppViewModel() }
-    // Offline remote-sync queue (likes/subscribes that failed to push while offline).
+    // Cola de sincronización remota sin conexión (likes/suscripciones que fallaron al enviar sin conexión).
     single<PendingSyncQueue> { PendingSyncQueue(get()) }
-    // Global network kill-switch — must be resolved eagerly at startup (see main()).
+    // Interruptor de red global — debe resolverse eager al inicio (ver main()).
     single<OfflineModeController> { OfflineModeController(get()) }
     // ✅ DownloadViewModel singleton — mantiene estado de descargas compartido
     single<DownloadViewModel> { DownloadViewModel(get(), get(), get()) }
@@ -84,13 +84,13 @@ val appModule = module {
     single<PlayerViewModel> { PlayerViewModel(get(), get(), get(), get(), get(), get(), get(), get()) }
     single<PlayerCoordinator> { PlayerCoordinatorImpl(get<PlayerViewModel>(), get<DownloadViewModel>()) }
 
-    // Listen Together (WebSocket sync with the meowery relay server)
+    // Escuchar Juntos (sincronización WebSocket con el servidor relay meowery)
     single<ListenTogetherClient> { ListenTogetherClient() }
     single<ListenTogetherManager> { ListenTogetherManager(get()) }
     single<AppLifecycleManager> { AppLifecycleManager(get(), get(), get(), get(), get()) }
     single<JvmConfigLauncher> { JvmConfigLauncher(get()) }
 
-    // Game overlay — global hotkey toggles an always-on-top music window.
+    // Overlay de juego — el atajo global de teclado activa/desactiva una ventana de música siempre visible.
     single { GlobalHotkeyManager(onTrigger = { OverlayController.toggle() }) }
 
     // ViewModels — loginState de AccountManager para reaccionar a cambios de sesión

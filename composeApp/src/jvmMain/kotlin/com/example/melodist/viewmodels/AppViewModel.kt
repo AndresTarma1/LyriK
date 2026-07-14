@@ -11,9 +11,8 @@ import io.ktor.client.statement.bodyAsChannel
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.contentLength
 import io.ktor.utils.io.readAvailable
-import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,137 +25,180 @@ import java.io.File
 data class AppUpdateInfo(
     val currentVersion: String,
     val latestVersion: String,
-    /** GitHub release page — fallback if no installer asset is found. */
+    /** Página de release de GitHub — alternativa si no se encuentra un activo de instalador. */
     val releaseUrl: String? = null,
-    /** Direct download URL of the .msi/.exe installer asset. */
+    /** URL de descarga directa del activo del instalador .msi/.exe. */
     val installerUrl: String? = null,
     val installerName: String? = null,
     val installerSize: Long? = null,
 )
 
-/** Progress of the in-app download + install. */
-sealed interface UpdateDownloadState {
-    data object Idle : UpdateDownloadState
-    /** [progress] in 0f..1f, or -1f when the server didn't report a content length. */
-    data class Downloading(val progress: Float) : UpdateDownloadState
-    data object Launching : UpdateDownloadState
-    data class Failed(val message: String) : UpdateDownloadState
+/**
+ * Todo el ciclo de vida de actualización en un solo flow. La descarga se ejecuta en segundo plano (el usuario
+ * sigue usando la app); cuando termina mostramos un prompt "instalar ahora / después", y el estado [Ready]
+ * persiste para que Configuración pueda ofrecer "instalar actualización" sin volver a descargar.
+ */
+sealed interface UpdateStatus {
+    data object None : UpdateStatus
+    /** [progress] en 0f..1f, o -1f cuando el servidor no reportó un content length. */
+    data class Downloading(val info: AppUpdateInfo, val progress: Float) : UpdateStatus
+    /** Instalador completamente descargado y en disco, listo para iniciar. */
+    data class Ready(val info: AppUpdateInfo, val file: File) : UpdateStatus
+    /** Existe una versión más nueva pero no tiene activo .msi/.ej. (ej. Linux) — abrir la página de release. */
+    data class ManualOnly(val info: AppUpdateInfo) : UpdateStatus
+    data class Failed(val info: AppUpdateInfo) : UpdateStatus
+}
+
+/** Retroalimentación para la entrada manual "buscar actualizaciones" en Configuración. */
+sealed interface UpdateCheckState {
+    data object Idle : UpdateCheckState
+    data object Checking : UpdateCheckState
+    data object UpToDate : UpdateCheckState
+    data object Failed : UpdateCheckState
 }
 
 class AppViewModel : ViewModel() {
 
     companion object {
-        /** Single source of truth for the displayed/compared app version (also shown in Settings). */
+        /** Fuente única de verdad para la versión de la app mostrada/comparada (también se muestra en Configuración). */
         const val CURRENT_VERSION = "0.4.0"
     }
 
-    private val _updateInfo = MutableStateFlow<AppUpdateInfo?>(null)
-    val updateInfo: StateFlow<AppUpdateInfo?> = _updateInfo.asStateFlow()
+    private val _status = MutableStateFlow<UpdateStatus>(UpdateStatus.None)
+    val updateStatus: StateFlow<UpdateStatus> = _status.asStateFlow()
 
-    private val _downloadState = MutableStateFlow<UpdateDownloadState>(UpdateDownloadState.Idle)
-    val downloadState: StateFlow<UpdateDownloadState> = _downloadState.asStateFlow()
+    /** Flag de una sola vez que controla el modal "instalar ahora / después"; se establece cuando una descarga termina. */
+    private val _showInstallPrompt = MutableStateFlow(false)
+    val showInstallPrompt: StateFlow<Boolean> = _showInstallPrompt.asStateFlow()
 
-    private val currentVersion = CURRENT_VERSION
+    private val _checkState = MutableStateFlow<UpdateCheckState>(UpdateCheckState.Idle)
+    val checkState: StateFlow<UpdateCheckState> = _checkState.asStateFlow()
 
-    fun checkForUpdates() {
+    private var downloadJob: Job? = null
+
+    /**
+     * Busca un release más nuevo. Al iniciar se pasa [manual] = false: una actualización encontrada se descarga
+     * silenciosamente en segundo plano y solo interrumpe al usuario con el prompt de instalación cuando está lista.
+     * Desde Configuración se pasa [manual] = true para que se muestre la retroalimentación de actualizado/fallido,
+     * y — si ya hay un instalador descargado — el prompt de instalación se reabre en vez de no hacer nada.
+     */
+    fun checkForUpdates(manual: Boolean = false) {
+        when (_status.value) {
+            is UpdateStatus.Ready -> { if (manual) _showInstallPrompt.value = true; return }
+            is UpdateStatus.Downloading -> return // ya está trabajando; no apilar descargas
+            else -> {}
+        }
+
         viewModelScope.launch {
+            if (manual) _checkState.value = UpdateCheckState.Checking
             val latest = withContext(Dispatchers.IO) {
-                try {
-                    fetchLatestVersion()
-                } catch (_: Exception) { null }
-            } ?: return@launch
-
-            if (compareVersions(latest.tag, currentVersion) > 0) {
-                val installer = latest.installerAsset()
-                _updateInfo.value = AppUpdateInfo(
-                    currentVersion = currentVersion,
-                    latestVersion = latest.tag.removePrefix("v"),
-                    releaseUrl = latest.html_url,
-                    installerUrl = installer?.browser_download_url,
-                    installerName = installer?.name,
-                    installerSize = installer?.size?.takeIf { it > 0 },
-                )
+                runCatching { fetchLatestVersion() }.getOrNull()
             }
-        }
-    }
-
-    /**
-     * Hides the dialog. If an installer is available, a download is kicked off (or left running)
-     * in the background — silently, no progress shown — so it's already on disk and ready the next
-     * time the user chooses to update, without needing to wait for the download again.
-     */
-    fun dismissUpdate() {
-        val info = _updateInfo.value
-        _updateInfo.value = null
-        if (info?.installerUrl != null) startOrJoinDownload(info)
-    }
-
-    // Single in-flight download shared by the foreground "Actualizar" click and any background
-    // download kicked off by dismissUpdate(), so clicking Update while a background download is
-    // already running joins it instead of starting a duplicate.
-    private var downloadJob: Deferred<File?>? = null
-
-    private fun startOrJoinDownload(info: AppUpdateInfo): Deferred<File?> {
-        downloadJob?.let { if (it.isActive) return it }
-        val job = viewModelScope.async(Dispatchers.IO) {
-            runCatching { ensureDownloaded(info) }
-                .onFailure { Napier.e("Update download failed: ${it.message}") }
-                .getOrNull()
-        }
-        downloadJob = job
-        return job
-    }
-
-    /**
-     * Ensures the installer is fully downloaded and installs it, then invokes [onLaunched] so the
-     * app can quit and let the installer replace its files. Joins a download already running in the
-     * background (started by a previous "Más tarde") instead of starting a second one.
-     */
-    fun downloadAndInstall(onLaunched: () -> Unit) {
-        val info = _updateInfo.value ?: return
-        if (info.installerUrl == null) return
-
-        viewModelScope.launch {
-            if (_downloadState.value !is UpdateDownloadState.Downloading) {
-                _downloadState.value = UpdateDownloadState.Downloading(-1f)
-            }
-            val file = startOrJoinDownload(info).await()
-            if (file == null) {
-                _downloadState.value = UpdateDownloadState.Failed("download")
+            if (latest == null) {
+                if (manual) _checkState.value = UpdateCheckState.Failed
                 return@launch
             }
-            _downloadState.value = UpdateDownloadState.Launching
-            val launched = withContext(Dispatchers.IO) {
-                runCatching { launchInstaller(file) }
+            if (compareVersions(latest.tag, CURRENT_VERSION) <= 0) {
+                _status.value = UpdateStatus.None
+                if (manual) _checkState.value = UpdateCheckState.UpToDate
+                return@launch
+            }
+
+            if (manual) _checkState.value = UpdateCheckState.Idle
+            val installer = latest.installerAsset()
+            val info = AppUpdateInfo(
+                currentVersion = CURRENT_VERSION,
+                latestVersion = latest.tag.removePrefix("v"),
+                releaseUrl = latest.html_url,
+                installerUrl = installer?.browser_download_url,
+                installerName = installer?.name,
+                installerSize = installer?.size?.takeIf { it > 0 },
+            )
+            if (installer == null) {
+                _status.value = UpdateStatus.ManualOnly(info)
+                return@launch
+            }
+
+            // Reusar un instalador que ya está en disco de una sesión anterior (coincidente por tamaño) en vez de
+            // descargar de nuevo — esto es lo que hace que "el instalador sigue ahí en el siguiente inicio" funcione.
+            val existing = existingInstaller(info)
+            if (existing != null) {
+                _status.value = UpdateStatus.Ready(info, existing)
+                _showInstallPrompt.value = true
+            } else {
+                startDownload(info)
+            }
+        }
+    }
+
+    private fun startDownload(info: AppUpdateInfo) {
+        if (info.installerUrl == null) return
+        downloadJob?.cancel()
+        _status.value = UpdateStatus.Downloading(info, -1f)
+        downloadJob = viewModelScope.launch(Dispatchers.IO) {
+            val file = runCatching {
+                downloadInstaller(info.installerUrl, targetFile(info)) { progress ->
+                    _status.value = UpdateStatus.Downloading(info, progress)
+                }
+            }.onFailure { Napier.e("Update download failed: ${it.message}") }.getOrNull()
+
+            if (file != null) {
+                _status.value = UpdateStatus.Ready(info, file)
+                _showInstallPrompt.value = true
+            } else {
+                _status.value = UpdateStatus.Failed(info)
+            }
+        }
+    }
+
+    /** Reintentar una descarga fallida desde la entrada "buscar" o el prompt. */
+    fun retryDownload() {
+        (_status.value as? UpdateStatus.Failed)?.let { startDownload(it.info) }
+    }
+
+    /** Inicia el instalador descargado y, en caso de éxito, llama a [onQuit] para que la app pueda cerrarse. */
+    fun installUpdate(onQuit: () -> Unit) {
+        val ready = _status.value as? UpdateStatus.Ready ?: return
+        viewModelScope.launch {
+            _showInstallPrompt.value = false
+            val ok = withContext(Dispatchers.IO) {
+                runCatching { launchInstaller(ready.file) }
                     .onFailure { Napier.e("Update launch failed: ${it.message}") }
                     .isSuccess
             }
-            if (launched) onLaunched() else _downloadState.value = UpdateDownloadState.Failed("launch")
+            if (ok) onQuit()
         }
     }
 
-    /**
-     * Returns the installer file, downloading it only if not already fully present on disk (e.g.
-     * from a previous background download — matched by expected size). Stored under the system temp
-     * dir so it survives across app restarts: `%TEMP%/lyrik-update/<installer-name>`.
-     */
-    private suspend fun ensureDownloaded(info: AppUpdateInfo): File {
-        val name = info.installerName ?: "LyriK-setup.msi"
-        val dir = File(System.getProperty("java.io.tmpdir"), "lyrik-update").apply { mkdirs() }
-        val file = File(dir, name)
-        if (file.exists() && info.installerSize != null && file.length() == info.installerSize) {
-            Napier.i("Update installer already downloaded: ${file.absolutePath}")
-            return file
-        }
-        return downloadInstaller(info.installerUrl!!, file)
+    /** Ocultar el prompt pero mantener el instalador descargado + [UpdateStatus.Ready] para después. */
+    fun postponeInstall() {
+        _showInstallPrompt.value = false
     }
 
-    private suspend fun downloadInstaller(url: String, file: File): File {
-        // No request timeout: an installer is tens of MB and the whole transfer must fit in one
-        // request. Keep socket/connect timeouts so a truly dead connection still fails.
+    /** Reiniciar la retroalimentación transitoria de Configuración (actualizado/fallido) a inactivo. */
+    fun clearCheckFeedback() {
+        _checkState.value = UpdateCheckState.Idle
+    }
+
+    private fun updateDir(): File =
+        File(System.getProperty("java.io.tmpdir"), "lyrik-update").apply { mkdirs() }
+
+    private fun targetFile(info: AppUpdateInfo): File =
+        File(updateDir(), info.installerName ?: "LyriK-setup.msi")
+
+    /** El archivo del instalador si ya está completamente presente en disco (coincidente por tamaño), o null. */
+    private fun existingInstaller(info: AppUpdateInfo): File? {
+        val file = targetFile(info)
+        return if (file.exists() && info.installerSize != null && file.length() == info.installerSize) file
+        else null
+    }
+
+    private suspend fun downloadInstaller(url: String, file: File, onProgress: (Float) -> Unit): File {
+        // Sin timeout de solicitud: un instalador es de decenas de MB y toda la transferencia debe caber en una
+        // sola solicitud. Mantener timeouts de socket/conexión para que una conexión realmente muerta aún falle.
         HttpClient {
             install(HttpTimeout) {
-                requestTimeoutMillis = 30 * 60 * 1000L // 30 min — effectively no cap for a download
+                requestTimeoutMillis = 30 * 60 * 1000L
                 socketTimeoutMillis = 60_000
                 connectTimeoutMillis = 30_000
             }
@@ -173,16 +215,15 @@ class AppViewModel : ViewModel() {
                         if (n <= 0) break
                         out.write(buffer, 0, n)
                         read += n
-                        // Throttle UI updates to whole-percent changes so we don't flood recomposition.
                         if (total > 0) {
                             val percent = ((read * 100) / total).toInt()
                             if (percent != lastPercent) {
                                 lastPercent = percent
-                                _downloadState.value = UpdateDownloadState.Downloading(percent / 100f)
+                                onProgress(percent / 100f)
                             }
                         } else if (lastPercent != -2) {
                             lastPercent = -2
-                            _downloadState.value = UpdateDownloadState.Downloading(-1f)
+                            onProgress(-1f)
                         }
                     }
                 }
@@ -191,7 +232,7 @@ class AppViewModel : ViewModel() {
         return file
     }
 
-    /** Runs the downloaded installer. MSI goes through msiexec; an .exe is launched directly. */
+    /** Ejecuta el instalador descargado. MSI pasa por msiexec; un .exe se inicia directamente. */
     private fun launchInstaller(file: File) {
         val cmd = if (file.name.endsWith(".msi", ignoreCase = true)) {
             listOf("msiexec", "/i", file.absolutePath)
@@ -229,7 +270,7 @@ private data class GithubRelease(
 ) {
     val tag: String get() = tag_name
 
-    /** Prefer the MSI installer; fall back to an EXE if that's all that's published. */
+    /** Prefiere el instalador MSI; usa EXE como alternativa si solo está publicado ese. */
     fun installerAsset(): GithubAsset? =
         assets.firstOrNull { it.name.endsWith(".msi", ignoreCase = true) }
             ?: assets.firstOrNull { it.name.endsWith(".exe", ignoreCase = true) }

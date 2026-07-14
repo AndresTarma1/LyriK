@@ -69,7 +69,7 @@ import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
-/** Stable member item for LazyColumn key usage. */
+/** Elemento de miembro estable para uso de clave en LazyColumn. */
 private data class MemberItem(
     val userId: String,
     val username: String,
@@ -78,8 +78,8 @@ private data class MemberItem(
 )
 
 /**
- * Listen Together screen — create or join a synced listening room.
- * MVP UI: connection state, create/join, room code, member list and host approvals.
+ * Pantalla de Escuchar Juntos — crear o unirse a una sala de escucha sincronizada.
+ * MVP UI: estado de conexión, crear/unirse, código de sala, lista de miembros y aprobaciones del anfitrión.
  */
 @Composable
 fun ListenTogetherScreen() {
@@ -97,7 +97,7 @@ fun ListenTogetherScreen() {
     val savedName by prefs.listenTogetherUsername.collectAsState("")
     var username by remember { mutableStateOf("") }
     var joinCode by remember { mutableStateOf("") }
-    // Prefill the remembered display name once it loads.
+    // Autocompletar el nombre de usuario recordado una vez que se cargue.
     LaunchedEffect(savedName) { if (username.isBlank() && savedName.isNotBlank()) username = savedName }
     val defaultHost = stringResource(Res.string.lt_default_host)
     val defaultGuest = stringResource(Res.string.lt_default_guest)
@@ -106,7 +106,7 @@ fun ListenTogetherScreen() {
     val fmtError = stringResource(Res.string.lt_error_generic)
     val fmtConnectionError = stringResource(Res.string.lt_connection_error)
 
-    // Surface relevant events as snackbars.
+    // Mostrar eventos relevantes como snackbar.
     androidx.compose.runtime.LaunchedEffect(Unit) {
         manager.events.collect { event ->
             when (event) {
@@ -127,7 +127,7 @@ fun ListenTogetherScreen() {
                 .padding(horizontal = 24.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Header
+            // Encabezado
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Filled.Groups, null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(10.dp))
@@ -290,7 +290,7 @@ private fun RoomContent(
     roomCode: String,
     isHost: Boolean,
     members: List<MemberItem>,
-    pending: List<Pair<String, String>>, // userId, username
+    pending: List<Pair<String, String>>, // userId, nombre de usuario
     onApprove: (String) -> Unit,
     onReject: (String) -> Unit,
     onTransferHost: (String) -> Unit,
@@ -379,7 +379,7 @@ private fun RoomContent(
                         color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f)
                     )
-                    // Host-only controls over other members: transfer host, kick.
+                    // Controles exclusivos del anfitrión sobre otros miembros: transferir anfitrión, expulsar.
                     if (isHost && !member.isMe) {
                         var showMenu by remember { mutableStateOf(false) }
                         Box {

@@ -23,6 +23,9 @@ import com.example.melodist.utils.LocalSnackbarScope
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.models.WatchEndpoint
 import kotlinx.coroutines.launch
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.getString
 
 @Composable
 fun SongContextMenuPopup(
@@ -76,27 +79,27 @@ fun SongContextMenuPopup(
                         }
                         SongMenuAction.Download -> {
                             downloadViewModel.downloadSong(song)
-                            scope.launch { snackbar.showSnackbar("«${song.title}» agregada a descargas") }
+                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_added_to_downloads, song.title)) }
                             onDismiss()
                         }
                         SongMenuAction.CancelDownload -> {
                             downloadViewModel.cancelDownload(song.id)
-                            scope.launch { snackbar.showSnackbar("Descarga cancelada") }
+                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_download_cancelled)) }
                             onDismiss()
                         }
                         SongMenuAction.RemoveDownload -> {
                             downloadViewModel.removeDownload(song.id)
-                            scope.launch { snackbar.showSnackbar("Descarga eliminada") }
+                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_download_removed)) }
                             onDismiss()
                         }
                         SongMenuAction.PlayNext -> {
                             playerViewModel.playNextResolved(song)
-                            scope.launch { snackbar.showSnackbar("«${song.title}» será reproducida después") }
+                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_play_next, song.title)) }
                             onDismiss()
                         }
                         SongMenuAction.AddToQueue -> {
                             playerViewModel.addToQueueResolved(song)
-                            scope.launch { snackbar.showSnackbar("«${song.title}» añadida a la cola") }
+                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_added_to_queue, song.title)) }
                             onDismiss()
                         }
                         SongMenuAction.AddToPlaylist -> {
@@ -108,7 +111,7 @@ fun SongContextMenuPopup(
                         }
                         SongMenuAction.RemoveFromPlaylist -> {
                             onRemoveFromPlaylist?.invoke()
-                            scope.launch { snackbar.showSnackbar("«${song.title}» eliminada de la playlist") }
+                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_removed_from_playlist, song.title)) }
                             onDismiss()
                         }
                     }

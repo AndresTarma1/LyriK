@@ -3,6 +3,9 @@ package com.example.melodist.ui.screens.library.tabs
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -57,14 +60,21 @@ fun PlaylistsTab(
     val hasDownloads = downloadedCount > 0 || fullyDownloadedAlbums.isNotEmpty() || fullyDownloadedPlaylists.isNotEmpty()
     val isEmpty = playlists.isEmpty() && ytmPlaylists.isEmpty() && !isLoadingYtm && !hasDownloads
     if (isEmpty) {
-        LibraryEmptyState(Icons.AutoMirrored.Filled.PlaylistPlay, "No hay playlists guardadas", "Guarda playlists y apareceran aqui")
+        LibraryEmptyState(Icons.AutoMirrored.Filled.PlaylistPlay, stringResource(Res.string.no_saved_playlists), stringResource(Res.string.save_playlists_hint))
         return
     }
     if (isLoadingYtm && ytmPlaylists.isEmpty()) {
-        YtmSectionHeader("Playlists de YouTube Music", isLoading = true)
+        YtmSectionHeader(stringResource(Res.string.ytm_playlists_section), isLoading = true)
         LibraryGridSkeleton(count = 4)
         return
     }
+
+    // Resolved here (composable context) since remember{}'s calculation lambda below can't call
+    // @Composable stringResource() itself. n_songs keeps its raw "%1$d ..." template so the count
+    // can still be substituted per-item inside the list build.
+    val playlistLabel = stringResource(Res.string.item_playlist)
+    val downloadsLabel = stringResource(Res.string.downloads)
+    val nSongsTemplate = stringResource(Res.string.n_songs)
 
     data class PlaylistGridEntry(
         val key: String,
@@ -100,7 +110,7 @@ fun PlaylistsTab(
                         key = "local_${playlist.id}",
                         item = playlist,
                         title = playlist.title,
-                        subtitle = playlist.songCountText ?: playlist.author?.name ?: "Playlist",
+                        subtitle = playlist.songCountText ?: playlist.author?.name ?: playlistLabel,
                         thumbnailUrl = playlist.thumbnail,
                         placeholderType = PlaceholderType.PLAYLIST,
                         shape = RoundedCornerShape(12.dp),
@@ -130,7 +140,7 @@ fun PlaylistsTab(
                             key = "ytm_${playlist.id}",
                             item = playlist,
                             title = playlist.title,
-                            subtitle = playlist.songCountText ?: playlist.author?.name ?: "Playlist",
+                            subtitle = playlist.songCountText ?: playlist.author?.name ?: playlistLabel,
                             thumbnailUrl = playlist.thumbnail,
                             placeholderType = PlaceholderType.PLAYLIST,
                             shape = RoundedCornerShape(12.dp),
@@ -156,8 +166,8 @@ fun PlaylistsTab(
                 add(
                     PlaylistGridEntry(
                         key = "downloads_all",
-                        title = "Descargas",
-                        subtitle = "$downloadedCount canciones",
+                        title = downloadsLabel,
+                        subtitle = String.format(nSongsTemplate, downloadedCount),
                         thumbnailUrl = downloadedSongs.firstOrNull()?.thumbnail,
                         placeholderType = PlaceholderType.DOWNLOADS,
                         shape = RoundedCornerShape(12.dp),
@@ -188,7 +198,7 @@ fun PlaylistsTab(
                     PlaylistGridEntry(
                         key = "dlpl_${playlistInfo.playlistId}",
                         title = playlistInfo.playlistName,
-                        subtitle = "${playlistInfo.downloadedSongCount} canciones",
+                        subtitle = String.format(nSongsTemplate, playlistInfo.downloadedSongCount),
                         thumbnailUrl = playlistInfo.thumbnail,
                         placeholderType = PlaceholderType.PLAYLIST,
                         shape = RoundedCornerShape(12.dp),
@@ -214,7 +224,7 @@ fun PlaylistsTab(
                     PlaylistGridEntry(
                         key = "dlal_${albumInfo.albumId}",
                         title = albumInfo.albumName,
-                        subtitle = "${albumInfo.songs.size} canciones",
+                        subtitle = String.format(nSongsTemplate, albumInfo.songs.size),
                         thumbnailUrl = albumInfo.thumbnail,
                         placeholderType = PlaceholderType.ALBUM,
                         shape = RoundedCornerShape(12.dp),

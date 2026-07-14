@@ -17,8 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.channels.Channel
 import java.io.File
 import java.io.RandomAccessFile
 import java.net.HttpURLConnection
@@ -28,8 +27,8 @@ import java.util.logging.Logger
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Repository that contains the heavy lifting and backend logic for downloads.
- * DownloadService will act as a thin wrapper delegating to this class.
+ * Repositorio que contiene la lógica principal y el trabajo pesado de las descargas.
+ * DownloadService actúa como un wrapper delgado que delega a esta clase.
  */
 class DownloadRepository(
     private val streamResolver: AudioStreamResolver,
@@ -38,13 +37,23 @@ class DownloadRepository(
     private val log = Logger.getLogger("DownloadRepository")
 
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-    private val semaphore = Semaphore(3) // max 3 concurrent downloads
+
+    /** Descargas máximas concurrentes. */
+    private val maxConcurrentDownloads = 3
+
+    /**
+     * Cola de trabajo ordenada. Las canciones se envían a los workers en el mismo orden exacto en que se encolaron
+     * (FIFO), para que una lista de reproducción o álbum se descargue de arriba a abajo en lugar de un grupo de
+     * coroutines compitiendo por un semáforo compartido — lo cual no garantizaba orden y hacía que las descargas
+     * comenzaran desordenadas.
+     */
+    private val downloadQueue = Channel<SongItem>(Channel.UNLIMITED)
 
     private val _downloadStates = MutableStateFlow<Map<String, DownloadState>>(emptyMap())
     val downloadStates: StateFlow<Map<String, DownloadState>> = _downloadStates.asStateFlow()
 
-    /** Tracks SongItem metadata for songs currently being downloaded (Queued/Downloading).
-     *  Cleared once the download completes or fails. */
+    /** Rastrea los metadatos SongItem de las canciones actualmente en descarga (En cola/Descargando).
+     *  Se limpia una vez que la descarga se completa o falla. */
     private val _pendingSongItems = MutableStateFlow<Map<String, SongItem>>(emptyMap())
     val pendingSongItems: StateFlow<Map<String, SongItem>> = _pendingSongItems.asStateFlow()
 
@@ -52,8 +61,31 @@ class DownloadRepository(
     private val silentCancellationRequests = mutableSetOf<String>()
 
     init {
-        // Scan existing cache on startup so songs already on disk show as Completed
+        // Escanear la caché existente al iniciar para que las canciones ya en disco se muestren como Completadas
         scanExistingCache()
+        startWorkers()
+    }
+
+    /**
+     * Un grupo fijo de [maxConcurrentDownloads] workers vacía [downloadQueue] en orden. Cada worker
+     * descarga una canción a la vez en un job hijo (para que una descarga individual se pueda cancelar vía
+     * [activeJobs] sin detener el worker), limitando la concurrencia mientras se preserva el orden FIFO.
+     */
+    private fun startWorkers() {
+        repeat(maxConcurrentDownloads) {
+            scope.launch {
+                for (song in downloadQueue) {
+                    val songId = song.id
+                    // Saltar canciones canceladas/eliminadas mientras aún estaban esperando en la cola.
+                    if (_downloadStates.value[songId] !is DownloadState.Queued) continue
+
+                    val job = scope.launch(Dispatchers.IO) { doDownload(song) }
+                    synchronized(activeJobs) { activeJobs[songId] = job }
+                    job.join()
+                    synchronized(activeJobs) { if (activeJobs[songId] === job) activeJobs.remove(songId) }
+                }
+            }
+        }
     }
 
     private fun scanExistingCache() {
@@ -67,16 +99,16 @@ class DownloadRepository(
     }
 
     companion object {
-        /** Chunk size for Range requests: 512 KB */
+        /** Tamaño de bloque para solicitudes Range: 512 KB */
         private const val CHUNK_SIZE = 512 * 1024L
 
-        /** Max retries per chunk before giving up. */
+        /** Reintentos máximos por bloque antes de desistir. */
         private const val MAX_CHUNK_RETRIES = 3
 
-        /** Back-off base delay between retries. */
+        /** Retraso base de retroceso entre reintentos. */
         private const val RETRY_BASE_DELAY_MS = 500L
 
-        /** Threshold for emitting progress updates (default 100KB) */
+        /** Umbral para emitir actualizaciones de progreso (por defecto 100KB) */
         private const val PROGRESS_THRESHOLD_BYTES = 100_000L
 
         private const val USER_AGENT =
@@ -88,8 +120,8 @@ class DownloadRepository(
             AppDirs.songsDir.also { if (!it.exists()) it.mkdirs() }
         }
 
-        /** Returns the local cached file for a given song ID, or null if not downloaded.
-         * Checks both .m4a and .webm extensions.
+        /** Retorna el archivo en caché local para un songId dado, o null si no está descargado.
+         *  Verifica las extensiones .m4a y .webm.
          */
         fun getCachedFile(songId: String): File? {
             for (ext in listOf("m4a", "webm", "ogg")) {
@@ -99,11 +131,11 @@ class DownloadRepository(
             return null
         }
 
-        /** Returns the total cache size in bytes. */
+        /** Retorna el tamaño total de la caché en bytes. */
         fun getCacheSizeBytes(): Long =
             cacheDir.listFiles()?.sumOf { it.length() } ?: 0L
 
-        /** Formats bytes to human-readable string. */
+        /** Formatea bytes a texto legible. */
         fun formatSize(bytes: Long): String = when {
             bytes < 1024 -> "$bytes B"
             bytes < 1024 * 1024 -> "${'$'}{bytes / 1024} KB"
@@ -111,7 +143,7 @@ class DownloadRepository(
             else -> String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0))
         }
 
-        /** Determine file extension from mimeType. */
+        /** Determina la extensión del archivo a partir del mimeType. */
         private fun extensionForMime(mimeType: String): String = when {
             mimeType.contains("audio/mp4") -> "m4a"
             mimeType.contains("audio/webm") -> "webm"
@@ -120,71 +152,76 @@ class DownloadRepository(
         }
     }
 
-    // ─── Download a single song ────────────────────────────
+    // ─── Descargar una canción ────────────────────────────
 
     fun downloadSong(song: SongItem) {
-        scope.launch(Dispatchers.IO) {
-            val songId = song.id
+        val songId = song.id
 
-            val current = _downloadStates.value[songId]
-            if (current is DownloadState.Downloading || current is DownloadState.Queued) return@launch
+        val current = _downloadStates.value[songId]
+        if (current is DownloadState.Downloading || current is DownloadState.Queued) return
 
-            if (getCachedFile(songId) != null) {
+        if (getCachedFile(songId) != null) {
+            scope.launch(Dispatchers.IO) {
                 updateSongDownloadStatus(songId, true, System.currentTimeMillis())
                 _downloadStates.update { it + (songId to DownloadState.Completed) }
-                return@launch
             }
+            return
+        }
 
-            try {
-                _downloadStates.update { it + (songId to DownloadState.Queued) }
-                _pendingSongItems.update { it + (songId to song) }
+        // Marcar como en cola de forma síncrona (para que la UI y la verificación de duplicados lo vean de inmediato),
+        // luego encolar en orden. La capacidad ILIMITADA garantiza que trySend siempre funcione sin bloquear al llamador.
+        _downloadStates.update { it + (songId to DownloadState.Queued) }
+        _pendingSongItems.update { it + (songId to song) }
+        downloadQueue.trySend(song)
+    }
 
-                semaphore.withPermit {
-                    if (!isActive) return@withPermit
+    /** La descarga real por canción, ejecutada por un worker en un job hijo cancelable. */
+    private suspend fun CoroutineScope.doDownload(song: SongItem) {
+        val songId = song.id
+        try {
+            if (!isActive) return
 
-                    val playbackData = YTPlayerutils.playerResponseForMetadata(songId).getOrNull()
-                    val duration = playbackData?.videoDetails?.lengthSeconds?.toInt()
+            val playbackData = YTPlayerutils.playerResponseForMetadata(songId).getOrNull()
+            val duration = playbackData?.videoDetails?.lengthSeconds?.toInt()
 
-                    _downloadStates.update { it + (songId to DownloadState.Downloading(0f)) }
+            _downloadStates.update { it + (songId to DownloadState.Downloading(0f)) }
 
-                    val stream = streamResolver.resolveAudioStream(songId)
+            val stream = streamResolver.resolveAudioStream(songId)
 
-                    val updatedSong = song.copy(duration = duration)
-                    ensureSongInDb(updatedSong)
+            val updatedSong = song.copy(duration = duration)
+            ensureSongInDb(updatedSong)
 
-                    val ext = extensionForMime(stream.format.mimeType)
-                    val targetFile = File(cacheDir, "$songId.$ext")
-                    val partFile = File(cacheDir, "$songId.$ext.part")
+            val ext = extensionForMime(stream.format.mimeType)
+            val targetFile = File(cacheDir, "$songId.$ext")
+            val partFile = File(cacheDir, "$songId.$ext.part")
 
-                    val totalBytes = stream.format.contentLength ?: probeContentLength(stream.streamUrl)
+            val totalBytes = stream.format.contentLength ?: probeContentLength(stream.streamUrl)
 
-                    downloadWithFallback(
-                        streamUrl = stream.streamUrl,
-                        partFile = partFile,
-                        songId = songId,
-                        totalBytes = totalBytes,
-                    )
+            downloadWithFallback(
+                streamUrl = stream.streamUrl,
+                partFile = partFile,
+                songId = songId,
+                totalBytes = totalBytes,
+            )
 
-                    if (!isActive) throw CancellationException("Scope cancelado")
+            if (!isActive) throw CancellationException("Scope cancelado")
 
-                    if (partFile.exists() && partFile.length() > 0) {
-                        if (partFile.renameTo(targetFile)) {
-                            saveFormatMetadata(songId, stream)
-                            databaseDao.updateSongDownloadStatus(songId, true, System.currentTimeMillis())
+            if (partFile.exists() && partFile.length() > 0) {
+                if (partFile.renameTo(targetFile)) {
+                    saveFormatMetadata(songId, stream)
+                    databaseDao.updateSongDownloadStatus(songId, true, System.currentTimeMillis())
 
-                            _downloadStates.update { it + (songId to DownloadState.Completed) }
-                        } else {
-                            throw Exception("Error al mover el archivo final")
-                        }
-                    }
+                    _downloadStates.update { it + (songId to DownloadState.Completed) }
+                } else {
+                    throw Exception("Error al mover el archivo final")
                 }
-            } catch (e: CancellationException) {
-                onCancelDownloadExc(songId, e)
-            } catch (e: Exception) {
-                onException(songId, e)
-            } finally {
-                _pendingSongItems.update { it - songId }
             }
+        } catch (e: CancellationException) {
+            onCancelDownloadExc(songId, e)
+        } catch (e: Exception) {
+            onException(songId, e)
+        } finally {
+            _pendingSongItems.update { it - songId }
         }
     }
 
@@ -281,7 +318,7 @@ class DownloadRepository(
             activeJobs.values.forEach { it.cancel() }
             activeJobs.clear()
         }
-        // Mark all downloaded songs as not downloaded in DB
+        // Marcar todas las canciones descargadas como no descargadas en la BD
         scope.launch {
             cacheDir.listFiles()?.forEach { file ->
                 val songId = file.nameWithoutExtension.removeSuffix(".part")
@@ -298,7 +335,7 @@ class DownloadRepository(
 
     fun release() { scope.cancel() }
 
-    // ─── Chunked download with Range headers ───────────────
+    // ─── Descarga por bloques con encabezados Range ───────
 
     private suspend fun downloadChunked(
         initialUrl: String,
@@ -310,7 +347,7 @@ class DownloadRepository(
             var currentUrl = initialUrl
             var downloadedBytes = if (partFile.exists()) partFile.length() else 0L
             var urlRefreshCount = 0
-            var lastProgressUpdate = 0L // throttle UI updates
+            var lastProgressUpdate = 0L // limitar actualizaciones de la UI
 
             if (downloadedBytes >= totalBytes) return@withContext
 
@@ -329,7 +366,7 @@ class DownloadRepository(
                             downloadedBytes += bytesRead
                             chunkSuccess = true
 
-                            // Throttle UI updates: only emit when threshold corresponds
+                            // Limitar actualizaciones de la UI: solo emitir cuando el umbral se alcanza
                             if (downloadedBytes - lastProgressUpdate > PROGRESS_THRESHOLD_BYTES || downloadedBytes >= totalBytes) {
                                 lastProgressUpdate = downloadedBytes
                                 val progress = (downloadedBytes.toFloat() / totalBytes).coerceIn(0f, 1f)
@@ -341,7 +378,7 @@ class DownloadRepository(
                         } catch (e: Exception) {
                             val is403 = e.message?.contains("403") == true
 
-                            // On 403, the URL likely expired — re-resolve it
+                            // En caso de 403, la URL probablemente expiró — resolverla nuevamente
                             if (is403 && urlRefreshCount < 3) {
                                 val newStream = streamResolver.resolveAudioStream(songId)
                                 currentUrl = newStream.streamUrl
@@ -354,10 +391,10 @@ class DownloadRepository(
                         }
                     }
 
-                    // If we broke out of the retry loop due to URL refresh, continue the outer loop
-                    // (the while loop will re-attempt the same range with the new URL)
+                    // Si salimos del bucle de reintentos por actualización de URL, continuar el bucle exterior
+                    // (el bucle while reintentará el mismo rango con la nueva URL)
                     if (!chunkSuccess && urlRefreshCount > 0) {
-                        // URL was refreshed, retry this chunk range
+                        // La URL se actualizó, reintentar este rango del bloque
                         continue
                     }
 
@@ -405,7 +442,7 @@ class DownloadRepository(
         }
     }
 
-    // ─── Fallback single-request download ──────────────────
+    // ─── Descarga individual de respaldo ──────────────────
 
     private suspend fun downloadSingleRequest(url: String, targetFile: File, songId: String) {
         withContext(Dispatchers.IO) {
@@ -446,13 +483,13 @@ class DownloadRepository(
     }
 
     /**
-     * Downloads audio with fallback strategies if range requests are rejected by the server.
+     * Descarga audio con estrategias de respaldo si el servidor rechaza solicitudes Range.
      *
-     * When the total size is known, attempts chunked range-based download. If the server rejects
-     * range requests (HTTP 403 or 416), refreshes the stream URL and retries as a single request.
-     * If that also fails with range rejection, falls back to yt-dlp-based URL resolution. When
-     * total size is unknown, attempts single-request download directly and uses yt-dlp fallback
-     * if range rejection occurs.
+     * Cuando se conoce el tamaño total, intenta una descarga por bloques con Range. Si el servidor rechaza
+     * las solicitudes Range (HTTP 403 o 416), actualiza la URL del stream y reintenta como solicitud individual.
+     * Si eso también falla con rechazo de Range, recurre a la resolución de URL con yt-dlp. Cuando
+     * el tamaño total es desconocido, intenta directamente una solicitud individual y usa yt-dlp como
+     * respaldo si ocurre un rechazo de Range.
      */
     private suspend fun downloadWithFallback(
         streamUrl: String,
@@ -490,13 +527,13 @@ class DownloadRepository(
     }
 
     /**
-     * Resolves a working download URL using yt-dlp when the standard in-process stream fails,
-     * then downloads it via HTTP single-request.
+     * Resuelve una URL de descarga funcional usando yt-dlp cuando el stream en proceso falla,
+     * luego la descarga mediante una solicitud HTTP individual.
      *
-     * Deletes any existing partial file before attempting download. If yt-dlp cannot resolve
-     * a URL, the original cause exception is thrown instead.
+     * Elimina cualquier archivo parcial existente antes de intentar la descarga. Si yt-dlp no puede
+     * resolver una URL, se lanza la excepción original en su lugar.
      *
-     * @throws Exception The original cause if yt-dlp cannot resolve a download URL.
+     * @throws Exception La excepción original si yt-dlp no puede resolver una URL de descarga.
      */
     private suspend fun downloadViaYtDlp(songId: String, partFile: File, cause: Exception) {
         log.warning("In-process stream failed for $songId; resolving download URL via yt-dlp")
@@ -507,9 +544,9 @@ class DownloadRepository(
     }
 
     /**
-     * Determines whether an exception represents a range or forbidden HTTP error.
+     * Determina si una excepción representa un error HTTP de rango o prohibido.
      *
-     * @return `true` if the exception message contains a 403 (Forbidden) or 416 (Range Not Satisfiable) error code, `false` otherwise.
+     * @return `true` si el mensaje de la excepción contiene un código 403 (Prohibido) o 416 (Rango No Satisfactorio), `false` en caso contrario.
      */
     private fun isRangeOrForbidden(e: Exception): Boolean {
         val m = e.message.orEmpty()
@@ -517,7 +554,7 @@ class DownloadRepository(
     }
 
     /**
-     * Applies HTTP headers required for downloading audio streams.
+     * Aplica los encabezados HTTP necesarios para descargar streams de audio.
      */
     private fun applyDownloadHeaders(connection: HttpURLConnection) {
         connection.instanceFollowRedirects = true
@@ -544,7 +581,7 @@ class DownloadRepository(
         )
     }
 
-    // ─── Helpers ───────────────────────────────────────────
+    // ─── Ayudantes ─────────────────────────────────────────
 
     private fun probeContentLength(url: String): Long? {
         return try {
@@ -590,7 +627,7 @@ class DownloadRepository(
                 )
             )
         }
-        // Always ensure artists and song-artist mappings exist
+        // Siempre asegurar que existan los artistas y los mapeos canción-artista
         song.artists.forEachIndexed { index, artist ->
             val artistId = artist.id ?: $$"unknown_${artist.name.hashCode()}"
             val existingArtist = databaseDao.artistById(artistId).firstOrNull()
@@ -610,7 +647,7 @@ class DownloadRepository(
             try {
                 databaseDao.insertSongArtistMap(song.id, artistId, index)
             } catch (_: Exception) {
-                // Map already exists — ignore
+                // El mapeo ya existe — ignorar
             }
         }
     }
@@ -626,7 +663,7 @@ class DownloadRepository(
                 sampleRate = stream.format.audioSampleRate,
                 contentLength = stream.format.contentLength ?: 0L,
                 loudnessDb = stream.audioConfig?.loudnessDb,
-                playbackUrl = null // don't persist URL — it expires
+                playbackUrl = null // no persistir la URL — expira
             )
         )
     }

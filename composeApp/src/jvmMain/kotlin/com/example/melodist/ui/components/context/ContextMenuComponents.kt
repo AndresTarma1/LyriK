@@ -221,7 +221,7 @@ fun SongContextMenuContent(
 
             if (showRemoveFromLibrary) {
                 ContextMenuItem(
-                    "Eliminar de biblioteca",
+                    stringResource(Res.string.context_remove_library),
                     Icons.Default.Delete,
                     MaterialTheme.colorScheme.error
                 ) { onAction(SongMenuAction.RemoveFromLibrary) }

@@ -3,9 +3,10 @@ package com.example.melodist.utils
 import kotlinx.coroutines.delay
 
 /**
- * Retries [block] up to [attempts] times with exponential backoff (1s, 2s, 4s, ...), for
- * best-effort pushes to YouTube (like/unlike, playlist add/remove) where a transient network
- * failure shouldn't silently drop the user's action. Returns the last result (success or failure).
+ * Reintenta [block] hasta [attempts] veces con retroceso exponencial (1s, 2s, 4s, ...), para
+ * envíos de esfuerzo máximo a YouTube (like/unlike, agregar/eliminar de playlist) donde un fallo
+ * de red transitorio no debería descartar silenciosamente la acción del usuario. Retorna el último
+ * resultado (éxito o fallo).
  */
 suspend fun <T> retryWithBackoff(
     attempts: Int = 3,

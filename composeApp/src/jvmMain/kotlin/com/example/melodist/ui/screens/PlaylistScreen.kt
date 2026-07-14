@@ -78,13 +78,15 @@ fun PlaylistScreenRoute(
         }
     }
 
-    // Local playlists are always editable; a saved (bookmarked) YouTube playlist becomes editable
-    // too once its songs are cached locally. isSaved can change while this screen is open (the
-    // bookmark button), so it must be in the remember key, unlike the playlist's immutable id.
-    // Auto-generated shelves (Mixes/Radios, id starts with "RD"; "SE" saved-episodes) are never
-    // really editable on YouTube's side — don't offer removal for those, even if bookmarked.
-    // "LM" (Liked Music) is the one exception: PlaylistViewModel.removeSongFromPlaylist maps
-    // removal there to a real unlike, so it stays editable.
+    // Las listas de reproducción locales siempre son editables; una lista de YouTube guardada
+    // (marcada con favorito) también se vuelve editable una vez que sus canciones se almacenan
+    // localmente en caché. isSaved puede cambiar mientras esta pantalla está abierta (el botón
+    // de favorito), por lo que debe estar en la clave del remember, a diferencia del id inmutable
+    // de la lista. Los estantes generados automáticamente (Mixes/Radios, id comienza con "RD";
+    // "SE" episodios guardados) nunca son realmente editables del lado de YouTube — no ofrecer
+    // eliminación para esos, incluso si están marcados. "LM" (Música que me gusta) es la única
+    // excepción: PlaylistViewModel.removeSongFromPlaylist mapea la eliminación de ahí a un
+    // dislike real, por lo que sigue siendo editable.
     val currentPlaylistId = successState?.playlistPage?.playlist?.id
     val isNonEditableAutoPlaylist = currentPlaylistId != null &&
         (currentPlaylistId == "SE" || currentPlaylistId.startsWith("RD"))
@@ -105,8 +107,9 @@ fun PlaylistScreenRoute(
                 { songId -> viewModel.removeSongFromPlaylist(songId) }
             } else null,
             onEditCover = { viewModel.pickAndSetCustomThumbnail() },
-            // Also true for a saved (bookmarked) YouTube playlist: its songs are cached locally
-            // too, and removal pushes to the real playlist (see PlaylistViewModel.removeSongFromPlaylist).
+            // También es cierto para una lista de YouTube guardada (marcada): sus canciones se
+            // almacenan localmente en caché también, y la eliminación se envía a la lista real
+            // (ver PlaylistViewModel.removeSongFromPlaylist).
             isLocalPlaylist = canEditPlaylist
         )
     }

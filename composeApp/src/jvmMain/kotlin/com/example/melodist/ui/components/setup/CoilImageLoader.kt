@@ -12,15 +12,15 @@ import kotlinx.coroutines.newFixedThreadPoolContext
 import okio.Path.Companion.toPath
 
 /**
- * Creates an optimized [ImageLoader] with both memory and disk caching.
+ * Crea un [ImageLoader] optimizado con caché en memoria y en disco.
  */
 object CoilSetup {
 
-    // Dedicated thread pool for image fetch/decode. We cap the global IO dispatcher
-    // (`kotlinx.coroutines.io.parallelism=16`) for memory; under long sessions that pool gets
-    // saturated by blocking IO (stream resolve, 8s URL validations, downloads), which starved Coil
-    // and made new thumbnails stop loading while cached ones still showed. Isolating Coil on its own
-    // pool fixes that without raising the global cap.
+    // Pool de hilos dedicado para la obtención y decodificación de imágenes. Limitamos el despachador
+    // IO global (`kotlinx.coroutines.io.parallelism=16`) por memoria; en sesiones largas ese pool se
+    // satura con E/S bloqueante (resolución de streams, validaciones de URL de 8s, descargas), lo que
+    // ahogaba a Coil y hacía que nuevas miniaturas dejaran de cargar mientras las en caché seguían
+    // mostrándose. Aislar Coil en su propio pool soluciona esto sin elevar el límite global.
     @OptIn(DelicateCoroutinesApi::class)
     private val imageDispatcher = newFixedThreadPoolContext(8, "coil-io")
 

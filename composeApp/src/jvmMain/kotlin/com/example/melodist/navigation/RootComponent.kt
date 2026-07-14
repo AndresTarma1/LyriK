@@ -41,7 +41,7 @@ class RootComponent(
 
     fun navigateTo(config: ScreenConfig) {
         navigation.navigate { stack ->
-            // Remove any existing instance of this config, then push it on top
+            // Eliminar cualquier instancia existente de esta configuración y agregarla al final
             stack.filterNot { it == config } + config
         }
     }
@@ -69,7 +69,7 @@ class RootComponent(
     }
 }
 
-// Each component owns its ViewModel so it survives back-stack
+// Cada componente posee su propio ViewModel para que sobreviva al retroceso de la pila
 
 class HomeComponent(componentContext: ComponentContext, val viewModel: HomeViewModel) :
     ComponentContext by componentContext

@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-// ─── UI States ────────────────────────────────────────────────
+// ─── Estados de la interfaz ────────────────────────────────────────────────
 
 sealed class AccountState {
     data object NotLoggedIn : AccountState()
@@ -39,13 +39,15 @@ class AccountViewModel(
 ) : MelodistViewModel() {
 
     /**
-     * Pulls the account's library (liked songs/albums/artists, saved playlists) after a
-     * successful login or session restore — previously nothing ever triggered this. Also
-     * reconciles YouTube-linked playlists' song lists when "Sincronizar con YouTube Music" is on.
+     * Obtiene la biblioteca de la cuenta (canciones/álbumes/artistas favoritas, playlists guardadas)
+     * después de un inicio de sesión exitoso o restauración de sesión — anteriormente nada activaba esto.
+     * También reconcilia las listas de canciones de las playlists vinculadas a YouTube cuando
+     * "Sincronizar con YouTube Music" está activado.
      *
-     * Cooldown-gated: this ViewModel is a Koin factory recreated every time the user navigates to
-     * the Account screen, so without a cooldown a full sync (plus a complete playlist-songs
-     * re-pull when ytmSyncEnabled is on) would hit YouTube on every single visit.
+     * Limitado por enfriamiento: este ViewModel es una fábrica de Koin que se recrea cada vez que
+     * el usuario navega a la pantalla de Cuenta, así que sin un enfriamiento una sincronización completa
+     * (más una recarga completa de playlist-canciones cuando ytmSyncEnabled está activo) accedería
+     * a YouTube en cada visita.
      */
     private suspend fun triggerPostLoginSync() {
         val now = System.currentTimeMillis()
@@ -60,9 +62,10 @@ class AccountViewModel(
     }
 
     /**
-     * Detects a YouTube account switch and wipes the previous account's library so it doesn't
-     * bleed into the new one (e.g. the old account's saved "Liked Music"). Keeps local playlists,
-     * downloads and local history. No-op on first login or when the account is unchanged.
+     * Detecta un cambio de cuenta de YouTube y limpia la biblioteca de la cuenta anterior para que
+     * no se mezcle con la nueva (por ejemplo, la "Música Favorita" guardada de la cuenta antigua).
+     * Mantiene las playlists locales, descargas e historial local. No hace nada en el primer inicio
+     * de sesión o cuando la cuenta no ha cambiado.
      */
     private suspend fun handleAccountChange(info: AccountInfo) {
         val currentId = info.email ?: info.channelHandle ?: info.name

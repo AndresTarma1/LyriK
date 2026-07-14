@@ -3,6 +3,9 @@ package com.example.melodist.ui.screens.library.tabs
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -40,11 +43,11 @@ fun AlbumsTab(
 ) {
     val isEmpty = albums.isEmpty() && ytmAlbums.isEmpty() && !isLoadingYtm
     if (isEmpty) {
-        LibraryEmptyState(Icons.Default.Album, "No hay albumes guardados", "Guarda albumes y apareceran aqui")
+        LibraryEmptyState(Icons.Default.Album, stringResource(Res.string.no_saved_albums), stringResource(Res.string.save_albums_hint))
         return
     }
     if (isLoadingYtm && ytmAlbums.isEmpty()) {
-        YtmSectionHeader("Albumes en YouTube Music", isLoading = true)
+        YtmSectionHeader(stringResource(Res.string.ytm_albums_section), isLoading = true)
         LibraryGridSkeleton(count = 4)
         return
     }

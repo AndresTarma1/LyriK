@@ -8,19 +8,19 @@ import com.example.melodist.download.DownloadState
 import com.example.melodist.viewmodels.DownloadViewModel
 
 /**
- * Helper composable that observes the download state of a single song.
- * This prevents observing the entire global state map in parent lists,
- * reducing recompositions significantly during mass downloads.
+ * Composable auxiliar que observa el estado de descarga de una sola canción.
+ * Esto evita observar el mapa de estado global completo en listas padre,
+ * reduciendo significativamente las recomposiciones durante descargas masivas.
  */
 @Composable
 fun rememberSongDownloadState(
     songId: String,
     downloadViewModel: DownloadViewModel
 ): State<DownloadState?> {
-    // Remember the flow so we don't recreate it on every recomposition
+    // Recordamos el flow para no recrearlo en cada recomposición
     val flow = remember(songId, downloadViewModel) {
         downloadViewModel.downloadStateFlow(songId)
     }
-    // Collect specific song state, defaulting to null
+    // Recolectamos el estado de la canción específica, con null como valor predeterminado
     return flow.collectAsState(initial = null)
 }

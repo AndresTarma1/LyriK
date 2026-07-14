@@ -7,6 +7,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import com.example.melodist.data.repository.DarkLevel
+import com.example.melodist.data.repository.IslandStyle
 import com.example.melodist.data.repository.LayoutMode
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
@@ -34,6 +35,7 @@ fun MelodistTheme(
     val palette by userPreferences.themePalette.collectAsState(ThemePalette.DEFAULT)
     val darkLevel by userPreferences.darkLevel.collectAsState(DarkLevel.DIM)
     val layoutMode by userPreferences.layoutMode.collectAsState(LayoutMode.ISLANDS)
+    val islandStyle by userPreferences.islandStyle.collectAsState(IslandStyle.COMFORTABLE)
 
     val isDarkTheme = when (themeMode) {
         ThemeMode.DARK -> true
@@ -72,7 +74,7 @@ fun MelodistTheme(
         typography = melodistTypography(),
     ) {
         CompositionLocalProvider(
-            LocalDimens provides dimensFor(layoutMode),
+            LocalDimens provides dimensFor(layoutMode, islandStyle),
             LocalLayoutMode provides layoutMode,
             content = content,
         )

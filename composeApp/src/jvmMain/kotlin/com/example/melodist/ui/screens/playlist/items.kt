@@ -62,6 +62,10 @@ import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.PlaceholderType
 import com.example.melodist.ui.components.context.SongContextMenuPopup
 import com.example.melodist.download.DownloadState
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.ui.helpers.rememberSongDownloadState
@@ -173,13 +177,13 @@ internal fun MultiSongSelectionBar(
 
     if (showRemoveConfirm) {
         ConfirmDestructiveActionDialog(
-            title = "Eliminar canciones",
-            message = "Se eliminarán ${selectedSongs.size} canciones de la playlist. Esta acción no se puede deshacer.",
-            confirmText = "Eliminar",
+            title = stringResource(Res.string.confirm_delete_songs_title),
+            message = stringResource(Res.string.confirm_delete_songs_message, selectedSongs.size),
+            confirmText = stringResource(Res.string.confirm_delete_songs_btn),
             onConfirm = {
                 selectedSongs.forEach { onRemoveFromPlaylist?.invoke(it.id) }
                 scope.launch {
-                    snackbar.showSnackbar("${selectedSongs.size} canciones eliminadas de la playlist")
+                    snackbar.showSnackbar(getString(Res.string.songs_removed_from_playlist, selectedSongs.size))
                 }
                 onClearSelection()
             },
@@ -188,7 +192,7 @@ internal fun MultiSongSelectionBar(
     }
 
     Surface(
-        tonalElevation = 6.dp,
+        tonalElevation = 0.dp,
         shadowElevation = 8.dp,
         shape = RoundedCornerShape(18.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -200,34 +204,34 @@ internal fun MultiSongSelectionBar(
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                "${selectedSongs.size} seleccionadas",
+                stringResource(Res.string.selected_count, selectedSongs.size),
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
             if (onSelectAll != null && allSongIds.isNotEmpty()) {
                 if (allSelected) {
                     IconButton(onClick = onClearSelection) {
-                        Icon(Icons.Default.Clear, "Deseleccionar todo")
+                        Icon(Icons.Default.Clear, stringResource(Res.string.cd_deselect_all))
                     }
                 } else {
                     IconButton(onClick = onSelectAll) {
-                        Icon(Icons.Default.AddBox, "Seleccionar todo")
+                        Icon(Icons.Default.AddBox, stringResource(Res.string.cd_select_all))
                     }
                 }
             }
             IconButton(onClick = { showPlaylistDialog = true }) {
-                Icon(Icons.AutoMirrored.Filled.PlaylistAdd, "Añadir a playlist")
+                Icon(Icons.AutoMirrored.Filled.PlaylistAdd, stringResource(Res.string.cd_add_to_playlist))
             }
             IconButton(onClick = { downloadViewModel.downloadAll(selectedSongs) }) {
-                Icon(Icons.Default.Download, "Descargar")
+                Icon(Icons.Default.Download, stringResource(Res.string.cd_download))
             }
             if (isLocalPlaylist && onRemoveFromPlaylist != null) {
                 IconButton(onClick = { showRemoveConfirm = true }) {
-                    Icon(Icons.Default.Delete, "Quitar de playlist", tint = MaterialTheme.colorScheme.error)
+                    Icon(Icons.Default.Delete, stringResource(Res.string.cd_remove_from_playlist), tint = MaterialTheme.colorScheme.error)
                 }
             }
             IconButton(onClick = onClearSelection) {
-                Icon(Icons.Default.Close, "Cancelar")
+                Icon(Icons.Default.Close, stringResource(Res.string.btn_cancel))
             }
         }
     }
@@ -316,7 +320,7 @@ internal fun SongListItem(
             ) {
                 ListItem(
                     title = song.title,
-                    subtitle = song.artists.joinToString(", ") { it.name }.ifEmpty { "Artista desconocido" },
+                    subtitle = song.artists.joinToString(", ") { it.name }.ifEmpty { stringResource(Res.string.unknown_artist) },
                     badges = {
                         if (showDownloadIndicator) {
                             DownloadIndicator(

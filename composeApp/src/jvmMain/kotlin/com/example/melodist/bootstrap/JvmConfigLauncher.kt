@@ -23,10 +23,10 @@ class JvmConfigLauncher(
                 System.getProperty("skiko.renderApi") != null
         if (customRenderApiRequested) return
 
-        // DIRECTX means "let skiko auto-pick the platform default" — Direct3D on Windows, OpenGL on
-        // Linux, Metal on macOS. Pinning "skiko.renderApi=DIRECTX" would be an invalid value off
-        // Windows (skiko has no such API), so only set the property for an explicit non-default
-        // choice; otherwise leave it unset so skiko chooses correctly per-OS.
+        // DIRECTX significa "dejar que skiko elija automáticamente la plataforma por defecto" — Direct3D en Windows,
+        // OpenGL en Linux, Metal en macOS. Fijar "skiko.renderApi=DIRECTX" sería un valor inválido fuera de
+        // Windows (skiko no tiene dicha API), así que solo se establece la propiedad para una elección
+        // no por defecto explícita; de lo contrario se deja sin establecer para que skiko elija correctamente por SO.
         if (config.renderApi != RenderApi.DIRECTX) {
             System.setProperty("skiko.renderApi", config.renderApi.name)
         }

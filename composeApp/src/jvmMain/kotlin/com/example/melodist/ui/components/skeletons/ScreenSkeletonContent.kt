@@ -133,7 +133,7 @@ internal fun SkeletonSongRow() {
         modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Index / PlayArrow box — 36dp wide
+        // Caja de índice / PlayArrow — 36dp de ancho
         Box(Modifier.width(36.dp).height(36.dp).shimmerBackground(RoundedCornerShape(4.dp)))
         Spacer(Modifier.width(8.dp))
         Column(Modifier.weight(1f)) {

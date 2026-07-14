@@ -2,6 +2,7 @@ package com.example.melodist.ui.screens
 
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
 import androidx.compose.animation.*
@@ -230,14 +231,16 @@ private fun LoginSection(
         }
     }
 
-    fun handleCookieResult(result: CookieExtractResult) {
+    // suspend, not @Composable: called from scope.launch{} below, and stringResource() can't be
+    // called outside composition — getString() is the coroutine-safe equivalent.
+    suspend fun handleCookieResult(result: CookieExtractResult) {
         browserLoginStep = null
         when (result) {
             is CookieExtractResult.Success -> {
                 onLoginWithCookie(result.cookie)
             }
             is CookieExtractResult.Error -> {
-                browserLoginStep = "Error: ${result.message}"
+                browserLoginStep = getString(Res.string.browser_login_error, result.message)
             }
         }
     }
@@ -271,7 +274,7 @@ private fun LoginSection(
                 Card(
                     onClick = {
                         scope.launch {
-                            browserLoginStep = "Opening browser..."
+                            browserLoginStep = getString(Res.string.opening_browser)
                             val result = BrowserLoginHelper.loginWithBrowser { status ->
                                 browserLoginStep = status
                             }
@@ -303,13 +306,13 @@ private fun LoginSection(
                         }
                         Spacer(Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                "Sign in with browser",
+                                Text(
+                                stringResource(Res.string.sign_in_with_browser),
                                 style = MaterialTheme.typography.titleMedium,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer
                             )
                             Text(
-                                "Opens a browser window. Sign in to YouTube Music, then close it.",
+                                stringResource(Res.string.sign_in_with_browser_desc),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
                             )
@@ -349,13 +352,13 @@ private fun LoginSection(
                         null, Modifier.size(18.dp)
                     )
                     Spacer(Modifier.width(4.dp))
-                    Text("Import from existing browser session")
+                    Text(stringResource(Res.string.import_from_browser))
                 }
 
                 AnimatedVisibility(visible = showAdvanced) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            "Pick a browser where you're already signed in to YouTube Music.",
+                            stringResource(Res.string.pick_browser_desc),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -363,7 +366,7 @@ private fun LoginSection(
                             Card(
                                 onClick = {
                                     scope.launch {
-                                        browserLoginStep = "Reading cookies from ${browser.name}..."
+                                        browserLoginStep = getString(Res.string.reading_cookies, browser.name)
                                         val result = withContext(Dispatchers.IO) {
                                             BrowserCookieExtractor.extractYouTubeCookies(browser)
                                         }
@@ -401,7 +404,7 @@ private fun LoginSection(
                                     }
                                     Icon(
                                         Icons.AutoMirrored.Filled.Login,
-                                        contentDescription = "Import",
+                                        contentDescription = stringResource(Res.string.cd_import),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
@@ -418,7 +421,7 @@ private fun LoginSection(
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f))
                 Text(
-                    " or paste cookie manually ",
+                    stringResource(Res.string.or_paste_cookie),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -779,7 +782,7 @@ private fun AccountProfileHeader(accountInfo: com.metrolist.innertube.models.Acc
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                     Text(
-                        "Cookie: ${cookieSize} bytes • $cookiePath",
+                        stringResource(Res.string.cookie_info, cookieSize, cookiePath),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         maxLines = 1,

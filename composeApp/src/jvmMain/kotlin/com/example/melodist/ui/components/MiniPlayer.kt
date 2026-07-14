@@ -10,13 +10,10 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.foundation.border
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsDraggedAsState
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
@@ -39,21 +36,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.melodist.data.repository.LayoutMode
+import com.example.melodist.data.repository.SeekBarStyle
 import com.example.melodist.player.PlaybackState
 import com.example.melodist.ui.components.player.heroCoverElement
 import com.example.melodist.ui.themes.LocalDimens
@@ -63,12 +60,9 @@ import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.isWideThumbnail
 import com.example.melodist.viewmodels.PlayerProgressState
 import com.example.melodist.viewmodels.RepeatMode
-import ir.mahozad.multiplatform.wavyslider.WaveDirection
-import ir.mahozad.multiplatform.wavyslider.material3.WavySlider
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
-import kotlin.math.roundToInt
 
 
 @OptIn(
@@ -80,7 +74,6 @@ import kotlin.math.roundToInt
 @Composable
 fun MiniPlayer(
     progressState: PlayerProgressState,
-    onClickExpand: () -> Unit,
     onToggleNowPlaying: () -> Unit,
     isNowPlayingExpanded: Boolean,
     onToggleQueue: () -> Unit,
@@ -92,17 +85,12 @@ fun MiniPlayer(
     val state by playerViewModel.uiState.collectAsState()
     val song = state.currentSong ?: return
 
-    val computedProgress = remember(progressState.positionMs, progressState.durationMs, song.id) {
-        if (progressState.durationMs > 0)
-            progressState.positionMs.toFloat() / progressState.durationMs.toFloat()
-        else 0f
-    }
-    var seekValue by remember(song.id) { mutableStateOf<Float?>(null) }
-    val sliderProgress = seekValue ?: computedProgress
     val isError = state.playbackState == PlaybackState.ERROR
 
     val isPlaying = state.playbackState == PlaybackState.PLAYING
     val isLoading = state.playbackState == PlaybackState.LOADING
+
+
 
     val ratio = remember(song.thumbnailUrl) {
         if (isWideThumbnail(song.thumbnailUrl)) 16f / 9f else 1f
@@ -122,7 +110,8 @@ fun MiniPlayer(
             .height(88.dp),
         color = if (islands) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(if (islands) dimens.surfaceCorner else 0.dp),
-        tonalElevation = 0.dp
+        tonalElevation = 0.dp,
+        shadowElevation = if (islands) dimens.surfaceElevation else 0.dp,
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             Row(
@@ -139,8 +128,7 @@ fun MiniPlayer(
                     val thumbSize = (infoHeight * 0.85f).coerceAtMost(64.dp)
 
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
                         AnimatedVisibility(
                             visible = !isNowPlayingExpanded,
@@ -148,6 +136,8 @@ fun MiniPlayer(
                             exit = fadeOut(tween(180)) + shrinkHorizontally(tween(220)),
                         ) {
                             var isHovered by remember { mutableStateOf(false) }
+                            val overlayAlpha =if (isHovered) 0.38f else 0f
+
                             Box(
                                 modifier = Modifier
                                 .sizeIn(maxWidth = thumbSize * ratio, maxHeight = thumbSize)
@@ -167,19 +157,22 @@ fun MiniPlayer(
                                     iconSize = 24.dp,
                                 )
 
-                                if (isHovered) {
+                                Box(
+                                    modifier = Modifier
+                                        .matchParentSize()
+                                        .alpha(overlayAlpha)
+                                        .background(Color.Black)
+                                )
 
+                                if (isHovered) {
                                     Box(
                                         modifier = Modifier
-                                            .align(Alignment.Center)
-                                            .matchParentSize()
-                                            .background(
-                                                color = Color.Black.copy(alpha = 0.6f),
-                                            ),
+                                            .matchParentSize(),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = if (isNowPlayingExpanded) Icons.Default.ArrowDropDown else Icons.Default.ArrowDropUp,
+                                            modifier = Modifier.size(32.dp),
                                             contentDescription = if (isNowPlayingExpanded) stringResource(Res.string.mp_collapse) else stringResource(
                                                 Res.string.mp_expand
                                             ),
@@ -187,10 +180,10 @@ fun MiniPlayer(
                                         )
                                     }
                                 }
-
-
                             }
                         }
+
+                        Spacer(Modifier.width(12.dp))
 
                         Column(
                             modifier = Modifier
@@ -335,6 +328,7 @@ fun MiniPlayer(
                     }
                     var localSliderValue by remember { mutableStateOf(0f) }
                     var isDragging by remember { mutableStateOf(false) }
+                    val seekBarStyle by playerViewModel.seekBarStyle.collectAsState(SeekBarStyle.WAVY)
 
                     LaunchedEffect(progressState.positionMs, progressState.durationMs) {
                         if (!isDragging && progressState.durationMs > 0) {
@@ -352,26 +346,21 @@ fun MiniPlayer(
                             null
                         )
 
-                        Box(modifier = Modifier.weight(1f).height(24.dp), contentAlignment = Alignment.Center) {
-                            WavySlider(
-                                value = localSliderValue,
-                                onValueChange = {
-                                    isDragging = true
-                                    localSliderValue = it
-                                },
-                                onValueChangeFinished = {
-                                    val targetPosition = (localSliderValue * progressState.durationMs).toLong()
-                                    playerViewModel.seekTo(targetPosition)
-                                    isDragging = false
-                                },
-                                waveLength = 102.dp,
-                                waveHeight = if (isPlaying || isDragging) 10.dp else 0.dp,
-                                waveVelocity = if (isPlaying && !isDragging) 28.dp to WaveDirection.TAIL else 0.dp to WaveDirection.TAIL,
-                                waveThickness = 8.dp,
-                                trackThickness = 9.dp,
-                                incremental = false,
-                            )
-                        }
+                        PlayerSeekBar(
+                            style = seekBarStyle,
+                            value = localSliderValue,
+                            onValueChange = {
+                                isDragging = true
+                                localSliderValue = it
+                            },
+                            onValueChangeFinished = {
+                                val targetPosition = (localSliderValue * progressState.durationMs).toLong()
+                                playerViewModel.seekTo(targetPosition)
+                                isDragging = false
+                            },
+                            modifier = Modifier.weight(1f),
+                            isPlaying = isPlaying || isDragging,
+                        )
 
                         TimeText(progressState.durationMs)
                     }
@@ -401,7 +390,7 @@ fun MiniPlayer(
                         )
                         Spacer(Modifier.width(4.dp))
 
-                        SlimVolumeSlider(
+                        SlimSlider(
                             value = volumeFloat,
                             onValueChange = { playerViewModel.setVolume((it * 100).toInt()) },
                             modifier = Modifier.width(80.dp),
@@ -488,73 +477,5 @@ fun TimeText(millis: Long, seekValue: Float? = null) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.width(36.dp)
     )
-}
-
-/**
- * Thin, custom volume slider — the stock M3 Slider in this Compose version uses the "Expressive"
- * design tokens (16dp track, 44dp thumb), which looks oversized for the mini-player. Click anywhere
- * on the track to jump, drag to adjust; the thumb grows slightly while dragging for feedback.
- */
-@Composable
-private fun SlimVolumeSlider(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    modifier: Modifier = Modifier,
-    activeColor: Color,
-    inactiveColor: Color,
-) {
-    val density = LocalDensity.current
-    var isDragging by remember { mutableStateOf(false) }
-    val thumbDiameter by animateDpAsState(if (isDragging) 12.dp else 8.dp)
-    val fraction = value.coerceIn(0f, 1f)
-
-    BoxWithConstraints(
-        modifier = modifier
-            .height(20.dp)
-            .pointerHoverIcon(PointerIcon.Hand)
-            .pointerInput(Unit) {
-                detectTapGestures { offset ->
-                    onValueChange((offset.x / size.width).coerceIn(0f, 1f))
-                }
-            }
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart = { isDragging = true },
-                    onDragEnd = { isDragging = false },
-                    onDragCancel = { isDragging = false },
-                ) { change, _ ->
-                    change.consume()
-                    onValueChange((change.position.x / size.width).coerceIn(0f, 1f))
-                }
-            },
-    ) {
-        val widthPx = with(density) { maxWidth.toPx() }
-        val thumbRadiusPx = with(density) { (thumbDiameter / 2).toPx() }
-
-        Box(
-            Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth()
-                .height(3.dp)
-                .clip(RoundedCornerShape(50))
-                .background(inactiveColor)
-        )
-        Box(
-            Modifier
-                .align(Alignment.CenterStart)
-                .fillMaxWidth(fraction)
-                .height(3.dp)
-                .clip(RoundedCornerShape(50))
-                .background(activeColor)
-        )
-        Box(
-            Modifier
-                .align(Alignment.CenterStart)
-                .offset { IntOffset((widthPx * fraction - thumbRadiusPx).roundToInt(), 0) }
-                .size(thumbDiameter)
-                .clip(CircleShape)
-                .background(activeColor)
-        )
-    }
 }
 

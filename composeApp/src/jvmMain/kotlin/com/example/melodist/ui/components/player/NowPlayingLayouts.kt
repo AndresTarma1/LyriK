@@ -36,6 +36,7 @@ import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.rounded.Album
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.ClosedCaption
 import androidx.compose.material.icons.rounded.Explicit
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -43,6 +44,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Lyrics
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.LockOpen
+import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material.icons.rounded.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -99,7 +101,7 @@ import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
 
-/** The three views available in the right-hand panel of the expanded Now Playing screen. */
+/** Las tres vistas disponibles en el panel derecho de la pantalla de Reproduciendo Ampliada. */
 enum class NowPlayingTab { LYRICS, QUEUE, INFO }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
@@ -186,6 +188,8 @@ fun NowPlayingLayout(
     if (showEqualizer) {
         AlertDialog(
             onDismissRequest = { showEqualizer = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 0.dp,
             icon = { Icon(Icons.Rounded.GraphicEq, null) },
             title = { Text(stringResource(Res.string.equalizer_title)) },
             text = {
@@ -208,8 +212,9 @@ fun NowPlayingLayout(
 // ==========================================
 
 /**
- * Spotify-style expanded layout: cover art + song info stay fixed on the left; the right side is
- * a tabbed panel (Letras / Cola / Información) that swaps content without disturbing the left side.
+ * Diseño ampliado al estilo Spotify: la portada y la información de la canción permanecen fijas
+ * a la izquierda; el lado derecho es un panel con pestañas (Letras / Cola / Información) que
+ * cambia el contenido sin alterar el lado izquierdo.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
@@ -255,14 +260,6 @@ private fun ExpandedNowPlayingLayout(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .width(1.dp)
-                .fillMaxHeight()
-                .padding(vertical = 24.dp)
-                .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.15f))
-        )
-
         Column(modifier = Modifier.weight(0.58f).fillMaxHeight()) {
             NowPlayingTabRow(
                 selectedTab = selectedTab,
@@ -285,7 +282,7 @@ private fun ExpandedNowPlayingLayout(
     }
 }
 
-/** Narrow-window fallback: cover + info on top, the selected tab fills the rest below. */
+/** Respaldo para ventana estrecha: portada + información arriba, la pestaña seleccionada ocupa el resto abajo. */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun CompactNowPlayingLayout(
@@ -341,7 +338,7 @@ private fun CompactNowPlayingLayout(
     }
 }
 
-/** Spotify-style pill "button tabs" for switching the right-hand panel. */
+/** Botones tipo píldora al estilo Spotify para cambiar el panel derecho. */
 @Composable
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 private fun tabIcon(tab: NowPlayingTab) = when (tab) {
@@ -574,40 +571,101 @@ private fun BoxScope.LyricsContent(
     }
 }
 
+/** 0.5f → "0.5x", 1.0f → "1.0x". Locale.US para que el decimal siempre sea un punto. */
+private fun formatSpeed(speed: Float): String = String.format(java.util.Locale.US, "%.1fx", speed)
+
 @Composable
 private fun BoxScope.TopActionOverlay(
     showMenu: Boolean,
     onMenuToggle: (Boolean) -> Unit,
     onOpenEqualizer: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .align(Alignment.TopEnd)
-            .pointerHoverIcon(PointerIcon.Hand)
+    val playerViewModel = LocalPlayerViewModel.current
+    val speed by playerViewModel.playbackSpeed.collectAsState(1f)
+    var showSpeedMenu by remember { mutableStateOf(false) }
+    val speeds = listOf(0.5f, 1.0f, 1.5f, 2.0f)
+
+    Row(
+        modifier = Modifier.align(Alignment.TopEnd),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        IconButton(
-            onClick = { onMenuToggle(true) },
-            modifier = Modifier.size(40.dp)
-        ) {
-            Icon(
-                Icons.Filled.MoreVert,
-                contentDescription = stringResource(Res.string.more_options),
-                tint = MaterialTheme.colorScheme.onSurface
-            )
+        // Píldora de velocidad de reproducción: abre un menú desplegable con velocidades discretas (sin control deslizante libre).
+        Box {
+            Surface(
+                onClick = { showSpeedMenu = true },
+                shape = RoundedCornerShape(50),
+                color = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = 0.55f),
+                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.Speed, null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Text(
+                        formatSpeed(speed),
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+            DropdownMenu(
+                expanded = showSpeedMenu,
+                onDismissRequest = { showSpeedMenu = false },
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+                shadowElevation = 8.dp,
+            ) {
+                speeds.forEach { s ->
+                    DropdownMenuItem(
+                        text = { Text(formatSpeed(s)) },
+                        onClick = { playerViewModel.setPlaybackSpeed(s); showSpeedMenu = false },
+                        trailingIcon = {
+                            if (kotlin.math.abs(s - speed) < 0.01f) {
+                                Icon(
+                                    Icons.Rounded.Check, null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    )
+                }
+            }
         }
 
-        DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = { onMenuToggle(false) },
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            shadowElevation = 8.dp,
-        ) {
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.equalizer_menu)) },
-                onClick = { onMenuToggle(false); onOpenEqualizer() },
-                leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
-            )
+        // Menú de opciones adicionales (ecualizador, ...).
+        Box(modifier = Modifier.pointerHoverIcon(PointerIcon.Hand)) {
+            IconButton(
+                onClick = { onMenuToggle(true) },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    Icons.Filled.MoreVert,
+                    contentDescription = stringResource(Res.string.more_options),
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { onMenuToggle(false) },
+                containerColor = MaterialTheme.colorScheme.surface,
+                tonalElevation = 0.dp,
+                shadowElevation = 8.dp,
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(Res.string.equalizer_menu)) },
+                    onClick = { onMenuToggle(false); onOpenEqualizer() },
+                    leadingIcon = { Icon(Icons.Rounded.GraphicEq, null) }
+                )
+            }
         }
     }
 }
@@ -868,6 +926,8 @@ fun PlaybackQueuePanel(
     if (showSaveQueueDialog) {
         AlertDialog(
             onDismissRequest = { showSaveQueueDialog = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 0.dp,
             title = { Text(stringResource(Res.string.save_queue_title)) },
             text = {
                 OutlinedTextField(
@@ -1013,38 +1073,9 @@ fun SongHeader(
                 )
             }
         }
-
-        song.album?.let { album ->
-            Spacer(Modifier.height(4.dp))
-            Row(
-                horizontalArrangement = if (textAlign == TextAlign.Start) Arrangement.Start else Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(
-                    Icons.Rounded.Album,
-                    contentDescription = null,
-                    modifier = Modifier.size(if (compact) 12.dp else 14.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(Modifier.width(4.dp))
-                Text(
-                    text = album.title,
-                    style = if (compact) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(6.dp))
-                        .clickable {
-                            onCollapse?.invoke()
-                            onNavigate?.invoke(Route.Album(album.id))
-                        }
-                        .pointerHoverIcon(PointerIcon.Hand)
-                        .padding(horizontal = 2.dp)
-                )
-            }
-        }
+        // El álbum no se repite aquí intencionalmente — ya aparece en la pestaña "Información", y el
+        // chip de origen de la cola arriba generalmente también lo nombra. Mantener el encabezado
+        // con título + artistas + like deja la columna de portada más tranquila.
     }
 }
 
@@ -1096,7 +1127,7 @@ fun QueueItem(
         ) {
 
             Box {
-                // Thumbnail
+                // Miniatura
                 Box(
                     modifier = Modifier
                         .size(48.dp)

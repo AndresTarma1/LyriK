@@ -29,6 +29,13 @@
     <string name="update_installing">Iniciando el instalador…</string>
     <string name="update_failed">Falló la descarga. Inténtalo de nuevo.</string>
     <string name="update_later">Más tarde</string>
+    <string name="update_ready_title">Actualización lista</string>
+    <string name="update_ready_message">La versión %1$s se descargó y está lista para instalarse. ¿Instalar ahora? La app se cerrará para actualizar.</string>
+    <string name="update_install_now">Instalar ahora</string>
+    <string name="update_install_later">Instalar luego</string>
+    <string name="check_updates_downloading">Descargando actualización…</string>
+    <string name="check_updates_ready">Actualización lista para instalar</string>
+    <string name="btn_install_update">Instalar actualización</string>
 
     <!-- Settings -->
     <string name="settings_title">Configuración</string>
@@ -48,6 +55,13 @@
     <string name="show_images_subtitle">Mostrar imágenes de portada</string>
     <string name="crossfade">Crossfade</string>
     <string name="crossfade_subtitle">Aplicar un crossfade entre pistas de 5s</string>
+    <string name="seek_bar_style">Estilo de la barra de progreso</string>
+    <string name="seek_bar_style_subtitle">Elige cómo se ve la barra del reproductor</string>
+    <string name="seek_bar_style_title">Estilo de la barra</string>
+    <string name="seek_bar_style_wavy">Ondulada</string>
+    <string name="seek_bar_style_linear">Lineal</string>
+    <string name="seek_bar_style_material">Material</string>
+    <string name="seek_bar_style_minimal">Minimalista</string>
     <string name="section_sync">Sincronización</string>
     <string name="offline_mode">Modo sin conexión</string>
     <string name="offline_mode_subtitle">No hacer peticiones de red: solo reproduce canciones descargadas y usa la biblioteca local.</string>
@@ -98,8 +112,19 @@
     <string name="btn_open">Abrir</string>
     <string name="clear_download_cache">Limpiar caché de descargas</string>
     <string name="btn_clear">Limpiar</string>
+    <string name="btn_cancel">Cancelar</string>
     <string name="skiko_rendering">Renderizado (Skiko)</string>
     <string name="render_api_restart">Render API (requiere reinicio)</string>
+    <string name="section_support">Ayuda y soporte</string>
+    <string name="check_updates">Buscar actualizaciones</string>
+    <string name="check_updates_subtitle">Comprueba si hay una nueva versión de LyriK</string>
+    <string name="check_updates_checking">Buscando…</string>
+    <string name="check_updates_up_to_date">Ya tienes la última versión</string>
+    <string name="check_updates_failed">No se pudo comprobar. Revisa tu conexión.</string>
+    <string name="btn_check">Buscar</string>
+    <string name="report_bug">Reportar un error</string>
+    <string name="report_bug_subtitle">Abre una incidencia en GitHub con la versión y el sistema operativo</string>
+    <string name="btn_report">Reportar</string>
     <string name="about_title">LyriK</string>
     <string name="about_subtitle">Reproductor de música de escritorio</string>
     <string name="version_prefix">v</string>
@@ -358,6 +383,10 @@
     <string name="dark_level_black">AMOLED (negro puro)</string>
     <string name="layout_islands">Islas dinámicas</string>
     <string name="layout_attached">Pegado / compacto</string>
+    <string name="settings_island_style">Estilo de las islas</string>
+    <string name="island_style_compact">Compacto</string>
+    <string name="island_style_comfortable">Cómodo</string>
+    <string name="island_style_spacious">Amplio</string>
 
     <!-- Theme palettes -->
     <string name="palette_default">Por defecto</string>
@@ -486,4 +515,82 @@
     <string name="lt_connection_error">Error de conexión: %1$s</string>
     <string name="lt_default_host">Anfitrión</string>
     <string name="lt_default_guest">Invitado</string>
+
+    <!-- Playlist bulk actions -->
+    <string name="confirm_delete_songs_title">Eliminar canciones</string>
+    <string name="confirm_delete_songs_message">Se eliminarán %1$d canciones de la playlist. Esta acción no se puede deshacer.</string>
+    <string name="confirm_delete_songs_btn">Eliminar</string>
+    <string name="songs_removed_from_playlist">%1$d canciones eliminadas de la playlist</string>
+    <string name="selected_count">%1$d seleccionadas</string>
+    <string name="cd_deselect_all">Deseleccionar todo</string>
+    <string name="cd_select_all">Seleccionar todo</string>
+    <string name="cd_add_to_playlist">Añadir a playlist</string>
+    <string name="cd_download">Descargar</string>
+    <string name="cd_remove_from_playlist">Quitar de playlist</string>
+    <string name="unknown_artist">Artista desconocido</string>
+
+    <!-- Song context menu snackbars -->
+    <string name="snackbar_added_to_downloads">%1$s agregada a descargas</string>
+    <string name="snackbar_download_cancelled">Descarga cancelada</string>
+    <string name="snackbar_download_removed">Descarga eliminada</string>
+    <string name="snackbar_play_next">%1$s será reproducida después</string>
+    <string name="snackbar_added_to_queue">%1$s añadida a la cola</string>
+    <string name="snackbar_removed_from_playlist">%1$s eliminada de la playlist</string>
+
+    <!-- Add to playlist dialog -->
+    <string name="create_new_playlist">Crear nueva playlist</string>
+    <string name="add_n_to_playlist">Añadir %1$d a playlist</string>
+    <string name="no_playlists_yet">No tienes playlists guardadas todavía.</string>
+    <string name="added_to_playlist">Añadido%1$s a «%2$s»</string>
+    <string name="playlist_created_with">Playlist «%1$s» creada con %2$d canciones</string>
+    <string name="create_and_add">Crear y añadir</string>
+    <string name="new_playlist">Nueva playlist</string>
+
+    <!-- Library empty states -->
+    <string name="no_saved_playlists">No hay playlists guardadas</string>
+    <string name="save_playlists_hint">Guarda playlists y aparecerán aquí</string>
+    <string name="ytm_playlists_section">Playlists de YouTube Music</string>
+    <string name="downloads">Descargas</string>
+    <string name="n_songs">%1$d canciones</string>
+    <string name="no_saved_albums">No hay álbumes guardados</string>
+    <string name="save_albums_hint">Guarda álbumes y aparecerán aquí</string>
+    <string name="ytm_albums_section">Álbumes en YouTube Music</string>
+    <string name="no_saved_artists">No hay artistas guardados</string>
+    <string name="save_artists_hint">Sigue artistas y aparecerán aquí</string>
+    <string name="empty_library">Biblioteca vacía</string>
+    <string name="empty_library_hint">Guarda álbumes, artistas o playlists</string>
+
+    <!-- Album / Playlist layouts -->
+    <string name="cd_delete_downloads">Eliminar descargas</string>
+    <string name="cd_download_album">Descargar álbum</string>
+    <string name="cd_download_playlist">Descargar playlist</string>
+    <string name="author_label">Autor</string>
+    <string name="album_label">Álbum</string>
+    <string name="songs_duration">%1$d canciones · %2$s</string>
+
+    <!-- Account screen (browser login) -->
+    <string name="browser_login_error">Error: %1$s</string>
+    <string name="opening_browser">Abriendo navegador…</string>
+    <string name="sign_in_with_browser">Iniciar sesión con navegador</string>
+    <string name="sign_in_with_browser_desc">Abre una ventana del navegador. Inicia sesión en YouTube Music, luego ciérrala.</string>
+    <string name="import_from_browser">Importar desde sesión de navegador</string>
+    <string name="pick_browser_desc">Elige un navegador donde ya estés conectado a YouTube Music.</string>
+    <string name="reading_cookies">Leyendo cookies de %1$s…</string>
+    <string name="cd_import">Importar</string>
+    <string name="or_paste_cookie"> o pega la cookie manualmente </string>
+    <string name="cookie_info">Cookie: %1$d bytes · %2$s</string>
+
+    <!-- Equalizer presets -->
+    <string name="eq_preset_flat">Flat</string>
+    <string name="eq_preset_rock">Rock</string>
+    <string name="eq_preset_pop">Pop</string>
+    <string name="eq_preset_jazz">Jazz</string>
+    <string name="eq_preset_classical">Classical</string>
+    <string name="eq_preset_bass_boost">Bass Boost</string>
+    <string name="eq_preset_dance">Dance</string>
+    <string name="eq_preset_acoustic">Acoustic</string>
+    <string name="eq_presets">Presets</string>
+
+    <!-- Loading -->
+    <string name="loading_more_songs">Cargando más canciones…</string>
 </resources>

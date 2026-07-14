@@ -31,7 +31,7 @@ enum class ConnectionState { DISCONNECTED, CONNECTING, CONNECTED, RECONNECTING, 
 
 enum class RoomRole { HOST, GUEST, NONE }
 
-/** Events emitted by the client for the manager/UI to react to. */
+/** Eventos emitidos por el cliente para que el manager/la UI reaccionen. */
 sealed class ListenTogetherEvent {
     data class Connected(val userId: String) : ListenTogetherEvent()
     data object Disconnected : ListenTogetherEvent()
@@ -64,9 +64,9 @@ private sealed class PendingAction {
 }
 
 /**
- * WebSocket client for the Listen Together protocol — a ktor/CIO port of Metrolist's
- * `ListenTogetherClient`. Handles connection, room lifecycle and message dispatch; playback
- * bridging lives in [ListenTogetherManager].
+ * Cliente WebSocket para el protocolo Listen Together — un puerto ktor/CIO del
+ * `ListenTogetherClient` de Metrolist. Maneja la conexión, el ciclo de vida de la sala y el
+ * despacho de mensajes; el puente de reproducción está en [ListenTogetherManager].
  */
 class ListenTogetherClient(
     private val serverUrlProvider: () -> String = { ListenTogetherServers.defaultServerUrl },
@@ -93,7 +93,7 @@ class ListenTogetherClient(
     private var reconnectAttempts = 0
     private var explicitlyDisconnected = false
 
-    // Persisted-in-memory session info (enough to recover from a network blip within a run).
+    // Información de sesión persistida en memoria (suficiente para recuperarse de un fallo de red dentro de una ejecución).
     private var sessionToken: String? = null
     private var storedRoomCode: String? = null
     private var storedUsername: String? = null
@@ -119,7 +119,7 @@ class ListenTogetherClient(
     val isInRoom: Boolean get() = _roomState.value != null
     val isHost: Boolean get() = _role.value == RoomRole.HOST
 
-    // ---- Connection ----
+    // ---- Conexión ----
 
     fun connect() {
         if (_connectionState.value == ConnectionState.CONNECTED || _connectionState.value == ConnectionState.CONNECTING) {
@@ -208,7 +208,7 @@ class ListenTogetherClient(
             _connectionState.value = ConnectionState.DISCONNECTED
             return
         }
-        // Auto-reconnect if we still have a session to recover.
+        // Reconexión automática si aún tenemos una sesión que recuperar.
         if (sessionToken != null && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             reconnectAttempts++
             _connectionState.value = ConnectionState.RECONNECTING
@@ -256,7 +256,7 @@ class ListenTogetherClient(
         pingJob = null
     }
 
-    // ---- Sending ----
+    // ---- Envío ----
 
     private inline fun <reified T> send(type: String, payload: T?) {
         try {
@@ -269,7 +269,7 @@ class ListenTogetherClient(
         }
     }
 
-    // ---- Public room API ----
+    // ---- API pública de salas ----
 
     fun createRoom(username: String) {
         sessionToken = null
@@ -350,7 +350,7 @@ class ListenTogetherClient(
         )
     }
 
-    // ---- Receiving ----
+    // ---- Recepción ----
 
     private fun handleMessage(data: ByteArray) {
         try {

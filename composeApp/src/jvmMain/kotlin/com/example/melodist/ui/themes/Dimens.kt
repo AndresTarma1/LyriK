@@ -3,6 +3,7 @@ package com.example.melodist.ui.themes
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.example.melodist.data.repository.IslandStyle
 import com.example.melodist.data.repository.LayoutMode
 
 /**
@@ -30,15 +31,21 @@ data class Dimens(
     val surfacePadding: Dp,
     /** Corner radius for inner items (list rows, thumbnails, chips). */
     val itemCorner: Dp,
+    /** Drop-shadow elevation that lifts islands off the background. 0 in attached mode (flat). */
+    val surfaceElevation: Dp,
 )
 
-fun dimensFor(layoutMode: LayoutMode): Dimens = when (layoutMode) {
+fun dimensFor(
+    layoutMode: LayoutMode,
+    islandStyle: IslandStyle = IslandStyle.COMFORTABLE,
+): Dimens = when (layoutMode) {
     LayoutMode.ISLANDS -> Dimens(
-        surfaceCorner = 16.dp,
-        surfaceGap = 10.dp,
-        windowPadding = 10.dp,
+        surfaceCorner = islandStyle.cornerDp.dp,
+        surfaceGap = islandStyle.gapDp.dp,
+        windowPadding = islandStyle.gapDp.dp,
         surfacePadding = 14.dp,
         itemCorner = 10.dp,
+        surfaceElevation = 10.dp,
     )
     LayoutMode.ATTACHED -> Dimens(
         surfaceCorner = 0.dp,
@@ -46,6 +53,7 @@ fun dimensFor(layoutMode: LayoutMode): Dimens = when (layoutMode) {
         windowPadding = 0.dp,
         surfacePadding = 12.dp,
         itemCorner = 8.dp,
+        surfaceElevation = 0.dp,
     )
 }
 

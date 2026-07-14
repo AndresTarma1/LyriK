@@ -1,6 +1,9 @@
 package com.example.melodist.ui.screens.library.tabs
 
 import androidx.compose.foundation.layout.Arrangement
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -55,6 +58,15 @@ fun LibraryMixedTab(
     val fullyDownloadedAlbums by downloadViewModel.fullyDownloadedAlbums.collectAsState()
     val fullyDownloadedPlaylists by downloadViewModel.fullyDownloadedPlaylists.collectAsState()
 
+    // Resolved here (composable context) since remember{}'s calculation lambda below can't call
+    // @Composable stringResource() itself. n_songs keeps its raw "%1$d ..." template so the count
+    // can still be substituted per-item inside the list build.
+    val albumLabel = stringResource(Res.string.item_album)
+    val artistLabel = stringResource(Res.string.item_artist)
+    val playlistLabel = stringResource(Res.string.item_playlist)
+    val downloadsLabel = stringResource(Res.string.downloads)
+    val nSongsTemplate = stringResource(Res.string.n_songs)
+
     data class MixedGridEntry(
         val key: String,
         val item: YTItem? = null,
@@ -96,7 +108,7 @@ fun LibraryMixedTab(
                         key = "alb_${album.id}",
                         item = album,
                         title = album.title,
-                        subtitle = album.artists?.firstOrNull()?.name ?: "Album",
+                        subtitle = album.artists?.firstOrNull()?.name ?: albumLabel,
                         thumbnailUrl = album.thumbnail,
                         placeholderType = PlaceholderType.ALBUM,
                         shape = RoundedCornerShape(12.dp),
@@ -122,7 +134,7 @@ fun LibraryMixedTab(
                         key = "art_${artist.id}",
                         item = artist,
                         title = artist.title,
-                        subtitle = "Artista",
+                        subtitle = artistLabel,
                         thumbnailUrl = artist.thumbnail,
                         placeholderType = PlaceholderType.ARTIST,
                         shape = circleAwareShape(),
@@ -140,7 +152,7 @@ fun LibraryMixedTab(
                         key = "pl_${playlist.id}",
                         item = playlist,
                         title = playlist.title,
-                        subtitle = playlist.songCountText ?: playlist.author?.name ?: "Playlist",
+                        subtitle = playlist.songCountText ?: playlist.author?.name ?: playlistLabel,
                         thumbnailUrl = playlist.thumbnail,
                         placeholderType = PlaceholderType.PLAYLIST,
                         shape = RoundedCornerShape(12.dp),
@@ -166,8 +178,8 @@ fun LibraryMixedTab(
                 add(
                     MixedGridEntry(
                         key = "downloads_all",
-                        title = "Descargas",
-                        subtitle = "$downloadedCount canciones",
+                        title = downloadsLabel,
+                        subtitle = String.format(nSongsTemplate, downloadedCount),
                         thumbnailUrl = downloadedSongs.firstOrNull()?.thumbnail,
                         placeholderType = PlaceholderType.DOWNLOADS,
                         shape = RoundedCornerShape(12.dp),
@@ -198,7 +210,7 @@ fun LibraryMixedTab(
                         MixedGridEntry(
                             key = "dlpl_${playlistInfo.playlistId}",
                             title = playlistInfo.playlistName,
-                            subtitle = "${playlistInfo.downloadedSongCount} canciones",
+                            subtitle = String.format(nSongsTemplate, playlistInfo.downloadedSongCount),
                             thumbnailUrl = playlistInfo.thumbnail,
                             placeholderType = PlaceholderType.PLAYLIST,
                             shape = RoundedCornerShape(12.dp),
@@ -225,7 +237,7 @@ fun LibraryMixedTab(
                         MixedGridEntry(
                             key = "dlal_${albumInfo.albumId}",
                             title = albumInfo.albumName,
-                            subtitle = "${albumInfo.songs.size} canciones",
+                            subtitle = String.format(nSongsTemplate, albumInfo.songs.size),
                             thumbnailUrl = albumInfo.thumbnail,
                             placeholderType = PlaceholderType.ALBUM,
                             shape = RoundedCornerShape(12.dp),
@@ -249,7 +261,7 @@ fun LibraryMixedTab(
     }
 
     if (items.isEmpty()) {
-        LibraryEmptyState(Icons.Default.LibraryMusic, "Biblioteca vacia", "Guarda albumes, artistas o playlists")
+        LibraryEmptyState(Icons.Default.LibraryMusic, stringResource(Res.string.empty_library), stringResource(Res.string.empty_library_hint))
         return
     }
 

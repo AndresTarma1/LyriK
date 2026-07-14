@@ -6,17 +6,19 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.protobuf.ProtoNumber
 
 /**
- * Listen Together wire protocol — port of Metrolist's `listentogether.proto`
- * (github.com/MetrolistGroup/metroproto). Field numbers MUST match the proto so we stay
- * binary-compatible with the meowery relay server (and with Metrolist clients).
+ * Protocolo de red de Escuchar Juntos — adaptado del `listentogether.proto` de Metrolist
+ * (github.com/MetrolistGroup/metroproto). Los números de campo DEBEN coincidir con el proto
+ * para mantener compatibilidad binaria con el servidor de retransmisión meowery
+ * (y con los clientes de Metrolist).
  *
- * Serialized with kotlinx-serialization-protobuf instead of generated protoc classes, so the
- * `@ProtoNumber` annotations below are the source of truth for wire compatibility.
+ * Serializado con kotlinx-serialization-protobuf en lugar de clases generadas por protoc,
+ * por lo que las anotaciones `@ProtoNumber` a continuación son la fuente de verdad
+ * para la compatibilidad en red.
  */
 
-/** Message type tags carried in the [Envelope]. */
+/** Etiquetas de tipo de mensaje transportadas en el [Envelope]. */
 object MessageTypes {
-    // Client -> Server
+    // Cliente -> Servidor
     const val CREATE_ROOM = "create_room"
     const val JOIN_ROOM = "join_room"
     const val LEAVE_ROOM = "leave_room"
@@ -30,7 +32,7 @@ object MessageTypes {
     const val REQUEST_SYNC = "request_sync"
     const val RECONNECT = "reconnect"
 
-    // Server -> Client
+    // Servidor -> Cliente
     const val ROOM_CREATED = "room_created"
     const val JOIN_REQUEST = "join_request"
     const val JOIN_APPROVED = "join_approved"
@@ -50,7 +52,7 @@ object MessageTypes {
     const val USER_DISCONNECTED = "user_disconnected"
 }
 
-/** Playback action verbs carried in [PlaybackActionPayload.action]. */
+/** Verbos de acción de reproducción transportados en [PlaybackActionPayload.action]. */
 object PlaybackActions {
     const val PLAY = "play"
     const val PAUSE = "pause"
@@ -65,7 +67,7 @@ object PlaybackActions {
     const val SET_VOLUME = "set_volume"
 }
 
-/** Top-level frame: every WebSocket binary message is an encoded [Envelope]. */
+/** Frame de nivel superior: cada mensaje binario de WebSocket es un [Envelope] codificado. */
 @Serializable
 data class Envelope(
     @ProtoNumber(1) val type: String = "",
@@ -87,7 +89,7 @@ data class TrackInfo(
     @ProtoNumber(2) val title: String = "",
     @ProtoNumber(3) val artist: String = "",
     @ProtoNumber(4) val album: String = "",
-    @ProtoNumber(5) val duration: Long = 0L, // milliseconds
+    @ProtoNumber(5) val duration: Long = 0L, // milisegundos
     @ProtoNumber(6) val thumbnail: String = "",
     @ProtoNumber(7) val suggestedBy: String = "",
 )
@@ -113,7 +115,7 @@ data class RoomState(
     @ProtoNumber(9) val queue: List<TrackInfo> = emptyList(),
 )
 
-// ---- Client -> Server payloads ----
+// ---- Payloads Cliente -> Servidor ----
 
 @Serializable
 data class CreateRoomPayload(
@@ -171,7 +173,7 @@ data class ReconnectPayload(
     @ProtoNumber(1) val sessionToken: String = "",
 )
 
-// ---- Server -> Client payloads ----
+// ---- Payloads Servidor -> Cliente ----
 
 @Serializable
 data class RoomCreatedPayload(

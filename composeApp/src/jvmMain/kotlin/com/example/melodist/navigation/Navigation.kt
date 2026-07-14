@@ -3,17 +3,10 @@ package com.example.melodist.navigation
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.spring
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,25 +17,21 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onPreviewKeyEvent
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalTextInputService
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.example.melodist.data.repository.LayoutMode
 import com.example.melodist.ui.components.MiniPlayer
 import com.example.melodist.ui.components.dialogs.SnackBar
 import com.example.melodist.ui.components.player.NowPlayingLayout
+import com.example.melodist.ui.components.player.NowPlayingTab
 import com.example.melodist.ui.components.player.PlaybackQueuePanel
 import com.example.melodist.ui.screens.library.CsvImportProgressOverlay
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
@@ -52,11 +41,12 @@ import com.example.melodist.ui.screens.YouTubeBrowseScreenRoute
 import com.example.melodist.ui.screens.*
 import com.example.melodist.ui.screens.home.HomeScreenRoute
 import com.example.melodist.ui.screens.library.LibraryScreenRoute
+import com.example.melodist.ui.themes.LocalDimens
+import com.example.melodist.ui.themes.LocalLayoutMode
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.LocalSnackbarHostState
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
-import kotlinx.coroutines.*
 
 
 data class TabInfo(
@@ -93,19 +83,18 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val currentLyrics by playerViewModel.currentLyrics.collectAsState()
     var isNowPlayingExpanded by remember { mutableStateOf(false) }
     var isQueueVisible by remember { mutableStateOf(false) }
-    var nowPlayingTab by remember { mutableStateOf(com.example.melodist.ui.components.player.NowPlayingTab.QUEUE) }
+    var nowPlayingTab by remember { mutableStateOf(NowPlayingTab.QUEUE) }
 
-    // Fetch lyrics on demand the moment the Letras tab is selected, same as the old toggle did.
+    // Busca las letras de la canción actual cuando se cambia la pestaña a "Lyrics" o cuando cambia la canción.
     LaunchedEffect(nowPlayingTab, playerState.currentSong?.id) {
-        if (nowPlayingTab == com.example.melodist.ui.components.player.NowPlayingTab.LYRICS) {
+        if (nowPlayingTab == NowPlayingTab.LYRICS) {
             playerViewModel.fetchLyrics()
         }
     }
 
     val queueWidth = 420.dp
-    val animatedWidth by animateDpAsState(queueWidth)
 
-    // Surface transient playback errors (e.g. a song that couldn't be resolved) as snackbars.
+    // Nos permite entender o mostrar los errores de reproducción en un Snackbar, sin bloquear la UI principal.
     LaunchedEffect(playerViewModel) {
         playerViewModel.playbackMessages.collect { message ->
             snackbarHostState.showSnackbar(message)
@@ -188,15 +177,17 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                     }
 
                     val currentSong = playerState.currentSong
-                    val islands = com.example.melodist.ui.themes.LocalLayoutMode.current == com.example.melodist.data.repository.LayoutMode.ISLANDS
-                    val contentShape = RoundedCornerShape(if (islands) 16.dp else 0.dp)
-                    val bottomPadding = if (currentSong != null) 0.dp else if (islands) 16.dp else 0.dp
+                    val islands = LocalLayoutMode.current == LayoutMode.ISLANDS
+                    val dimens = LocalDimens.current
+                    val contentShape = RoundedCornerShape(dimens.surfaceCorner)
+                    val bottomPadding = if (currentSong != null) 0.dp else dimens.windowPadding
 
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(end = if (islands) 16.dp else 0.dp, bottom = bottomPadding)
+                            .padding(end = dimens.windowPadding, bottom = bottomPadding)
                     ) {
+
                         Row(
                             modifier = Modifier
                                 .weight(1f)
@@ -204,8 +195,9 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .weight(1f)
+                                    .weight(1F)
                                     .fillMaxHeight()
+                                    .then(if (islands) Modifier.shadow(dimens.surfaceElevation, contentShape) else Modifier)
                                     .clip(contentShape)
                                     .then(
                                         if (islands) Modifier.border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, contentShape)
@@ -246,22 +238,20 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                                 }
                             }
 
-                            // Only the standalone slide-in panel when NowPlaying isn't expanded —
-                            // NowPlaying has its own Cola tab, showing both at once just duplicates it.
+                            // Solo se muestra si el nowPlaying NO está expandido, para evitar que se superponga con el NowPlayingLayout
                             AnimatedVisibility(
-                                visible = isQueueVisible && !isNowPlayingExpanded,
-                                enter = slideInHorizontally(initialOffsetX = { it }) + fadeIn(),
-                                exit = slideOutHorizontally(targetOffsetX = { it }) + fadeOut()
+                                visible = isQueueVisible && !isNowPlayingExpanded
                             ) {
                                 Row(modifier = Modifier.fillMaxHeight()) {
-                                    Spacer(Modifier.width(if (islands) 12.dp else 0.dp))
+                                    Spacer(Modifier.width(dimens.surfaceGap))
 
                                     PlaybackQueuePanel(
                                         state = playerState,
                                         onDismiss = { isQueueVisible = false },
                                         modifier = Modifier
                                             .fillMaxHeight()
-                                            .width(animatedWidth)
+                                            .width(queueWidth)
+                                            .then(if (islands) Modifier.shadow(dimens.surfaceElevation, contentShape) else Modifier)
                                             .clip(contentShape)
                                             .then(
                                                 if (islands) Modifier.border(0.5.dp, MaterialTheme.colorScheme.outlineVariant, contentShape)
@@ -278,12 +268,9 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                 val currentSong = playerState.currentSong
                 AnimatedVisibility(
                     visible = currentSong != null,
-                    enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-                    exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
                 ) {
                     MiniPlayer(
                         progressState = progressState,
-                        onClickExpand = { isNowPlayingExpanded = true; isQueueVisible = false },
                         onToggleNowPlaying = {
                             isNowPlayingExpanded = !isNowPlayingExpanded
                             if (isNowPlayingExpanded) isQueueVisible = false
@@ -291,14 +278,12 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                         isNowPlayingExpanded = isNowPlayingExpanded,
                         onToggleQueue = {
                             if (isNowPlayingExpanded) {
-                                // NowPlaying is open: just switch its own tab instead of opening the
-                                // separate panel too (that would show the queue twice).
-                                nowPlayingTab = com.example.melodist.ui.components.player.NowPlayingTab.QUEUE
+                                nowPlayingTab = NowPlayingTab.QUEUE
                             } else {
                                 isQueueVisible = !isQueueVisible
                             }
                         },
-                        isQueueVisible = isQueueVisible || (isNowPlayingExpanded && nowPlayingTab == com.example.melodist.ui.components.player.NowPlayingTab.QUEUE),
+                        isQueueVisible = isQueueVisible || (isNowPlayingExpanded && nowPlayingTab == NowPlayingTab.QUEUE),
                         modifier = Modifier.fillMaxWidth(),
                         sharedTransitionScope = sharedTransitionScope,
                     )
@@ -311,8 +296,8 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                 snackbarHostState = snackbarHostState,
             )
 
-            // Non-blocking CSV import progress (bottom-end floating card), global so it survives
-            // navigation between tabs while songs resolve one by one.
+            // Que funcione como una importacion en segundo plano, sin bloquear la UI principal.
+            // Se muestra un overlay con el progreso de la importación.
             CsvImportProgressOverlay(
                 state = csvImportState,
                 onCancel = { playlistsViewModel.cancelCsvImport() },

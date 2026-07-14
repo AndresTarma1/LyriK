@@ -14,11 +14,11 @@ import java.awt.Window
 import java.io.File
 
 /**
- * Windows taskbar thumbnail toolbar (ITaskbarList3) — adds Previous / Play-Pause / Next buttons to
- * the taskbar thumbnail preview, Spotify-style. Implemented with raw JNA COM (jna-platform doesn't
- * ship ITaskbarList3), invoking the interface vtable directly.
+ * Barra de miniaturas de la tarea de Windows (ITaskbarList3) — agrega botones de Anterior / Reproducir-Pausar / Siguiente
+ * a la vista previa de miniaturas de la barra de tareas, estilo Spotify. Implementada con JNA COM sin
+ * bibliotecas externas (jna-platform no incluye ITaskbarList3), invocando la vtable de la interfaz directamente.
  *
- * Everything is wrapped in try/catch: if anything fails the app keeps working without the thumb bar.
+ * Todo está envuelto en try/catch: si algo falla, la aplicación sigue funcionando sin la barra de miniaturas.
  */
 class WindowsThumbBar(
     private val onPrevious: () -> Unit,
@@ -43,7 +43,7 @@ class WindowsThumbBar(
         private const val LR_LOADFROMFILE = 0x10
         private const val LR_DEFAULTSIZE = 0x40
 
-        // ITaskbarList3 vtable indices (IUnknown 0-2, ITaskbarList 3-7, ITaskbarList2 8, ITaskbarList3 9+).
+        // Índices de la vtable de ITaskbarList3 (IUnknown 0-2, ITaskbarList 3-7, ITaskbarList2 8, ITaskbarList3 9+).
         private const val V_HRINIT = 3
         private const val V_THUMBBARADDBUTTONS = 15
         private const val V_THUMBBARUPDATEBUTTONS = 16
@@ -64,7 +64,7 @@ class WindowsThumbBar(
         }
     }
 
-    /** Subclassed window procedure: catch thumb-button clicks, forward everything else. */
+    /** Procedimiento de ventana subclasificado: captura clics en los botones de miniaturas, reenvía el resto. */
     interface WndProc : StdCallLibrary.StdCallCallback {
         fun callback(hWnd: Pointer, uMsg: Int, wParam: Pointer?, lParam: Pointer?): Pointer?
     }
@@ -87,14 +87,14 @@ class WindowsThumbBar(
     @Volatile private var buttonsAdded = false
     private val icons = HashMap<String, Pointer>()
 
-    // Held as a field so the native function pointer isn't GC'd while installed.
+    // Se mantiene como campo para que el puntero a la función nativa no sea recolectado por el GC mientras está instalado.
     private val wndProc = object : WndProc {
         override fun callback(hWnd: Pointer, uMsg: Int, wParam: Pointer?, lParam: Pointer?): Pointer? {
-            // Windows creates the taskbar button asynchronously; only then do thumb buttons stick.
+            // Windows crea el botón de la barra de tareas de forma asíncrona; solo entonces se adhieren los botones de miniaturas.
             if (uMsg != 0 && uMsg == taskbarButtonCreatedMsg) {
                 Napier.i("[thumbbar] TaskbarButtonCreated received")
-                // The taskbar button is destroyed when the window hides to tray and recreated on
-                // restore, losing its thumb buttons. Reset so we re-ADD (not update) the fresh button.
+                // El botón de la barra de tareas se destruye cuando la ventana se oculta en la bandeja y se recrea
+                // al restaurarse, perdiendo sus botones de miniaturas. Se reinicia para volver a AGREGAR (no actualizar) el botón nuevo.
                 buttonsAdded = false
                 safe { addButtons() }
             }
@@ -115,7 +115,7 @@ class WindowsThumbBar(
 
     private fun safe(block: () -> Unit) = runCatching { block() }
 
-    /** Initialise on the AWT/UI (STA) thread, after the window has a native handle. */
+    /** Inicializa en el hilo AWT/UI (STA), después de que la ventana tenga un identificador nativo. */
     fun init(window: Window) {
         try {
             val handle = Native.getWindowPointer(window) ?: run {
@@ -134,21 +134,21 @@ class WindowsThumbBar(
             for (n in listOf("play", "pause", "prev", "next")) loadIcon(n)?.let { icons[n] = it }
             Napier.i("[thumbbar] hrInit=$hrInit, icons=${icons.size}/4")
 
-            // Register the message Windows posts once the taskbar button exists, then subclass the
-            // window proc to catch it (and the button clicks).
+            // Se registra el mensaje que Windows envía una vez que el botón de la barra de tareas existe, luego se subclasifica el
+            // procedimiento de ventana para capturarlo (y los clics en los botones).
             taskbarButtonCreatedMsg = User32X.INSTANCE.RegisterWindowMessageW(WString("TaskbarButtonCreated"))
             oldWndProc = User32X.INSTANCE.SetWindowLongPtrW(handle, GWLP_WNDPROC, wndProc)
             Napier.i("[thumbbar] msg=$taskbarButtonCreatedMsg, subclassed=${oldWndProc != null}")
 
-            // Do NOT add buttons here: ThumbBarAddButtons only works once the taskbar button exists,
-            // and can be called only once. We add when the TaskbarButtonCreated message arrives.
+            // NO agregar botones aquí: ThumbBarAddButtons solo funciona una vez que el botón de la barra de tareas existe,
+            // y solo se puede llamar una vez. Se agregan cuando llega el mensaje TaskbarButtonCreated.
             Napier.i("[thumbbar] installed; waiting for TaskbarButtonCreated")
         } catch (e: Throwable) {
             Napier.e("[thumbbar] init failed: ${e.message}")
         }
     }
 
-    /** Toggle the middle button between Play and Pause glyphs. */
+    /** Alterna el botón central entre los glifos de Reproducir y Pausar. */
     fun setPlaying(playing: Boolean) {
         if (playing == isPlaying) return
         isPlaying = playing
@@ -160,7 +160,7 @@ class WindowsThumbBar(
         val tb = taskbar ?: return
         val h = hwnd ?: return
         val buttons = buildButtons()
-        // If already added, an "add" call is rejected (E_INVALIDARG) — use update instead.
+        // Si ya se agregó, una llamada a "add" es rechazada (E_INVALIDARG) — se usa update en su lugar.
         val index = if (buttonsAdded) V_THUMBBARUPDATEBUTTONS else V_THUMBBARADDBUTTONS
         val hr = vtable(index).invokeInt(arrayOf(tb, h, buttons.size, buttons.first().pointer))
         Napier.i("[thumbbar] ${if (buttonsAdded) "update" else "add"}Buttons hr=$hr (0=OK)")
@@ -195,9 +195,9 @@ class WindowsThumbBar(
     }
 
     private fun loadIcon(name: String): Pointer? = runCatching {
-        // Fixed, reused path instead of a fresh createTempFile() per launch: deleteOnExit() only
-        // fires on a clean JVM shutdown, so a unique name per run left orphaned .ico files in
-        // %TEMP% behind every time the app was killed (IDE stop, crash, task manager).
+        // Ruta fija y reutilizada en lugar de un createTempFile() nuevo por cada ejecución: deleteOnExit()
+        // solo se ejecuta en un apagado limpio de la JVM, por lo que un nombre único por ejecución dejaba
+        // archivos .ico huérfanos en %TEMP% cada vez que la app se cerraba de forma forzada (detención desde IDE, cierre inesperado, administrador de tareas).
         val tmp = File(System.getProperty("java.io.tmpdir"), "lyrik-thb-$name.ico")
         if (!tmp.exists()) {
             javaClass.getResourceAsStream("/thumbbar/$name.ico")?.use { input ->

@@ -48,6 +48,9 @@ import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.metrolist.innertube.models.SongItem
 import com.metrolist.innertube.pages.AlbumPage
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 
 @Composable
@@ -286,11 +289,11 @@ internal fun AlbumCompactLayout(
                         IconButton(onClick = { showDeleteDialog() }) {
                             Icon(
                                 imageVector = if (isFullyDownloaded) Icons.Filled.Delete else Icons.Default.Download,
-                                contentDescription = if (isFullyDownloaded) "Eliminar descargas" else "Descargar álbum"
+                                contentDescription = if (isFullyDownloaded) stringResource(Res.string.cd_delete_downloads) else stringResource(Res.string.cd_download_album)
                             )
                         }
                         IconButton(onClick = onPlayAll) {
-                            Icon(imageVector = Icons.Default.PlayArrow, contentDescription = "Reproducir")
+                            Icon(imageVector = Icons.Default.PlayArrow, contentDescription = stringResource(Res.string.cd_play))
                         }
                     }
                 }
@@ -490,7 +493,7 @@ internal fun AlbumInfoPanel(
             .pointerHoverIcon(if (firstArtist?.id != null) PointerIcon.Hand else PointerIcon.Default)
     ) {
         Text(
-            text = "Autor • ${firstArtist?.name ?: "Artista"}",
+            text = "${stringResource(Res.string.author_label)} • ${firstArtist?.name ?: stringResource(Res.string.item_artist)}",
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
             color = onSurfaceColor,
@@ -537,14 +540,14 @@ internal fun AlbumInfoPanel(
             Spacer(Modifier.width(4.dp))
         }
         Text(
-            "Álbum • ${albumPage.album.year ?: ""}",
+            "${stringResource(Res.string.album_label)} • ${albumPage.album.year ?: ""}",
             style = MaterialTheme.typography.bodyMedium,
             color = onSurfaceVariant
         )
     }
 
     Text(
-        "${songs.size} canciones • ${calculateTotalDuration(songs)}",
+        stringResource(Res.string.songs_duration, songs.size, calculateTotalDuration(songs)),
         style = MaterialTheme.typography.bodySmall,
         color = onSurfaceVariant.copy(alpha = 0.7f)
     )

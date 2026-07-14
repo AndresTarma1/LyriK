@@ -14,11 +14,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun LoadingMoreSongsItem(
     onLoadMore: () -> Unit,
-    label: String = "Cargando más canciones...",
+    label: String? = null,
 ) {
     LaunchedEffect(Unit) { onLoadMore() }
     Box(
@@ -35,7 +38,7 @@ fun LoadingMoreSongsItem(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
             )
             Text(
-                label,
+                label ?: stringResource(Res.string.loading_more_songs),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )

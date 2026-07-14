@@ -53,7 +53,11 @@ import androidx.compose.material.icons.rounded.PriorityHigh
 import androidx.compose.material3.CircularWavyProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -155,19 +159,22 @@ fun AddToPlaylistDialog(
     playlistsViewModel: LibraryPlaylistsViewModel,
     onDismiss: () -> Unit
 ) {
-    // All saved playlists (local + YouTube-saved) — adding to a YouTube-saved playlist pushes the
-    // change to the real playlist on the account (PlaylistRepository.addSongToPlaylist).
+    // Todas las playlists guardadas (locales + guardadas de YouTube) — añadir a una playlist de
+    // YouTube envía el cambio a la playlist real de la cuenta (PlaylistRepository.addSongToPlaylist).
     val savedPlaylists by playlistsViewModel.savedPlaylists.collectAsState()
     var newPlaylistName by remember { mutableStateOf("") }
     var isCreatingNew by remember { mutableStateOf(false) }
     val snackbar = LocalSnackbarHostState.current
     val scope = LocalSnackbarScope.current
+    val addSuffix = if (songs.size > 1) "s" else ""
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 0.dp,
         title = {
             Text(
-                if (isCreatingNew) "Crear nueva playlist" else "Añadir ${songs.size} a playlist",
+                if (isCreatingNew) stringResource(Res.string.create_new_playlist) else stringResource(Res.string.add_n_to_playlist, songs.size),
                 style = MaterialTheme.typography.titleLarge
             )
         },
@@ -176,13 +183,13 @@ fun AddToPlaylistDialog(
                 OutlinedTextField(
                     value = newPlaylistName,
                     onValueChange = { newPlaylistName = it },
-                    label = { Text("Nombre de la playlist") },
+                    label = { Text(stringResource(Res.string.playlist_name_label)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             } else if (savedPlaylists.isEmpty()) {
                 Text(
-                    "No tienes playlists guardadas todavía.",
+                    stringResource(Res.string.no_playlists_yet),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -204,9 +211,8 @@ fun AddToPlaylistDialog(
                                 .clickable {
                                     songs.forEach { playlistsViewModel.addSongToLocalPlaylist(playlist.id, it) }
                                     scope.launch {
-                                        snackbar.showSnackbar(
-                                            "Añadido${if (songs.size > 1) "s" else ""} a «${playlist.title}»"
-                                        )
+                                        val addedMsg = getString(Res.string.added_to_playlist, addSuffix, playlist.title)
+                                        snackbar.showSnackbar(addedMsg)
                                     }
                                     onDismiss()
                                 }
@@ -237,20 +243,21 @@ fun AddToPlaylistDialog(
                         if (newPlaylistName.isNotBlank()) {
                             playlistsViewModel.createLocalPlaylist(newPlaylistName.trim(), songs)
                             scope.launch {
-                                snackbar.showSnackbar("Playlist «${newPlaylistName.trim()}» creada con ${songs.size} canciones")
+                                val createdMsg = getString(Res.string.playlist_created_with, newPlaylistName.trim(), songs.size)
+                                snackbar.showSnackbar(createdMsg)
                             }
                             onDismiss()
                         }
                     },
                     enabled = newPlaylistName.isNotBlank()
                 ) {
-                    Text("Crear y añadir")
+                    Text(stringResource(Res.string.create_and_add))
                 }
             } else {
                 Button(
                     onClick = { isCreatingNew = true }
                 ) {
-                    Text("Nueva playlist")
+                    Text(stringResource(Res.string.new_playlist))
                 }
             }
         },
@@ -265,7 +272,7 @@ fun AddToPlaylistDialog(
                     }
                 }
             ) {
-                Text(if (isCreatingNew) "Atrás" else "Cancelar")
+                Text(if (isCreatingNew) stringResource(Res.string.back) else stringResource(Res.string.btn_cancel))
             }
         }
     )

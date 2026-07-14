@@ -12,12 +12,12 @@ actual object AppPaths {
     private val home get() = File(System.getProperty("user.home"))
     private fun env(name: String): String? = System.getenv(name)?.takeIf { it.isNotBlank() }
 
-    // --- Resolución de carpetas base del sistema (per-OS) ---
+    // --- Resolución de carpetas base del sistema (por SO) ---
     //
-    // roamingRoot = persistent (db, settings, cookie); localRoot = volatile (cache, tmp, logs).
-    //   Windows: %APPDATA%\Tarma\LyriK  and  %LOCALAPPDATA%\Tarma\LyriK
-    //   Linux:   $XDG_DATA_HOME/LyriK   and  $XDG_CACHE_HOME/LyriK   (~/.local/share, ~/.cache)
-    //   macOS:   ~/Library/Application Support/LyriK  and  ~/Library/Caches/LyriK
+    // roamingRoot = persistente (db, ajustes, cookie); localRoot = volátil (caché, tmp, logs).
+    //   Windows: %APPDATA%\Tarma\LyriK  y  %LOCALAPPDATA%\Tarma\LyriK
+    //   Linux:   $XDG_DATA_HOME/LyriK   y  $XDG_CACHE_HOME/LyriK   (~/.local/share, ~/.cache)
+    //   macOS:   ~/Library/Application Support/LyriK  y  ~/Library/Caches/LyriK
 
     private val roamingRootFile: File by lazy {
         when (Platform.current) {

@@ -50,6 +50,26 @@ merge can silently overwrite them if upstream also touched the same file:
    this single plugin is what blocks all network traffic app-wide when offline mode is on
    (`com.example.melodist.utils.OfflineModeController` in `shared` flips the flag). Not present
    upstream — re-add the file and the `install()` line if a sync drops them.
+6. **`PageHelper.extractArtists()` filters by `browseId`, not by separator text.** The Napier debug
+   logging in this function is LyriK-only (upstream uses Timber, see #2). The filter itself must
+   keep `runs.filter { it.navigationEndpoint?.browseEndpoint?.browseId != null }` — an earlier
+   version filtered by `run.text != " • "`, which only strips that one literal separator and lets
+   everything else through unfiltered (" y ", " & ", commas, and the trailing view-count run like
+   "1527 M de vistas") — those rendered as bogus extra "artists" in song subtitles. Only runs with
+   a real artist browseId are genuine artists; re-apply the browseId filter if a sync reverts it.
+7. **`Runs.kt`'s `List<Run>.oddElements()` filters by browseId link, not `index % 2 == 0`.** Used
+   in 18+ artist/album parsing call sites (`NextPage.kt` radio/mix queue, `HomePage.kt`,
+   `SearchPage.kt`, etc.) — same root cause and symptom as #6, just a different, much more widely
+   used function. The old positional assumption (artists and separators strictly alternate) broke
+   with 3+ artists or mixed ", "/" y " separators, producing blank/duplicated names and leaking the
+   trailing view-count run into radio/mix queue subtitles. Falls back to the old `index % 2 == 0`
+   *only* when zero runs in the list have a link at all (label-uploaded albums/tracks name the
+   artist as plain unlinked text — see the comment in `AlbumPage.kt`'s `.ifEmpty {}` fallback around
+   line 104). Two call sites (`YouTube.kt` playlist parsing, `HomePage.kt` album parsing) had a
+   `.drop(1)` after `.oddElements()` that assumed index 0 was always a leading type-label ("Album")
+   picked up by the old positional logic — removed both, since the browseId filter already excludes
+   the (unlinked) label; re-check those two spots don't need `.drop(1)` re-added if a sync reverts
+   `oddElements()`.
 
 After resolving conflicts and reapplying the above, run `./gradlew :composeApp:compileKotlinJvm`
 — any other upstream API signature changes will surface as compile errors in `shared`/`composeApp`

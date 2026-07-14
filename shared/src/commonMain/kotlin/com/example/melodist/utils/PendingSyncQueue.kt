@@ -12,12 +12,12 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 
 /**
- * A remote YouTube Music action that failed to push while offline (or with offline mode on) and
- * should be retried once connectivity is back. Local state (DB, UI) is always applied immediately
- * regardless of network — this only tracks the *remote* side of the action.
+ * Una acción remota de YouTube Music que falló al enviarse mientras estaba offline (o con el modo
+ * offline activado) y debe reintentarse una vez que la conectividad vuelva. El estado local (BD, UI)
+ * siempre se aplica inmediatamente sin importar la red — esto solo rastrea el lado *remoto* de la acción.
  *
- * To support a new action type: add a variant here, a branch in [PendingSyncQueue.flush], and
- * enqueue it wherever the live push currently just logs-and-drops on failure.
+ * Para soportar un nuevo tipo de acción: agregar una variante aquí, una rama en [PendingSyncQueue.flush],
+ * y encolarla donde actualmente el envío en vivo solo registra y descarta en caso de fallo.
  */
 @Serializable
 sealed class PendingAction {
@@ -29,9 +29,9 @@ sealed class PendingAction {
 }
 
 /**
- * Persisted queue of [PendingAction]s that couldn't be pushed to YouTube while offline. Retries
- * them automatically in the background whenever there's something pending and a connection is
- * available — callers just [enqueue] on failure, nothing else to wire up.
+ * Cola persistida de [PendingAction]s que no pudieron enviarse a YouTube mientras estaba offline.
+ * Las reintenta automáticamente en segundo plano siempre que haya algo pendiente y una conexión
+ * esté disponible — los llamadores solo [enqueue] en caso de fallo, no hay nada más que configurar.
  */
 class PendingSyncQueue(private val preferencesRepository: UserPreferencesRepository) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)

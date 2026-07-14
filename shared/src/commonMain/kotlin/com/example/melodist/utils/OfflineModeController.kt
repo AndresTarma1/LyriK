@@ -11,10 +11,11 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 /**
- * Keeps [OfflineGate] — the single choke point every YouTube network call checks — in sync with
- * both the user's manual offline toggle and actual connectivity. Must be eagerly created once at
- * app startup (it's a Koin single, resolved explicitly in main()) so the gate reflects reality
- * before the first request goes out, not just after something happens to touch it.
+ * Mantiene [OfflineGate] — el único punto de control que verifica cada llamada de red de YouTube —
+ * sincronizado tanto con el interruptor manual de offline del usuario como con la conectividad real.
+ * Debe crearse una vez de forma eagerly al inicio de la aplicación (es un singleton de Koin, resuelto
+ * explícitamente en main()) para que el control refleje la realidad antes de que se envíe la primera
+ * solicitud, no solo después de que algo suceda para acceder a él.
  */
 class OfflineModeController(preferencesRepository: UserPreferencesRepository) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
@@ -23,7 +24,7 @@ class OfflineModeController(preferencesRepository: UserPreferencesRepository) {
     private var manualOffline = false
 
     init {
-        // Reacts immediately to the manual toggle...
+        // Reacciona inmediatamente al interruptor manual...
         preferencesRepository.offlineModeEnabled
             .onEach {
                 manualOffline = it
@@ -31,7 +32,7 @@ class OfflineModeController(preferencesRepository: UserPreferencesRepository) {
             }
             .launchIn(scope)
 
-        // ...and polls real connectivity, since we have no push-based OS network-change event.
+        // ...y consulta la conectividad real, ya que no tenemos un evento de cambio de red del SO basado en push.
         scope.launch {
             while (true) {
                 refresh()

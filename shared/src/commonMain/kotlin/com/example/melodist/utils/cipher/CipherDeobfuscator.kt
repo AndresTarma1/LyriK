@@ -9,13 +9,13 @@ object CipherDeobfuscator {
     private var currentPlayerHash: String? = null
 
     /**
-     * Deobfuscates a YouTube-style signature cipher with automatic retry on failure.
+     * Desofusca un cifrado de firma al estilo de YouTube con reintento automático en caso de fallo.
      *
-     * If initial deobfuscation fails, retries using freshly fetched player JavaScript.
+     * Si la desofuscación inicial falla, reintenta usando el JavaScript del reproductor obtenido recientemente.
      *
-     * @param signatureCipher The encoded signature cipher from YouTube.
-     * @param videoId The YouTube video ID.
-     * @return The deobfuscated URL string, or `null` if deobfuscation fails even after retry.
+     * @param signatureCipher El cifrado de firma codificado de YouTube.
+     * @param videoId El ID del video de YouTube.
+     * @return La cadena de URL desofuscada, o `null` si la desofuscación falla incluso después del reintento.
      */
     suspend fun deobfuscateStreamUrl(signatureCipher: String, videoId: String): String? {
         Napier.i("[CIPHER] deobfuscateStreamUrl videoId=$videoId")
@@ -35,9 +35,9 @@ object CipherDeobfuscator {
     }
 
     /**
-     * Deobfuscates a signature cipher and appends the solved signature to the base URL.
+     * Desofusca un cifrado de firma y añade la firma resuelta a la URL base.
      *
-     * @return The URL with the deobfuscated signature appended, or `null` if required components are missing or signature solving fails.
+     * @return La URL con la firma desofuscada añadida, o `null` si faltan componentes necesarios o la resolución de la firma falla.
      */
     private suspend fun deobfuscateInternal(signatureCipher: String, videoId: String, isRetry: Boolean): String? {
         val params = parseQueryParams(signatureCipher)
@@ -54,15 +54,16 @@ object CipherDeobfuscator {
             return null
         }
         val separator = if ("?" in baseUrl) "&" else "?"
-        // n-transform is applied centrally by the caller (YTPlayerutils) so it runs exactly once.
+        // La transformación n se aplica centralizadamente por el llamador (YTPlayerutils) para que se ejecute exactamente una vez.
         return "$baseUrl${separator}$sigParam=${URLEncoder.encode(deobfuscatedSig, "UTF-8")}"
     }
 
     /**
-     * Transforms the n query parameter in a URL using the cipher solver.
+     * Transforma el parámetro de consulta n en una URL usando el solucionador de cifrado.
      *
-     * @param url The URL to transform.
-     * @return The URL with the n parameter transformed by the cipher solver, or the original URL if the parameter is not found or transformation fails.
+     * @param url La URL a transformar.
+     * @return La URL con el parámetro n transformado por el solucionador de cifrado, o la URL original
+     * si el parámetro no se encuentra o la transformación falla.
      */
     suspend fun transformNParamInUrl(url: String): String {
         try {
@@ -95,10 +96,12 @@ object CipherDeobfuscator {
     }
 
     /**
-     * Ensures the EJS cipher solver is prepared with the current player.js.
+     * Asegura que el solucionador de cifrado EJS esté preparado con el player.js actual.
      *
-     * @param forceRefresh If `true`, refetch player.js and reinitialize the solver even if already prepared.
-     * @return `true` if the solver is ready, `false` if fetching player.js or initialization failed.
+     * @param forceRefresh Si es `true`, vuelve a obtener player.js y reinicializa el solucionador
+     * incluso si ya está preparado.
+     * @return `true` si el solucionador está listo, `false` si la obtención de player.js o la
+     * inicialización falló.
      */
     private suspend fun ensurePrepared(forceRefresh: Boolean): Boolean {
         if (!forceRefresh && currentPlayerHash != null) return true
@@ -122,10 +125,10 @@ object CipherDeobfuscator {
     }
 
     /**
-     * Parses a query string into decoded key-value pairs.
+     * Analiza una cadena de consulta en pares clave-valor decodificados.
      *
-     * @param query A URL-encoded query string (e.g., "key1=value1&key2=value2").
-     * @return A map of URL-decoded query parameters.
+     * @param query Una cadena de consulta codificada en URL (por ejemplo, "key1=value1&key2=value2").
+     * @return Un mapa de parámetros de consulta decodificados en URL.
      */
     private fun parseQueryParams(query: String): Map<String, String> {
         val result = mutableMapOf<String, String>()
@@ -141,9 +144,9 @@ object CipherDeobfuscator {
     }
 
     /**
-     * Returns debug information about the cipher deobfuscator's state.
+     * Retorna información de depuración sobre el estado del desofuscador de cifrado.
      *
-     * @return A map containing the current player hash.
+     * @return Un mapa que contiene el hash del reproductor actual.
      */
     fun getDebugInfo(): Map<String, Any?> {
         return mapOf(

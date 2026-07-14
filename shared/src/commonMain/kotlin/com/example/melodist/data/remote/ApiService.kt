@@ -10,8 +10,8 @@ import com.metrolist.innertube.pages.SearchResult
 import com.metrolist.innertube.pages.SearchSummaryPage
 
 /**
- * Wrapper around the YouTube (innertube) API.
- * Acts as the single remote data source for the app.
+ * Capa de abstracción sobre la API de YouTube (innertube).
+ * Actúa como la única fuente de datos remota de la aplicación.
  */
 class ApiService {
 

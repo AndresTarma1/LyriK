@@ -51,7 +51,7 @@ class SearchViewModel(
     val searchQuery = _searchQuery.asStateFlow()
 
     /**
-     * Search history as a reactive StateFlow.
+     * Historial de búsqueda como un StateFlow reactivo.
      */
     val searchHistory: StateFlow<List<SearchHistoryEntry>> = searchRepository.getSearchHistory()
         .stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
@@ -113,7 +113,7 @@ class SearchViewModel(
             return
         }
 
-        // Save the query to search history
+        // Guardar la consulta en el historial de búsqueda
         viewModelScope.launch {
             searchRepository.addSearchQuery(_searchQuery.value)
         }
@@ -166,7 +166,7 @@ class SearchViewModel(
     }
 
     /**
-     * Delete a single entry from search history.
+     * Elimina una sola entrada del historial de búsqueda.
      */
     fun deleteHistoryEntry(query: String) {
         viewModelScope.launch {
@@ -175,7 +175,7 @@ class SearchViewModel(
     }
 
     /**
-     * Clear all search history.
+     * Borra todo el historial de búsqueda.
      */
     fun clearHistory() {
         viewModelScope.launch {

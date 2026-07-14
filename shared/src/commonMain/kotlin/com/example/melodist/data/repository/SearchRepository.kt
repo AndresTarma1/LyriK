@@ -5,22 +5,22 @@ import com.example.melodist.db.entities.SearchHistoryEntry
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Repository for managing search history using SQLDelight.
+ * Repositorio para gestionar el historial de búsqueda usando SQLDelight.
  */
 class SearchRepository(
     private val dao: DatabaseDao
 ) {
 
     /**
-     * Get search history as a reactive Flow.
+     * Obtiene el historial de búsqueda como un Flow reactivo.
      */
     fun getSearchHistory(): Flow<List<SearchHistoryEntry>> {
         return dao.searchHistory()
     }
 
     /**
-     * Add a search query to history.
-     * Uses INSERT OR REPLACE so duplicate queries just update their position.
+     * Agrega una consulta de búsqueda al historial.
+     * Usa INSERT OR REPLACE para que las consultas duplicadas solo actualicen su posición.
      */
     suspend fun addSearchQuery(query: String) {
         if (query.isBlank()) return
@@ -28,14 +28,14 @@ class SearchRepository(
     }
 
     /**
-     * Remove a single query from history.
+     * Elimina una sola consulta del historial.
      */
     suspend fun deleteSearchQuery(query: String) {
         dao.deleteSearchHistory(query)
     }
 
     /**
-     * Clear all search history.
+     * Borra todo el historial de búsqueda.
      */
     suspend fun clearSearchHistory() {
         dao.clearSearchHistory()

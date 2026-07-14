@@ -11,8 +11,9 @@ import java.util.zip.GZIPInputStream
 import java.util.zip.GZIPOutputStream
 
 /**
- * Encodes/decodes Listen Together messages as protobuf [Envelope]s, mirroring Metrolist's
- * `MessageCodec`. Uses kotlinx-serialization-protobuf (no generated protoc classes).
+ * Codifica/decodifica mensajes de Escuchar Juntos como [Envelope] de protobuf,
+ * replicando el `MessageCodec` de Metrolist. Usa kotlinx-serialization-protobuf
+ * (sin clases generadas por protoc).
  */
 @OptIn(ExperimentalSerializationApi::class)
 class MessageCodec(
@@ -20,13 +21,13 @@ class MessageCodec(
 ) {
     companion object {
         @PublishedApi
-        internal const val COMPRESSION_THRESHOLD = 100 // only compress payloads larger than this
+        internal const val COMPRESSION_THRESHOLD = 100 // solo comprimir payloads mayores a este valor
 
         @PublishedApi
         internal val protobuf = ProtoBuf { encodeDefaults = false }
     }
 
-    /** Wrap [payload] (or null) in an [Envelope] of [type] and return the encoded frame. */
+    /** Envuelve [payload] (o null) en un [Envelope] de [type] y retorna el frame codificado. */
     inline fun <reified T> encode(type: String, payload: T?): ByteArray {
         var payloadBytes = if (payload != null) protobuf.encodeToByteArray(payload) else ByteArray(0)
         var compressed = false
@@ -42,14 +43,14 @@ class MessageCodec(
         return protobuf.encodeToByteArray(Envelope(type = type, payload = payloadBytes, compressed = compressed))
     }
 
-    /** Decode the outer envelope, returning (type, decompressed-payload-bytes). */
+    /** Decodifica el envelope externo, retornando (tipo, bytes-del-payload-descomprimido). */
     fun decode(data: ByteArray): Pair<String, ByteArray> {
         val envelope = protobuf.decodeFromByteArray<Envelope>(data)
         val payloadBytes = if (envelope.compressed) gunzip(envelope.payload) ?: envelope.payload else envelope.payload
         return envelope.type to payloadBytes
     }
 
-    /** Decode the inner payload for a known message [type]. */
+    /** Decodifica el payload interno para un tipo de mensaje conocido [type]. */
     fun decodePayload(type: String, payloadBytes: ByteArray): Any? {
         if (payloadBytes.isEmpty()) return null
         return when (type) {
@@ -84,7 +85,7 @@ class MessageCodec(
         try {
             GZIPInputStream(ByteArrayInputStream(data)).use { it.readBytes() }
         } catch (e: Exception) {
-            Napier.e("[LT] Failed to decompress payload", e)
+            Napier.e("[LT] Error al descomprimir el payload", e)
             null
         }
 }

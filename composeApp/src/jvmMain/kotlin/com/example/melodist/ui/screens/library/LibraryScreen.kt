@@ -122,7 +122,7 @@ fun LibraryScreenRoute(
     val csvImportState by playlistsViewModel.csvImportState.collectAsState()
 
     var importNameField by remember { mutableStateOf("") }
-    // Reset the suggested name once an import flow finishes so the next import starts clean.
+    // Reiniciar el nombre sugerido una vez que el flujo de importación termine, para que la siguiente importación comience limpia.
     androidx.compose.runtime.LaunchedEffect(csvImportState) {
         if (csvImportState !is CsvImportState.Ready) importNameField = ""
     }
@@ -228,9 +228,9 @@ fun LibraryScreenRoute(
         )
     }
 
-    // Only the name-input step is modal; progress/done/error render as a non-blocking floating
-    // card at the app root (see CsvImportProgressOverlay in Navigation), so the user can keep
-    // browsing while the playlist resolves song by song.
+    // Solo el paso de ingreso de nombre es modal; el progreso/completado/error se muestra como una tarjeta
+    // flotante no bloqueante en la raíz de la app (ver CsvImportProgressOverlay en Navigation), para que el
+    // usuario pueda seguir navegando mientras la lista se resuelve canción por canción.
     (csvImportState as? CsvImportState.Ready)?.let { csvState ->
         if (importNameField.isBlank()) {
             importNameField = csvState.suggestedName
@@ -399,7 +399,7 @@ fun LibraryScreen(
                         tonalElevation = 0.dp,
                         shadowElevation = 8.dp,
                     ) {
-                        // ── Sort section ──
+                        // ── Sección de ordenamiento ──
                         MenuSectionHeader(stringResource(Res.string.library_section_sort))
                         LibrarySortOrder.entries.forEach { order ->
                             DropdownMenuItem(
@@ -421,7 +421,7 @@ fun LibraryScreen(
                             color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f),
                         )
 
-                        // ── YouTube Music library section ──
+                        // ── Sección de biblioteca de YouTube Music ──
                         MenuSectionHeader(stringResource(Res.string.library_section_ytm))
                         DropdownMenuItem(
                             text = { Text(stringResource(Res.string.filter_library), fontWeight = if (state.selectedYtmFilter == null) FontWeight.Bold else FontWeight.Normal) },

@@ -1,8 +1,9 @@
 package com.example.melodist.listentogether
 
 /**
- * Known Listen Together relay servers. We reuse Metrolist's community server so Melodist rooms
- * are interoperable with Metrolist clients (same protobuf protocol).
+ * Servidores de retransmisión conocidos de Listen Together. Reutilizamos el servidor comunitario
+ * de Metrolist para que las salas de Melodist sean interoperables con los clientes de Metrolist
+ * (mismo protocolo protobuf).
  */
 data class ListenTogetherServer(
     val name: String,

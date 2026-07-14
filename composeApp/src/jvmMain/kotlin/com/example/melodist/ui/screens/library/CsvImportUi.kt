@@ -51,11 +51,12 @@ import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 
 /**
- * Floating, non-blocking progress card anchored to the bottom-end of the app. Shows CSV import
- * progress (searching / done / error) so the user can keep browsing while the playlist resolves,
- * instead of being trapped behind a modal dialog.
+ * Tarjeta de progreso flotante y no bloqueante anclada en la esquina inferior derecha de la app.
+ * Muestra el progreso de la importación CSV (buscando / completado / error) para que el usuario
+ * pueda seguir navegando mientras la lista se resuelve, en lugar de quedar atrapado detrás de
+ * un diálogo modal.
  *
- * Place inside a [Box] that fills the app; it positions itself.
+ * Colocar dentro de un [Box] que llene la app; se posiciona automáticamente.
  */
 @Composable
 fun BoxScope.CsvImportProgressOverlay(
@@ -67,12 +68,12 @@ fun BoxScope.CsvImportProgressOverlay(
         state is CsvImportState.Done ||
         state is CsvImportState.Error
 
-    // Keep the last meaningful state so the exit animation still has content to render
-    // after the ViewModel flips back to Idle.
+    // Mantener el último estado significativo para que la animación de salida aún tenga contenido
+    // que renderizar después de que el ViewModel vuelva a Idle.
     var shown by remember { mutableStateOf<CsvImportState?>(null) }
     LaunchedEffect(state) { if (visible) shown = state }
 
-    // Auto-dismiss the success card after a moment.
+    // Cerrar automáticamente la tarjeta de éxito después de un momento.
     LaunchedEffect(state) {
         if (state is CsvImportState.Done) {
             kotlinx.coroutines.delay(5000)
@@ -218,7 +219,7 @@ private fun ErrorContent(message: String, onDismiss: () -> Unit) {
     }
 }
 
-/** Steps shown in the "how to import" tutorial, rendered as numbered rows. */
+/** Pasos mostrados en el tutorial de "cómo importar", renderizados como filas numeradas. */
 @Composable
 private fun TutorialStep(number: Int, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -244,7 +245,7 @@ private fun TutorialStep(number: Int, text: String) {
     }
 }
 
-/** The body of the redesigned CSV import tutorial (used inside an AlertDialog). */
+/** El cuerpo del tutorial rediseñado de importación CSV (se usa dentro de un AlertDialog). */
 @Composable
 fun CsvImportTutorialBody() {
     Column {
@@ -280,7 +281,7 @@ fun CsvImportTutorialBody() {
     }
 }
 
-/** Header icon for the tutorial dialog. */
+/** Icono de encabezado para el diálogo del tutorial. */
 @Composable
 fun CsvImportTutorialIcon() {
     Icon(

@@ -8,19 +8,20 @@ data class PoTokenResult(
 class PoTokenException(message: String) : Exception(message)
 
 /**
- * Generates WEB/WEB_REMIX poTokens (BotGuard / WAA integrity tokens).
+ * Genera poTokens WEB/WEB_REMIX (tokens de integridad BotGuard / WAA).
  *
- * The actual implementation lives in the JVM source set because minting a poToken
- * requires real browser APIs (canvas/WebGL) that only an embedded Chromium (JCEF,
- * shipped with the JetBrains Runtime) can provide. A pure-JS engine such as GraalJS
- * can run the BotGuard interpreter far enough to obtain the integrity-token request,
- * but never populates `webPoSignalOutput`, so it cannot mint the final token.
+ * La implementación real se encuentra en el source set JVM porque acuñar un poToken
+ * requiere APIs de navegador reales (canvas/WebGL) que solo un Chromium embebido (JCEF,
+ * incluido con el JetBrains Runtime) puede proporcionar. Un motor JS puro como GraalJS
+ * puede ejecutar el intérprete de BotGuard lo suficiente para obtener la solicitud
+ * del token de integridad, pero nunca completa `webPoSignalOutput`, por lo que no puede
+ * acuñar el token final.
  */
 expect object PoTokenGenerator {
     /**
- * Generates WEB/WEB_REMIX poTokens for web client requests.
+ * Genera poTokens WEB/WEB_REMIX para solicitudes del cliente web.
  *
- * @return A [PoTokenResult] with both tokens, or `null` if generation failed.
+ * @return Un [PoTokenResult] con ambos tokens, o `null` si la generación falla.
  */
     suspend fun getWebClientPoToken(videoId: String, sessionId: String): PoTokenResult?
 }

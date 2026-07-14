@@ -39,8 +39,8 @@ import kotlin.collections.emptyList
 
 
 /**
- * ViewModel that exposes download state to the UI.
- * Registered as a singleton in KOIN so download state is shared app-wide.
+ * ViewModel que expone el estado de descarga a la UI.
+ * Registrado como singleton en KOIN para que el estado de descarga se comparta en toda la app.
  */
 
 class DownloadViewModel(
@@ -54,13 +54,13 @@ class DownloadViewModel(
 ) : ViewModel() {
 
 
-    /** Per-song download states (songId → DownloadState). */
+    /** Estados de descarga por canción (songId → DownloadState). */
 
     val downloadStates: StateFlow<Map<String, DownloadState>> =
         downloadService.downloadStates
 
 
-    /** Total cache size as human-readable string. */
+    /** Tamaño total de la caché como texto legible. */
 
     private val _cacheSizeText = MutableStateFlow("Calculando...")
     val cacheSizeText: StateFlow<String> = _cacheSizeText.asStateFlow()
@@ -69,11 +69,11 @@ class DownloadViewModel(
     private var lastCompletedSongIds: Set<String> = emptySet()
 
 
-    /** Downloaded songs from DB as SongItems (for the Library Downloads tab). */
+    /** Canciones descargadas de la BD como SongItems (para la pestaña de Descargas de la Biblioteca). */
     val downloadedSongs: StateFlow<List<SongItem>> = _downloadedSongs.asStateFlow()
 
 
-    /** Initialization state for the downloads tab content. */
+    /** Estado de inicialización del contenido de la pestaña de descargas. */
 
     private val _isLoading = MutableStateFlow(true)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -106,14 +106,14 @@ class DownloadViewModel(
     }
 
 
-    /** Total downloaded song count. */
+    /** Cantidad total de canciones descargadas. */
 
     val downloadedCount: StateFlow<Int> = downloadedSongs
         .map { it.size }
         .stateIn(viewModelScope, SharingStarted.Eagerly, 0)
 
 
-    /** Songs currently being downloaded (metadata for UI display). */
+    /** Canciones actualmente en descarga (metadatos para mostrar en la UI). */
 
     val pendingSongItems: StateFlow<Map<String, SongItem>> =
         downloadService.pendingSongItems
@@ -121,13 +121,13 @@ class DownloadViewModel(
 
 
     /**
-
-     * Albums that are fully downloaded (all songs present).
-
-     * Groups downloaded songs by albumId, then checks if the count matches the album's songCount in DB.
-
-     * Only includes albums that exist in the DB with a valid songCount > 0.
-
+ 
+     * Álbumes completamente descargados (todas las canciones presentes).
+ 
+     * Agrupa las canciones descargadas por albumId y verifica si la cantidad coincide con el songCount del álbum en la BD.
+ 
+     * Solo incluye álbumes que existen en la BD con un songCount válido > 0.
+ 
      */
 
     data class DownloadedAlbumInfo(
@@ -143,9 +143,9 @@ class DownloadViewModel(
 
 
     /**
-
-     * Playlists that are fully downloaded (all mapped songs downloaded).
-
+ 
+     * Listas de reproducción completamente descargadas (todas las canciones mapeadas descargadas).
+ 
      */
 
     data class DownloadedPlaylistInfo(
@@ -166,7 +166,7 @@ class DownloadViewModel(
     val fullyDownloadedPlaylists: StateFlow<List<DownloadedPlaylistInfo>> = _fullyDownloadedPlaylists.asStateFlow()
 
 
-// ─── Actions ───────────────────────────────────────────
+// ─── Acciones ──────────────────────────────────────────
 
 
     fun downloadSong(song: SongItem) {
@@ -271,7 +271,7 @@ class DownloadViewModel(
     }
 
 
-    /** Returns a flow for a single song's download state, distinct until changed. */
+    /** Retorna un flow con el estado de descarga de una canción, sin duplicados hasta que cambie. */
 
     fun downloadStateFlow(songId: String): Flow<DownloadState?> =
         downloadStates.map { it[songId] }.distinctUntilChanged()
@@ -285,7 +285,7 @@ class DownloadViewModel(
     }.distinctUntilChanged()
 
 
-    /** Returns a flow that emits true if ALL the provided songs are completely downloaded. */
+    /** Retorna un flow que emite true si TODAS las canciones proporcionadas están completamente descargadas. */
     fun isFullyDownloadedFlow(songIds: List<String>): Flow<Boolean> =
 
         downloadStates.map { states ->

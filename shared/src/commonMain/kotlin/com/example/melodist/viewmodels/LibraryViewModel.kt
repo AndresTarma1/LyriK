@@ -269,7 +269,7 @@ class LibraryViewModel(
     fun removePlaylist(id: String) { viewModelScope.launch { playlistRepository.removePlaylist(id) } }
 
     /**
-     * Creates a new local playlist
+     * Crea una nueva playlist local
      */
     @OptIn(ExperimentalUuidApi::class)
     fun createLocalPlaylist(name: String) {
@@ -339,7 +339,7 @@ class LibraryViewModel(
         }
     }
 
-    /** Resolve the locally-cached songs of a LOCAL_ playlist (used by the game overlay). */
+    /** Resuelve las canciones en caché local de una playlist LOCAL_ (usado por el overlay del juego). */
     fun resolveLocalPlaylistSongs(
         playlistId: String,
         onResolved: (List<SongItem>) -> Unit,
@@ -464,26 +464,26 @@ class LibraryPlaylistsViewModel(
 
     fun removeSongFromLocalPlaylist(playlistId: String, songId: String) {
         viewModelScope.launch {
-            // Read the setVideoId before the local row is deleted; needed for remote removal.
+            // Leer el setVideoId antes de eliminar la fila local; necesario para la eliminación remota.
             val setVideoId = playlistRepository.getSetVideoId(playlistId, songId)
             playlistRepository.removeSongFromPlaylist(playlistId, songId)
             mirrorRemoveFromYtm(playlistId, songId, setVideoId)
         }
     }
 
-    // ── YouTube Music sync (experimental) ────────────────────────────────────
-    // Mirrors local playlist edits to a YTM playlist on the signed-in account. Best-effort and
-    // optimistic: the local change is never reverted if the remote call fails.
+    // ── Sincronización con YouTube Music (experimental) ────────────────────────────────────
+    // Refleja las ediciones de playlists locales en una playlist de YTM en la cuenta iniciada.
+    // Es optimista y mejor esfuerzo: el cambio local nunca se revierte si la llamada remota falla.
 
     private suspend fun ytmSyncActive(): Boolean =
         userPreferences.ytmSyncEnabled.first() && AccountManager.loginState.value
 
     private suspend fun mirrorAddToYtm(localPlaylistId: String, song: SongItem) {
         if (!ytmSyncActive()) return
-        // Playlists that already have a browseId are real YouTube playlists (saved from YTM);
-        // PlaylistRepository.addSongToPlaylist already pushed to them unconditionally. Mirroring
-        // here too would create a SECOND, duplicate playlist (resolveOrCreateRemotePlaylist has no
-        // way to know this one already exists remotely) and double-add the song.
+        // Las playlists que ya tienen un browseId son playlists reales de YouTube (guardadas desde YTM);
+        // PlaylistRepository.addSongToPlaylist ya las sincroniza incondicionalmente. Reflejar aquí
+        // también crearía una SEGUNDA playlist duplicada (resolveOrCreateRemotePlaylist no tiene
+        // forma de saber que esta ya existe remotamente) y añadiría la canción dos veces.
         if (playlistRepository.getBrowseId(localPlaylistId) != null) return
         runCatching {
             withContext(Dispatchers.IO) {
@@ -498,8 +498,8 @@ class LibraryPlaylistsViewModel(
 
     private suspend fun mirrorRemoveFromYtm(localPlaylistId: String, songId: String, setVideoId: String?) {
         if (setVideoId == null || !ytmSyncActive()) return
-        // Same reasoning as mirrorAddToYtm: browseId-linked playlists are handled by
-        // PlaylistRepository.removeSongFromPlaylist already.
+        // Misma lógica que mirrorAddToYtm: las playlists vinculadas con browseId ya son
+        // gestionadas por PlaylistRepository.removeSongFromPlaylist.
         if (playlistRepository.getBrowseId(localPlaylistId) != null) return
         val remoteId = userPreferences.getRemotePlaylistId(localPlaylistId) ?: return
         runCatching {
@@ -507,7 +507,7 @@ class LibraryPlaylistsViewModel(
         }.onFailure { Napier.e("[ytm-sync] remove failed", it) }
     }
 
-    /** The remote YTM playlist mirroring [localPlaylistId], creating it on first use. */
+    /** La playlist remota de YTM que refleja [localPlaylistId], creándola en el primer uso. */
     private suspend fun resolveOrCreateRemotePlaylist(localPlaylistId: String): String? {
         userPreferences.getRemotePlaylistId(localPlaylistId)?.let { return it }
         val name = playlistRepository.getCachedPlaylistItem(localPlaylistId)?.title ?: return null

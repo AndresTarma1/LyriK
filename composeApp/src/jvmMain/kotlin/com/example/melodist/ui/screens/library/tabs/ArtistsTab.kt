@@ -3,6 +3,9 @@ package com.example.melodist.ui.screens.library.tabs
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -39,7 +42,7 @@ fun ArtistsTab(
 ) {
     val isEmpty = artists.isEmpty() && ytmArtists.isEmpty() && !isLoadingYtm
     if (isEmpty) {
-        LibraryEmptyState(Icons.Default.Person, "No hay artistas guardados", "Sigue artistas y apareceran aqui")
+        LibraryEmptyState(Icons.Default.Person, stringResource(Res.string.no_saved_artists), stringResource(Res.string.save_artists_hint))
         return
     }
     if (isLoadingYtm && ytmArtists.isEmpty()) {

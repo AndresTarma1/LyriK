@@ -72,7 +72,6 @@ fun HomeScreenRoute(
     )
 }
 
-// Screen — sin TopAppBar redundante (ya hay título en la TitleBar)
 @Composable
 fun HomeScreen(
     uiState: HomeState,
@@ -123,7 +122,6 @@ fun HomeScreen(
     }
 }
 
-// Content — composable tonto, sin lógica de negocio
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun HomeScreenContent(
@@ -290,8 +288,7 @@ private fun HomeSectionRow(
 
         val rows = section.numItemsPerColumn ?: 1
         if (rows > 1) {
-            // Grid shelf: YouTube stacks several rows per column (e.g. quick-picks-style song
-            // lists). Render as list rows across multiple columns, like the search results.
+            // Por si YouTube nos da una sección de 2 filas, renderizamos un grid-like horizontal con 2 o mas filas
             HorizontalGridLikeRow(
                 items = section.items,
                 rows = rows,
@@ -332,7 +329,7 @@ private fun HomeSectionRow(
     }
 }
 
-/** Shared click routing for a home YTItem (play a song, or navigate to album/playlist/artist). */
+// Componente compartido que permite la navegación a distintas páginas (Artista/Album/Playlist)
 private fun onHomeItemClick(
     item: YTItem,
     onNavigate: (Route) -> Unit,
@@ -348,7 +345,7 @@ private fun onHomeItemClick(
 }
 
 /**
- * Renders a home screen item UI based on its type, with appropriate click handlers for playback or navigation.
+ * Renderizar un item del home dependiendo del tipo de contenido (Song, Album, Playlist, Artist).
  */
 @Composable
 private fun HomeSectionItem(
@@ -387,12 +384,9 @@ private fun HomeSectionItem(
 }
 
 /**
- * Renders a section of recently played songs in a 2-row horizontal grid layout.
+ * Renderizar la sección de "Quick Picks" (canciones recientes) en la pantalla de inicio.
  *
- * Songs are displayed with local content when available, otherwise with YouTube content.
- * Clicking a song plays it.
- *
- * @param songs The songs to display.
+ * @param songs Los sonidos que nos devuelven.
  */
 @Composable
 private fun QuickPicksSection(
@@ -435,7 +429,6 @@ private fun QuickPicksSection(
 }
 
 // Loading / Error — sin cambios de lógica
-
 @Composable
 fun HomeScreenLoading(
     modifier: Modifier = Modifier,
@@ -477,42 +470,5 @@ fun HomeScreenError(message: String, isOffline: Boolean = false, onRetry: () -> 
         )
         Spacer(modifier = Modifier.height(24.dp))
         Button(onClick = onRetry) { Text(stringResource(Res.string.home_retry)) }
-    }
-}
-
-@Composable
-fun HomeChartsSection(
-    section: ChartsPage.ChartSection,
-    onNavigate: (Route) -> Unit,
-    playerViewModel: PlayerViewModel?,
-) {
-    Column(modifier = Modifier.padding(top = 12.dp, bottom = 12.dp, end = 16.dp)) {
-        Text(
-            text = section.title,
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Black,
-            modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
-        )
-
-        val sectionScrollState = rememberLazyListState()
-        HorizontalScrollableRow(
-            modifier = Modifier.fillMaxWidth(),
-            state = sectionScrollState,
-            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            items(
-                count = section.items.take(12).size,
-                key = { index -> "chart_${section.title}_${section.items[index].id}" }
-            ) { index ->
-                val item = section.items[index]
-                HomeSectionItem(
-                    item = item,
-                    onNavigate = onNavigate,
-                    playerViewModel = playerViewModel,
-                    modifier = Modifier.animateItem()
-                )
-            }
-        }
     }
 }

@@ -25,16 +25,17 @@ class PlaylistRepository(
 ) {
 
     /**
-     * The YouTube `browseId` for a local playlist, or null if it isn't linked to a real YT
-     * playlist. Two independent paths lead here: [SyncUtils]'s SavedPlaylists pull writes a
-     * `Playlist` row with an explicit `browseId` column; the normal "save this YouTube playlist"
-     * flow ([savePlaylistWithSongs], via the playlist screen's bookmark button) only ever writes
-     * to `SavedPlaylist` and never touches `Playlist` at all — for those, the playlist's own `id`
-     * IS the browseId (that's how the rest of the app already treats non-local playlist ids).
+     * El `browseId` de YouTube para una playlist local, o null si no está vinculada a una playlist
+     * real de YT. Dos rutas independientes llegan aquí: la extracción de SavedPlaylists de [SyncUtils]
+     * escribe una fila `Playlist` con una columna explícita de `browseId`; el flujo normal de "guardar
+     * esta playlist de YouTube" ([savePlaylistWithSongs], mediante el botón de marcador de la pantalla
+     * de playlist) solo escribe en `SavedPlaylist` y nunca toca `Playlist` — para esos casos, el propio
+     * `id` de la playlist ES el browseId (así es como el resto de la app maneja los ids de playlists no locales).
      *
-     * Also excludes auto-generated shelves that YouTube doesn't let you edit: "LM" (Liked Music,
-     * driven by likes, not a real playlist item list), "SE" (saved episodes), and Mixes/Radios
-     * ("RD..." ids) — pushing an add/remove to one of those isn't a valid operation.
+     * También excluye estanterías generadas automáticamente que YouTube no permite editar: "LM" (Música
+     * que te gusta, impulsada por likes, no una lista real de elementos de playlist), "SE" (episodios
+     * guardados) y Mezclas/Radios (ids "RD...") — enviar una adición/eliminación a una de estas no es
+     * una operación válida.
      */
     suspend fun getBrowseId(playlistId: String): String? = withContext(Dispatchers.IO) {
         database.playlistQueries.playlistById(playlistId).executeAsOneOrNull()?.browseId
@@ -237,10 +238,10 @@ class PlaylistRepository(
             )
         }
 
-        // Push to the linked YouTube playlist — gated behind "Sincronizar con YouTube Music"
-        // (experimental, opt-in) since this writes to the user's real account. Best-effort: local
-        // state is already saved above, so a network failure here doesn't lose the user's action,
-        // just leaves it un-synced.
+        // Enviar a la playlist de YouTube vinculada — controlado por "Sincronizar con YouTube Music"
+        // (experimental, activado por el usuario) ya que esto escribe en la cuenta real del usuario.
+        // Mejor esfuerzo: el estado local ya se guardó arriba, así que un error de red aquí no
+        // pierde la acción del usuario, simplemente deja la playlist sin sincronizar.
         val browseId = getBrowseId(playlistId)
         if (browseId != null && userPreferences.ytmSyncEnabled.first()) {
             retryWithBackoff { YouTube.addToPlaylist(browseId, song.id) }
@@ -251,12 +252,12 @@ class PlaylistRepository(
         }
     }
 
-    /** Persist the YTM `setVideoId` for a song already in a local playlist (used for remote sync). */
+    /** Persiste el `setVideoId` de YTM para una canción ya existente en una playlist local (usado para sincronización remota). */
     suspend fun updateSetVideoId(playlistId: String, songId: String, setVideoId: String) = withContext(Dispatchers.IO) {
         database.playlistSongMapQueries.updateSetVideoId(setVideoId, playlistId, songId)
     }
 
-    /** The stored YTM `setVideoId` for a song in a local playlist, or null. */
+    /** El `setVideoId` de YTM almacenado para una canción en una playlist local, o null. */
     suspend fun getSetVideoId(playlistId: String, songId: String): String? = withContext(Dispatchers.IO) {
         database.playlistSongMapQueries.selectByPlaylist(playlistId).executeAsList()
             .firstOrNull { it.songId == songId }?.setVideoId
@@ -267,9 +268,10 @@ class PlaylistRepository(
         val row = rows.firstOrNull { it.songId == songId } ?: return@withContext
         database.playlistSongMapQueries.deletePlaylistSongMap(row.id)
 
-        // Push the removal to the linked YouTube playlist (same gate/rationale as add).
-        // Without a stored setVideoId (e.g. the song was added before this sync feature existed)
-        // there's no way to identify the item to YouTube's API, so we just skip the remote call.
+        // Enviar la eliminación a la playlist de YouTube vinculada (misma condición/justificación que al agregar).
+        // Sin un setVideoId almacenado (por ejemplo, la canción se agregó antes de que existiera esta
+        // función de sincronización) no hay forma de identificar el elemento ante la API de YouTube,
+        // así que simplemente omitimos la llamada remota.
         val browseId = getBrowseId(playlistId)
         val setVideoId = row.setVideoId
         if (browseId != null && setVideoId != null && userPreferences.ytmSyncEnabled.first()) {

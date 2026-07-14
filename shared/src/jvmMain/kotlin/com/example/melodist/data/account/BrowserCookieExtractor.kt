@@ -68,10 +68,11 @@ object BrowserCookieExtractor {
     }
 
     /**
-     * Linux/macOS. Existing Chromium-family profiles encrypt cookies with a key stored in the OS
-     * keyring (GNOME Keyring/KWallet) we can't read, so we don't offer them — the browser-login
-     * flow (fresh profile forced to the "basic" store) is the supported path there. Firefox stores
-     * cookies unencrypted, so detecting existing Firefox profiles works directly.
+     * Linux/macOS. Los perfiles existentes de Chromium cifran las cookies con una clave almacenada
+     * en el depósito de claves del SO (GNOME Keyring/KWallet) que no podemos leer, por lo que no
+     * los ofrecemos: el flujo de inicio de sesión en el navegador (perfil nuevo forzado al almacén
+     * "básico") es el método compatible allí. Firefox almacena las cookies sin cifrar, por lo que
+     * la detección de perfiles existentes de Firefox funciona directamente.
      */
     private fun detectBrowsersUnix(): List<BrowserProfile> {
         val browsers = mutableListOf<BrowserProfile>()
@@ -206,8 +207,8 @@ object BrowserCookieExtractor {
 
     private fun extractChromiumCookies(browser: BrowserProfile): CookieExtractResult {
         Napier.i("Extracting cookies from ${browser.name}: db=${browser.cookieDbPath}, localState=${browser.localStatePath}")
-        // Windows wraps the AES key with DPAPI in Local State; Linux/macOS derive it from a fixed
-        // password ("peanuts" for the basic store we force during browser login).
+        // Windows envuelve la clave AES con DPAPI en Local State; Linux/macOS la derivan de una
+        // contraseña fija ("peanuts" para el almacén básico que forzamos al iniciar sesión en el navegador).
         val masterKey = if (Platform.isWindows) {
             decryptMasterKey(browser.localStatePath)
                 ?: return CookieExtractResult.Error("Failed to decrypt ${browser.name}'s encryption key. Make sure ${browser.name} is installed properly.")
@@ -279,9 +280,9 @@ object BrowserCookieExtractor {
     }
 
     private fun copyLockedFile(source: File, dest: File) {
-        // robocopy can copy a file Chrome holds an exclusive lock on (Windows-only). On Linux/macOS
-        // SQLite files aren't exclusively locked, so the plain copyTo already succeeded — if we got
-        // here on those platforms, there's nothing more to try.
+        // robocopy puede copiar un archivo que Chrome tiene bloqueado en exclusiva (solo Windows). En
+        // Linux/macOS los archivos SQLite no están bloqueados en exclusiva, por lo que el copyTo
+        // simple ya funcionó — si llegamos aquí en esas plataformas, no hay nada más que intentar.
         if (!Platform.isWindows) throw Exception("locked-file copy unsupported on this platform")
         val sourceDir = source.parentFile.absolutePath
         val destDir = dest.parentFile.absolutePath
@@ -400,16 +401,16 @@ object BrowserCookieExtractor {
     }
 
     /**
-     * Linux Chromium cookie decryption: `v10`/`v11` prefix, then AES-128-CBC with a 16-space IV and
-     * PKCS#7 padding (contrast to Windows' AES-GCM). Newer Chrome also prepends a 32-byte SHA-256
-     * domain-binding hash, stripped by [stripBindingHash].
+     * Descifrado de cookies de Chromium en Linux: prefijo `v10`/`v11`, luego AES-128-CBC con un IV
+     * de 16 espacios y relleno PKCS#7 (a diferencia del AES-GCM de Windows). Chrome más reciente
+     * también antepone un hash de 32 bytes SHA-256 de vínculo de dominio, eliminado por [stripBindingHash].
      */
     private fun decryptCookieValueLinux(encrypted: ByteArray, key: ByteArray): String? {
         return try {
             if (encrypted.size < 3) return null
             val prefix = String(encrypted, 0, 3)
             if (prefix != "v10" && prefix != "v11") {
-                // Unencrypted plaintext (older/basic profiles occasionally store it raw).
+                // Texto plano sin cifrar (perfiles antiguos/básicos ocasionalmente lo almacenan en bruto).
                 return String(encrypted, Charsets.UTF_8)
             }
             val ciphertext = encrypted.copyOfRange(3, encrypted.size)
@@ -423,7 +424,7 @@ object BrowserCookieExtractor {
             )
             var decrypted = cipher.doFinal(ciphertext)
 
-            // Remove PKCS#7 padding.
+            // Eliminar el relleno PKCS#7.
             val pad = decrypted.lastOrNull()?.toInt()?.and(0xFF) ?: 0
             if (pad in 1..16 && pad <= decrypted.size) {
                 decrypted = decrypted.copyOfRange(0, decrypted.size - pad)
@@ -434,7 +435,7 @@ object BrowserCookieExtractor {
         }
     }
 
-    /** AES-128 key for Linux "basic" password store: PBKDF2(HMAC-SHA1, "peanuts", "saltysalt", 1). */
+    /** Clave AES-128 para el almacén de contraseñas "básico" de Linux: PBKDF2(HMAC-SHA1, "peanuts", "saltysalt", 1). */
     private fun linuxChromiumKey(): ByteArray {
         val spec = PBEKeySpec("peanuts".toCharArray(), "saltysalt".toByteArray(), 1, 128)
         return SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1").generateSecret(spec).encoded

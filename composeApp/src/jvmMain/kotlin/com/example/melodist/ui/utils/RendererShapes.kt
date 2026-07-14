@@ -16,8 +16,8 @@ fun isCircleLikeShape(shape: Shape, corner: Dp = 12.dp): Boolean {
 }
 
 private fun isOpenGlRenderer(): Boolean {
-    // When we pin the renderApi, honor it. When unset (DIRECTX/"auto"), skiko's default is OpenGL
-    // on Linux — so treat Linux-without-an-explicit-choice as OpenGL too.
+    // Cuando el renderApi está fijado, se respeta. Cuando no está definido (DIRECTX/"auto"),
+    // skiko usa OpenGL por defecto en Linux — así que Linux sin elección explícita también se trata como OpenGL.
     val prop = System.getProperty("skiko.renderApi")
     return if (prop != null) prop.equals("OPENGL", ignoreCase = true) else Platform.isLinux
 }

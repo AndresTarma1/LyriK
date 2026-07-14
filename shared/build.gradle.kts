@@ -12,7 +12,7 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            // put your Multiplatform dependencies here
+            // coloca aquí tus dependencias Multiplatform
             api(project(":innertube"))
             implementation(project.dependencies.platform(libs.koin.bom))
             implementation(libs.koin.core)
@@ -36,7 +36,7 @@ kotlin {
 
 
 
-            // DataStore library
+            // Librería DataStore
             api("androidx.datastore:datastore:1.2.1")
             api("androidx.datastore:datastore-preferences:1.2.1")
 
@@ -46,27 +46,27 @@ kotlin {
         }
         jvmMain.dependencies {
             api(libs.sqldelight.driver.jvm)
-            // Lyrics providers (synced LRC) — JVM-only modules
+            // Proveedores de letras (LRC sincronizado) — módulos solo JVM
             implementation(project(":lrclib"))
             implementation(project(":kugou"))
-            // Source: https://mvnrepository.com/artifact/net.java.dev.jna/jna
+            // Fuente: https://mvnrepository.com/artifact/net.java.dev.jna/jna
             implementation("net.java.dev.jna:jna:5.18.1")
 
-            // Source: https://mvnrepository.com/artifact/net.java.dev.jna/jna-platform-jpms
+            // Fuente: https://mvnrepository.com/artifact/net.java.dev.jna/jna-platform-jpms
             implementation("net.java.dev.jna:jna-platform-jpms:5.18.1")
             implementation("org.jetbrains.runtime:jbr-api:1.10.1")
             implementation("dev.toastbits:mediasession:0.1.1")
 
-            // Source: https://mvnrepository.com/artifact/org.graalvm.js/js-scriptengine
+            // Fuente: https://mvnrepository.com/artifact/org.graalvm.js/js-scriptengine
             implementation("org.graalvm.js:js-scriptengine:25.0.3")
 
-            // Source: https://mvnrepository.com/artifact/org.graalvm.js/js
+            // Fuente: https://mvnrepository.com/artifact/org.graalvm.js/js
             implementation("org.graalvm.js:js:25.0.3")
 
-            // JCEF (Chromium) API only — used to mint BotGuard poTokens. The actual native
-            // implementation is provided at runtime by the JetBrains Runtime's `jcef` module
-            // (see --add-modules=jcef in composeApp), so this stays compileOnly to avoid
-            // shipping/clashing native binaries.
+            // API de JCEF (Chromium) solo — usada para generar poTokens de BotGuard. La implementación
+            // nativa real es proporcionada en tiempo de ejecución por el módulo `jcef` de JetBrains Runtime
+            // (ver --add-modules=jcef en composeApp), así que esto se mantiene compileOnly para evitar
+            // enviar/binarios nativos en conflicto.
             compileOnly("me.friwi:jcef-api:jcef-1770317+cef-132.3.1+g144febe+chromium-132.0.6834.83")
         }
     }

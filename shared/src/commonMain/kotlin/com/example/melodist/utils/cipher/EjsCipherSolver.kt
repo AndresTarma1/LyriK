@@ -5,18 +5,20 @@ import javax.script.ScriptEngine
 import javax.script.ScriptEngineManager
 
 /**
- * Signature ("sig") and throttling ("n") deobfuscation backed by the yt-dlp/ejs solver
- * (`assets/solver/yt.solver.core.js`, built from https://github.com/yt-dlp/ejs).
+ * Desofuscación de firma ("sig") y limitación ("n") respaldada por el solucionador
+ * yt-dlp/ejs (`assets/solver/yt.solver.core.js`, construido desde https://github.com/yt-dlp/ejs).
  *
- * Unlike the regex-based [FunctionNameExtractor], this parses player.js with meriyah/astring
- * and extracts the transform functions structurally, so it survives YouTube's frequent
- * player obfuscation changes without hardcoded function names or per-hash configs.
+ * A diferencia del [FunctionNameExtractor] basado en expresiones regulares, este analiza
+ * player.js con meriyah/astring y extrae las funciones de transformación de forma estructural,
+ * por lo que sobrevive a los frecuentes cambios de ofuscación del reproductor de YouTube
+ * sin nombres de función hardcodeados ni configuraciones por hash.
  *
- * Protocol (validated against player ae0b654c):
+ * Protocolo (validado contra el reproductor ae0b654c):
  *   main({type:'player', player:<js>, output_preprocessed:true, requests:[...]})
  *     -> {responses:[{type:'result', data:{<challenge>:<solved>}}], preprocessed_player:<string>}
- * We preprocess once per player hash and cache `preprocessed_player` in the JS global,
- * then reuse it for each sig/n solve to avoid re-parsing the ~2.7 MB player.js.
+ * Preprocesamos una vez por hash del reproductor y almacenamos en caché `preprocessed_player`
+ * en el ámbito global del JS, luego lo reutilizamos para cada resolución de sig/n para evitar
+ * re-analizar el player.js de ~2.7 MB.
  */
 object EjsCipherSolver {
     private val engine: ScriptEngine by lazy {
@@ -28,13 +30,13 @@ object EjsCipherSolver {
     private var preparedHash: String? = null
 
     /**
-     * Initializes the JavaScript solver engine with required solver assets on first call.
+     * Inicializa el motor del solucionador de JavaScript con los recursos necesarios en la primera llamada.
      */
     @Synchronized
     private fun ensureLoaded() {
         if (loaded) return
         Napier.i("[EJS] Loading solver (meriyah + astring + yt.solver.core)...")
-        // The UMD bundles fall back to `globalThis.<name>` when module/define are absent.
+        // Los paquetes UMD recurren a `globalThis.<name>` cuando no existen module/define.
         engine.eval("var globalThis = this; var window = this; var self = this;")
         engine.eval(readAsset("solver/meriyah.js"))
         engine.eval(readAsset("solver/astring.js"))
@@ -44,7 +46,7 @@ object EjsCipherSolver {
         Napier.i("[EJS] Solver loaded")
     }
 
-    /** Parse player.js and cache its preprocessed form (no-op if the same hash is already prepared). */
+    /** Analiza player.js y almacena en caché su forma preprocesada (sin efecto si el mismo hash ya está preparado). */
     @Synchronized
     fun prepare(playerJs: String, hash: String) {
         ensureLoaded()
@@ -67,10 +69,10 @@ object EjsCipherSolver {
     }
 
     /**
-     * Solves a cipher challenge using the previously prepared player representation.
+     * Resuelve un desafío de cifrado usando la representación del reproductor previamente preparada.
      *
-     * @param type The challenge type, typically "sig" or "n".
-     * @return The solved value as a string, or null if solving fails or the player was not prepared.
+     * @param type El tipo del desafío, típicamente "sig" o "n".
+     * @return El valor resuelto como cadena, o null si la resolución falla o el reproductor no fue preparado.
      */
     @Synchronized
     fun solve(type: String, challenge: String): String? {
@@ -101,11 +103,11 @@ object EjsCipherSolver {
     }
 
     /**
-     * Loads text assets from the classpath.
+     * Carga recursos de texto desde el classpath.
      *
-     * @param path The relative path to the asset.
-     * @return The text content of the asset.
-     * @throws CipherException If the asset is not found.
+     * @param path La ruta relativa del recurso.
+     * @return El contenido de texto del recurso.
+     * @throws CipherException Si el recurso no se encuentra.
      */
     private fun readAsset(path: String): String {
         val fullPath = "com/example/melodist/utils/cipher/assets/$path"

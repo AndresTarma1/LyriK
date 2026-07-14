@@ -7,29 +7,27 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
+import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Duration.Companion.milliseconds
 
-data class EqPreset(val name: String, val bands: List<Float>)
+data class EqPreset(val nameRes: StringResource, val bands: List<Float>)
 
 private val eqPresets = listOf(
-    EqPreset("Flat", List(10) { 0f }),
-    EqPreset("Rock", listOf(5f, 3f, 2f, 1f, 0f, 0f, 1f, 2f, 3f, 4f)),
-    EqPreset("Pop", listOf(2f, 2f, 3f, 4f, 3f, 2f, 2f, 2f, 3f, 3f)),
-    EqPreset("Jazz", listOf(4f, 3f, 2f, 1f, 2f, 3f, 2f, 2f, 3f, 4f)),
-    EqPreset("Classical", listOf(5f, 4f, 3f, 2f, 1f, 0f, 0f, 1f, 3f, 4f)),
-    EqPreset("Bass Boost", listOf(6f, 5f, 4f, 3f, 1f, 0f, 0f, 0f, 0f, 0f)),
-    EqPreset("Dance", listOf(5f, 4f, 3f, 2f, 0f, 0f, 1f, 2f, 3f, 4f)),
-    EqPreset("Acoustic", listOf(4f, 3f, 2f, 1f, 0f, 0f, 1f, 3f, 4f, 5f)),
+    EqPreset(Res.string.eq_preset_flat, List(10) { 0f }),
+    EqPreset(Res.string.eq_preset_rock, listOf(5f, 3f, 2f, 1f, 0f, 0f, 1f, 2f, 3f, 4f)),
+    EqPreset(Res.string.eq_preset_pop, listOf(2f, 2f, 3f, 4f, 3f, 2f, 2f, 2f, 3f, 3f)),
+    EqPreset(Res.string.eq_preset_jazz, listOf(4f, 3f, 2f, 1f, 2f, 3f, 2f, 2f, 3f, 4f)),
+    EqPreset(Res.string.eq_preset_classical, listOf(5f, 4f, 3f, 2f, 1f, 0f, 0f, 1f, 3f, 4f)),
+    EqPreset(Res.string.eq_preset_bass_boost, listOf(6f, 5f, 4f, 3f, 1f, 0f, 0f, 0f, 0f, 0f)),
+    EqPreset(Res.string.eq_preset_dance, listOf(5f, 4f, 3f, 2f, 0f, 0f, 1f, 2f, 3f, 4f)),
+    EqPreset(Res.string.eq_preset_acoustic, listOf(4f, 3f, 2f, 1f, 0f, 0f, 1f, 3f, 4f, 5f)),
 )
 
 @Composable
@@ -74,7 +72,7 @@ fun EqualizerPanel(
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Box {
                     TextButton(onClick = { showPresetMenu = true }) {
-                        Text("Presets")
+                        Text(stringResource(Res.string.eq_presets))
                     }
                     DropdownMenu(
                         expanded = showPresetMenu,
@@ -86,7 +84,7 @@ fun EqualizerPanel(
                     ) {
                         eqPresets.forEach { preset ->
                             DropdownMenuItem(
-                                text = { Text(preset.name) },
+                                text = { Text(stringResource(preset.nameRes)) },
                                 onClick = {
                                     localBands = preset.bands
                                     showPresetMenu = false
@@ -127,7 +125,7 @@ fun EqualizerPanel(
                             .width(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Slider(
+                        SlimVerticalSlider(
                             value = gain,
                             onValueChange = { newVal ->
                                 val newBands = localBands.toMutableList()
@@ -135,12 +133,7 @@ fun EqualizerPanel(
                                 localBands = newBands
                             },
                             valueRange = -15f..15f,
-                            modifier = Modifier
-                                .requiredWidth(120.dp)
-                                .graphicsLayer {
-                                    rotationZ = 270f
-                                }
-                                .pointerHoverIcon(PointerIcon.Hand)
+                            modifier = Modifier.fillMaxHeight(),
                         )
                     }
 

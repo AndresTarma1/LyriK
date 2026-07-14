@@ -30,8 +30,9 @@ import androidx.compose.runtime.LaunchedEffect
 import com.example.melodist.lyrics.LyricLine
 
 /**
- * Karaoke-style synced lyrics: the active line is highlighted (with per-word fill when word
- * timings exist), the view auto-scrolls to keep it centered, and tapping a line seeks to it.
+ * Letras sincronizadas al estilo karaoke: la línea activa se resalta (con relleno por palabra
+ * cuando existen tiempos por palabra), la vista se desplaza automáticamente para mantenerla
+ * centrada y al tocar una línea se busca esa posición.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -40,12 +41,13 @@ fun SyncedLyricsView(
     positionMs: Long,
     onSeek: (Long) -> Unit,
     modifier: Modifier = Modifier,
-    textAlign: Boolean = false, // false = centered, true = start-aligned
+    textAlign: Boolean = false, // false = centrado, true = alineado al inicio
 ) {
     val listState = rememberLazyListState()
 
-    // Last line whose start time is <= current position. Recomputed each tick (cheap for ~dozens of
-    // lines); LaunchedEffect below only re-scrolls when the Int actually changes.
+    // Última línea cuyo tiempo de inicio es <= posición actual. Se recalcula en cada tick (barato
+    // para ~decenas de líneas); El LaunchedEffect a continuación solo vuelve a desplazarse
+    // cuando el Int realmente cambia.
     val activeIndex = run {
         var idx = -1
         for (i in lines.indices) {
@@ -57,8 +59,9 @@ fun SyncedLyricsView(
     Box(modifier = modifier) {
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxWidth()) {
             val viewportPx = with(androidx.compose.ui.platform.LocalDensity.current) { maxHeight.toPx() }
-            // Anchor the active line near the TOP (so upcoming lyrics are visible below it),
-            // not centered. Negative offset moves the item down from the very top.
+            // Anclar la línea activa cerca de la PARTE SUPERIOR (para que las letras próximas
+            // sean visibles debajo), no centrada. El offset negativo mueve el elemento hacia
+            // abajo desde la parte más alta.
             val topAnchorPx = (viewportPx * 0.16f).toInt()
 
             LaunchedEffect(activeIndex) {
@@ -68,8 +71,9 @@ fun SyncedLyricsView(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxWidth(),
-                // Small top padding (so the first line isn't glued to the edge but doesn't waste
-                // space); large bottom padding so the last lines can still scroll up to the anchor.
+                // Pequeño padding superior (para que la primera línea no esté pegada al borde pero
+                // no desperdicie espacio); gran padding inferior para que las últimas líneas aún
+                // puedan desplazarse hacia arriba hasta el ancla.
                 contentPadding = PaddingValues(top = 16.dp, bottom = maxHeight * 0.8f),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -102,7 +106,7 @@ private fun LyricLineRow(
     val sungColor = MaterialTheme.colorScheme.primary
     val idleColor = MaterialTheme.colorScheme.onSurface.copy(alpha = if (isPast) 0.32f else 0.45f)
 
-    // Subtle scale-up on the active line for emphasis.
+    // Escalamiento sutil en la línea activa para énfasis.
     val scale by animateFloatAsState(if (isActive) 1f else 0.96f, label = "lyricScale")
 
     val rowModifier = Modifier
@@ -126,7 +130,7 @@ private fun LyricLineRow(
     val arrangement = if (startAligned) Arrangement.Start else Arrangement.Center
 
     if (line.text.isBlank()) {
-        // Spacer-ish empty line (e.g. instrumental gap)
+        // Línea vacía tipo espaciador (por ejemplo, espacio instrumental)
         Box(rowModifier.padding(vertical = 2.dp)) {
             Text("♪", style = style, color = if (isActive) sungColor else idleColor)
         }
@@ -134,7 +138,7 @@ private fun LyricLineRow(
     }
 
     if (isActive && line.words.isNotEmpty()) {
-        // Per-word karaoke fill.
+        // Relleno de karaoke por palabra.
         FlowRow(
             modifier = rowModifier,
             horizontalArrangement = arrangement,

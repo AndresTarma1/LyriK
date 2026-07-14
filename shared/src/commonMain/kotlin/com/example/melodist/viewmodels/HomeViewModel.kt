@@ -48,13 +48,13 @@ class HomeViewModel(
     private val preferencesRepository: UserPreferencesRepository? = null,
 ) : ViewModel() {
 
-    /** True when the user opted into offline mode, or a connectivity probe says we're down. */
+    /** Verdadero cuando el usuario activó el modo sin conexión, o una sonda de conectividad indica que estamos caídos. */
     private suspend fun isEffectivelyOffline(): Boolean =
         preferencesRepository?.offlineModeEnabled?.first() == true || !NetworkMonitor.isOnline()
 
     private var reconnectWatchJob: Job? = null
 
-    /** Auto-retries [fetchHome] once connectivity is back, so the offline banner clears itself. */
+    /** Reintenta automáticamente [fetchHome] cuando se restablece la conectividad, para que el banner de sin conexión desaparezca solo. */
     private fun watchForReconnect(params: String?) {
         reconnectWatchJob = viewModelScope.launch {
             NetworkMonitor.awaitOnline()

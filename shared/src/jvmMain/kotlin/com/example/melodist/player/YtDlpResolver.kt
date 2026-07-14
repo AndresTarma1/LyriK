@@ -8,32 +8,33 @@ import java.util.concurrent.TimeUnit
 import java.util.logging.Logger
 
 /**
- * Last-resort stream resolver that shells out to **yt-dlp** to obtain a direct audio URL.
+ * Resolvedor de último recurso que invoca **yt-dlp** para obtener una URL de audio directa.
  *
- * Melodist's in-process pipeline (WEB_REMIX + EJS sig/n + JCEF poToken) covers normal videos,
- * but some "hard" videos 403 on every client we can build (they need yt-dlp's encrypted
- * web_embedded flow). yt-dlp handles those, so we fall back to it when mpv fails to actually
- * start playing the resolved stream.
+ * El pipeline interno de Melodist (WEB_REMIX + EJS sig/n + JCEF poToken) cubre los videos
+ * normales, pero algunos videos "difíciles" dan error 403 en todos los clientes que podemos
+ * construir (necesitan el flujo web_embedded cifrado de yt-dlp). yt-dlp maneja esos casos,
+ * por lo que recurrimos a él cuando mpv no logra iniciar la reproducción del stream resuelto.
  *
- * Resolution is invoked only on playback failure, so its ~1-3s startup cost never affects the
- * common (working) path.
+ * La resolución solo se invoca al fallar la reproducción, por lo que su costo de inicio de ~1-3s
+ * nunca afecta el camino común (funcional).
  */
 object YtDlpResolver {
     private val log = Logger.getLogger("YtDlpResolver")
 
-    // Videos that the in-process pipeline couldn't play this session (all clients 403). Remembering
-    // them lets the caller skip the slow in-process + mpv-failure cycle on repeat plays and go
-    // straight to yt-dlp. Session-only (cleared on restart, in case YouTube/clients change).
+    // Videos que el pipeline interno no pudo reproducir en esta sesión (todos los clientes 403).
+    // Recordarlos permite al llamador omitir el ciclo lento de proceso-interno + fallo-de-mpv en
+    // reproducciones repetidas y ir directo a yt-dlp. Solo durante la sesión (se limpia al reiniciar,
+    // por si YouTube/los clientes cambian).
     private val knownYtDlpOnly = java.util.Collections.synchronizedSet(mutableSetOf<String>())
 
     fun markNeedsYtDlp(videoId: String) { knownYtDlpOnly.add(videoId) }
     fun needsYtDlp(videoId: String): Boolean = knownYtDlpOnly.contains(videoId)
 
     /**
-     * Returns a yt-dlp format selector string for the specified audio quality.
+     * Devuelve un selector de formato de yt-dlp para la calidad de audio especificada.
      *
-     * @param quality The desired audio quality level.
-     * @return A yt-dlp `-f` format selector string.
+     * @param quality El nivel de calidad de audio deseado.
+     * @return Un selector de formato `-f` de yt-dlp.
      */
     private fun formatSelector(quality: AudioQuality): String = when (quality) {
         AudioQuality.LOW -> "worstaudio/bestaudio[abr<=70]/bestaudio"
@@ -42,11 +43,11 @@ object YtDlpResolver {
     }
 
     /**
-     * Resolves a direct audio stream URL for the given video ID.
+     * Resuelve una URL de stream de audio directa para el ID de video dado.
      *
-     * Requires yt-dlp to be available either as a bundled executable or on the system PATH.
+     * Requiere que yt-dlp esté disponible como ejecutable incluido o en el PATH del sistema.
      *
-     * @return A direct audio stream URL, or `null` if yt-dlp is unavailable or resolution fails.
+     * @return Una URL de stream de audio directa, o `null` si yt-dlp no está disponible o la resolución falla.
      */
     suspend fun resolveAudioUrl(
         videoId: String,
@@ -62,9 +63,10 @@ object YtDlpResolver {
             val args = buildList {
                 add(exe); add("--no-warnings"); add("--no-playlist")
                 add("-f"); add(formatSelector(quality))
-                // Pass the signed-in cookie so age-restricted / login-required videos resolve. It must
-                // be a Netscape cookies.txt file: a header-cookie is scoped only to the download host,
-                // not to the youtube.com API calls yt-dlp makes during extraction.
+                // Pasar la cookie de sesión para que los videos con restricción de edad / que
+                // requieren inicio de sesión puedan resolverse. Debe ser un archivo cookies.txt
+                // de formato Netscape: un header-cookie solo tiene alcance en el host de descarga,
+                // no en las llamadas a la API de youtube.com que yt-dlp realiza durante la extracción.
                 cookiesFile()?.let { add("--cookies"); add(it.absolutePath) }
                 add("-g"); add(watchUrl)
             }
@@ -94,9 +96,9 @@ object YtDlpResolver {
     private var cachedCookieValue: String? = null
 
     /**
-     * Writes the signed-in cookie to a Netscape `cookies.txt` (the format yt-dlp applies to the
-     * youtube.com extraction calls), for both `.youtube.com` and `.google.com`. Cached until the
-     * cookie changes. Returns null when not logged in.
+     * Escribe la cookie de sesión en un archivo Netscape `cookies.txt` (el formato que yt-dlp
+     * aplica a las llamadas de extracción de youtube.com), tanto para `.youtube.com` como para
+     * `.google.com`. Se cachea hasta que la cookie cambia. Devuelve null si no hay sesión activa.
      */
     private fun cookiesFile(): File? {
         val cookie = com.metrolist.innertube.YouTube.cookie?.takeIf { it.isNotBlank() } ?: return null
@@ -112,7 +114,7 @@ object YtDlpResolver {
                 val value = pair.substring(idx + 1).trim()
                 if (name.isEmpty()) return@forEach
                 for (domain in listOf(".youtube.com", ".google.com")) {
-                    // domain \t includeSubdomains \t path \t secure \t expiry \t name \t value
+                    // dominio \t includeSubdomains \t path \t secure \t expiry \t name \t value
                     sb.append(domain).append("\tTRUE\t/\tTRUE\t2147483647\t").append(name).append('\t').append(value).append('\n')
                 }
             }
@@ -128,16 +130,16 @@ object YtDlpResolver {
 
     val isAvailable: Boolean get() = ytDlpPath != null
 
-    /** Bundled binary (shipped next to libmpv) takes precedence over a system PATH install. */
+    /** El binario incluido (junto a libmpv) tiene prioridad sobre una instalación en el PATH del sistema. */
     private val ytDlpPath: String? by lazy { locateYtDlp() }
 
     /**
-     * Determines the absolute path to the yt-dlp executable.
+     * Determina la ruta absoluta al ejecutable de yt-dlp.
      * 
-     * Prefers bundled executables in known resource directories, then falls back 
-     * to a system-wide lookup.
+     * Prefiere los ejecutables incluidos en directorios de recursos conocidos, luego recurre a
+     * una búsqueda en todo el sistema.
      *
-     * @return The absolute path to yt-dlp, or `null` if not found.
+     * @return La ruta absoluta a yt-dlp, o `null` si no se encuentra.
      */
     private fun locateYtDlp(): String? {
         val userDir = File(System.getProperty("user.dir"))
@@ -153,15 +155,15 @@ object YtDlpResolver {
             log.info("Using bundled yt-dlp: ${it.absolutePath}")
             return it.absolutePath
         }
-        // Fall back to a system install, resolving its absolute path via where/which.
+        // Recurrir a una instalación del sistema, resolviendo su ruta absoluta con where/which.
         return resolveOnPath("yt-dlp")?.also { log.info("Using system yt-dlp: $it") }
     }
 
     /**
-     * Locates an executable on the system PATH.
+     * Localiza un ejecutable en el PATH del sistema.
      *
-     * @param name The name of the executable to locate.
-     * @return The absolute path to the executable if found, `null` otherwise.
+     * @param name El nombre del ejecutable a localizar.
+     * @return La ruta absoluta al ejecutable si se encuentra, `null` en caso contrario.
      */
     private fun resolveOnPath(name: String): String? = try {
         val which = if (System.getProperty("os.name").startsWith("Windows", true)) "where" else "which"
@@ -171,7 +173,7 @@ object YtDlpResolver {
             out.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }
         } else null
     } catch (e: Exception) {
-        // `where`/`which` unavailable — assume not present.
+        // `where`/`which` no disponible — asumir que no está instalado.
         null
     }
 }

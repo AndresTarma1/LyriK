@@ -1,11 +1,14 @@
 package com.example.melodist.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ShowChart
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -24,16 +27,23 @@ import com.alorma.compose.settings.ui.SettingsSwitch
 import com.example.melodist.data.AppDirs
 import com.example.melodist.data.repository.*
 import com.example.melodist.ui.components.EqualizerPanel
+import com.example.melodist.ui.components.PlayerSeekBar
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.screens.shared.displayName
 import com.example.melodist.ui.screens.shared.openFolder
 import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
+import com.example.melodist.viewmodels.AppViewModel
 import com.example.melodist.viewmodels.JvmSettingsViewModel
 import com.example.melodist.viewmodels.SettingsViewModel
+import com.example.melodist.viewmodels.UpdateCheckState
+import com.example.melodist.viewmodels.UpdateStatus
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
+import java.awt.Desktop
+import java.net.URI
+import java.net.URLEncoder
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -48,14 +58,17 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     var showOverlayCapture by remember { mutableStateOf(false) }
     val jvmSettingsViewModel: JvmSettingsViewModel = koinInject()
     val hotkeyManager: com.example.melodist.overlay.GlobalHotkeyManager = koinInject()
+    val appViewModel: AppViewModel = koinInject()
 
     var showThemeDropdown by remember { mutableStateOf(false) }
     var showDarkLevelDropdown by remember { mutableStateOf(false) }
     var showLayoutDropdown by remember { mutableStateOf(false) }
+    var showIslandStyleDropdown by remember { mutableStateOf(false) }
     var showPaletteDropdown by remember { mutableStateOf(false) }
     var showAudioDropdown by remember { mutableStateOf(false) }
     var showLanguageDropdown by remember { mutableStateOf(false) }
     var showRegionDropdown by remember { mutableStateOf(false) }
+    var showSeekBarStyleDialog by remember { mutableStateOf(false) }
 
     val colors = ListItemDefaults.segmentedColors(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -66,6 +79,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val themeMode by viewModel.themeMode.collectAsState()
     val darkLevel by viewModel.darkLevel.collectAsState()
     val layoutMode by viewModel.layoutMode.collectAsState()
+    val islandStyle by viewModel.islandStyle.collectAsState()
     val themePalette by viewModel.themePalette.collectAsState()
     val dynamicColor by viewModel.dynamicColorFromArtwork.collectAsState()
     val highResCover by viewModel.highResCoverArt.collectAsState()
@@ -78,11 +92,14 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val currentLocale by viewModel.locale.collectAsState()
     val youtubeRegion by viewModel.youtubeRegion.collectAsState()
     val crossfadeEnabled by viewModel.crossfadeEnabled.collectAsState()
+    val seekBarStyle by viewModel.seekBarStyle.collectAsState()
     val ytmSyncEnabled by viewModel.ytmSyncEnabled.collectAsState()
     val offlineModeEnabled by viewModel.offlineModeEnabled.collectAsState()
     val overlayHotkeyEnabled by viewModel.overlayHotkeyEnabled.collectAsState()
     val overlayHotkeyLabel by viewModel.overlayHotkeyLabel.collectAsState()
     val defaultHotkeyLabel = remember { com.example.melodist.overlay.HotkeyCombo.DEFAULT.label() }
+    val updateCheckState by appViewModel.checkState.collectAsState()
+    val updateStatus by appViewModel.updateStatus.collectAsState()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
         Box(modifier = Modifier.fillMaxSize()) {
@@ -173,6 +190,20 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         onSelect = { viewModel.setLayoutMode(it); showLayoutDropdown = false },
                         colors = colors,
                     )
+                    // Solo aplica al diseño de islas (el modo adjunto no tiene separaciones/esquinas).
+                    if (layoutMode == LayoutMode.ISLANDS) {
+                        DropdownSelector(
+                            label = stringResource(Res.string.settings_island_style),
+                            icon = Icons.Rounded.ViewAgenda,
+                            currentValue = islandStyle.displayName(),
+                            expanded = showIslandStyleDropdown,
+                            onExpandedChange = { showIslandStyleDropdown = it },
+                            options = IslandStyle.entries.map { it to it.displayName() },
+                            isSelected = { it == islandStyle },
+                            onSelect = { viewModel.setIslandStyle(it); showIslandStyleDropdown = false },
+                            colors = colors,
+                        )
+                    }
                     DropdownSelector(
                         label = stringResource(Res.string.color_palette),
                         icon = Icons.Rounded.Palette,
@@ -227,6 +258,17 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         state = crossfadeEnabled,
                         onCheckedChange = { viewModel.setCrossfadeEnabled(it) }
                     )
+                    SettingsMenuLink(
+                        icon = { Icon(Icons.AutoMirrored.Rounded.ShowChart, null) },
+                        title = { Text(stringResource(Res.string.seek_bar_style)) },
+                        subtitle = { Text(seekBarStyle.displayName()) },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        action = { IconButton(onClick = { showSeekBarStyleDialog = true }) {
+                            Icon(Icons.Rounded.ChevronRight, null)
+                        } },
+                        onClick = { showSeekBarStyleDialog = true }
+                    )
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -251,7 +293,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         shape = RoundedCornerShape(16.dp),
                         state = ytmSyncEnabled,
                         onCheckedChange = { checked ->
-                            // Require an explicit experimental-feature confirmation before enabling.
+                            // Requiere una confirmación explícita de la función experimental antes de activarla.
                             if (checked) showYtmSyncWarning = true
                             else viewModel.setYtmSyncEnabled(false)
                         }
@@ -397,6 +439,65 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                 }
 
                 Spacer(Modifier.height(8.dp))
+                SettingsGroup(
+                    title = { Text(stringResource(Res.string.section_support)) },
+                    colors = colors,
+                ) {
+                    val downloading = updateStatus as? UpdateStatus.Downloading
+                    val ready = updateStatus is UpdateStatus.Ready
+                    SettingsMenuLink(
+                        icon = { Icon(Icons.Rounded.SystemUpdate, null) },
+                        title = { Text(stringResource(Res.string.check_updates)) },
+                        subtitle = {
+                            Text(
+                                when {
+                                    ready -> stringResource(Res.string.check_updates_ready)
+                                    downloading != null -> {
+                                        val pct = downloading.progress
+                                        if (pct >= 0f) "${stringResource(Res.string.check_updates_downloading)} ${(pct * 100).toInt()}%"
+                                        else stringResource(Res.string.check_updates_downloading)
+                                    }
+                                    updateCheckState is UpdateCheckState.Checking -> stringResource(Res.string.check_updates_checking)
+                                    updateCheckState is UpdateCheckState.UpToDate -> stringResource(Res.string.check_updates_up_to_date)
+                                    updateCheckState is UpdateCheckState.Failed -> stringResource(Res.string.check_updates_failed)
+                                    else -> stringResource(Res.string.check_updates_subtitle)
+                                }
+                            )
+                        },
+                        colors = colors,
+                        shape = RoundedCornerShape(16.dp),
+                        action = {
+                            when {
+                                ready -> {
+                                    // Reabrir el diálogo de instalación a nivel de aplicación (el que controla el cierre).
+                                    FilledTonalButton(onClick = { appViewModel.checkForUpdates(manual = true) }) {
+                                        Text(stringResource(Res.string.btn_install_update))
+                                    }
+                                }
+                                downloading != null || updateCheckState is UpdateCheckState.Checking ->
+                                    CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                                else -> TextButton(onClick = { appViewModel.checkForUpdates(manual = true) }) {
+                                    Text(stringResource(Res.string.btn_check))
+                                }
+                            }
+                        },
+                        onClick = {
+                            if (ready) appViewModel.checkForUpdates(manual = true)
+                            else if (downloading == null && updateCheckState !is UpdateCheckState.Checking)
+                                appViewModel.checkForUpdates(manual = true)
+                        }
+                    )
+                    ActionRow(
+                        label = stringResource(Res.string.report_bug),
+                        subtitle = stringResource(Res.string.report_bug_subtitle),
+                        icon = Icons.Rounded.BugReport,
+                        btnLabel = stringResource(Res.string.btn_report),
+                        onClick = { openReportBugPage() },
+                        colors = colors
+                    )
+                }
+
+                Spacer(Modifier.height(8.dp))
                 AboutCard()
                 Spacer(Modifier.height(16.dp))
             }
@@ -412,8 +513,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     }
 
     if (showOverlayCapture) {
-        // Put the hotkey manager in one-shot capture mode while the dialog is open; the next
-        // non-modifier key press is recorded as the new combo.
+        // Activar el modo de captura de una sola tecla en el gestor de atajos mientras el diálogo
+        // esté abierto; la siguiente pulsación de una tecla sin modificador se registrará como la nueva combinación.
         DisposableEffect(Unit) {
             hotkeyManager.beginCapture { combo ->
                 viewModel.setOverlayHotkey(combo.keyCode, combo.modsMask, combo.label())
@@ -423,6 +524,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         }
         AlertDialog(
             onDismissRequest = { showOverlayCapture = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 0.dp,
             icon = { Icon(Icons.Rounded.Keyboard, null) },
             title = { Text(stringResource(Res.string.overlay_capture_title)) },
             text = { Text(stringResource(Res.string.overlay_capture_message)) },
@@ -436,6 +539,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     if (showYtmSyncWarning) {
         AlertDialog(
             onDismissRequest = { showYtmSyncWarning = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 0.dp,
             icon = { Icon(Icons.Rounded.WarningAmber, null, tint = MaterialTheme.colorScheme.error) },
             title = { Text(stringResource(Res.string.ytm_sync_warning_title)) },
             text = { Text(stringResource(Res.string.ytm_sync_warning_message)) },
@@ -454,6 +559,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     if (showClearDownloadsDialog) {
         AlertDialog(
             onDismissRequest = { showClearDownloadsDialog = false },
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+            tonalElevation = 0.dp,
             title = { Text(stringResource(Res.string.clear_downloads_title)) },
             text = { Text(stringResource(Res.string.clear_downloads_message)) },
             confirmButton = {
@@ -480,12 +587,39 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         }
     }
 
+    if (showSeekBarStyleDialog) {
+        ResponsiveSettingsDialog(
+            onDismiss = { showSeekBarStyleDialog = false },
+            icon = Icons.AutoMirrored.Rounded.ShowChart,
+            title = stringResource(Res.string.seek_bar_style_title),
+        ) {
+            SeekBarStylePickerContent(
+                current = seekBarStyle,
+                onSelect = { viewModel.setSeekBarStyle(it) },
+            )
+        }
+    }
+
     if (showJvmSettingsDialog) {
         AdvancedJvmSettingsScreen(
             viewModel = jvmSettingsViewModel,
             onDismiss = { showJvmSettingsDialog = false },
         )
     }
+}
+
+/**
+ * Abre una página prellenada de "nuevo issue" en GitHub en lugar de construir un sistema de
+ * reporte de errores dentro de la aplicación — el proyecto no tiene backend, y esto mantiene
+ * los reportes revisados manualmente como cualquier otro issue.
+ */
+private fun openReportBugPage() {
+    val os = "${System.getProperty("os.name")} ${System.getProperty("os.version")}"
+    val body = "**Versión:** ${AppViewModel.CURRENT_VERSION}\n**Sistema operativo:** $os\n\nDescribe el problema:\n"
+    val url = "https://github.com/AndresTarma1/LyriK/issues/new" +
+        "?title=${URLEncoder.encode("[Bug] ", "UTF-8")}" +
+        "&body=${URLEncoder.encode(body, "UTF-8")}"
+    runCatching { Desktop.getDesktop().browse(URI(url)) }
 }
 
 @Composable
@@ -553,11 +687,76 @@ private fun <T> DropdownSelector(
     }
 }
 
+/**
+ * Selector visual estilo Metrolist: cada opción es una tarjeta que muestra una vista previa
+ * en vivo de la barra de búsqueda renderizada en ese estilo, para que la elección se haga
+ * mirando en lugar de leer una etiqueta. Al tocar se aplica de inmediato (el mini-reproductor
+ * se actualiza en vivo detrás del diálogo).
+ */
+@Composable
+private fun SeekBarStylePickerContent(
+    current: SeekBarStyle,
+    onSelect: (SeekBarStyle) -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        SeekBarStyle.entries.forEach { style ->
+            val selected = style == current
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(16.dp))
+                    .border(
+                        width = if (selected) 2.dp else 1.dp,
+                        color = if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .clickable { onSelect(style) }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        style.displayName(),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
+                        color = if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurface
+                    )
+                    Icon(
+                        if (selected) Icons.Rounded.CheckCircle else Icons.Rounded.RadioButtonUnchecked,
+                        null,
+                        tint = if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                PlayerSeekBar(
+                    style = style,
+                    value = 0.42f,
+                    onValueChange = {},
+                    onValueChangeFinished = {},
+                    modifier = Modifier.fillMaxWidth(),
+                    isPlaying = true,
+                    enabled = false,
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun ActionRow(
     label: String,
     icon: ImageVector,
     btnLabel: String,
+    subtitle: String? = null,
     isDestructive: Boolean = false,
     onClick: () -> Unit,
     colors: ListItemColors,
@@ -566,6 +765,7 @@ private fun ActionRow(
     SettingsMenuLink(
         icon = { Icon(icon, null, tint = if (isDestructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface) },
         title = { Text(label) },
+        subtitle = subtitle?.let { { Text(it) } },
         shape = RoundedCornerShape(16.dp),
         colors = colors,
         action = {
@@ -652,8 +852,10 @@ private fun ResponsiveSettingsDialog(
                     .width(dialogWidth)
                     .heightIn(max = maxDialogHeight),
                 shape = RoundedCornerShape(16.dp),
-                color = MaterialTheme.colorScheme.surface,
-                tonalElevation = 6.dp,
+                // surfaceContainer sin overlay tonal para que AMOLED se mantenga neutro-oscuro
+                // (la superficie anterior + 6dp de elevación teñía el modal con el acento, "no era negro puro").
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 0.dp,
             ) {
                 Column(modifier = Modifier.height(IntrinsicSize.Min)) {
                     Row(

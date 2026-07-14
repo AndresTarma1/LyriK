@@ -6,10 +6,12 @@ import org.jetbrains.compose.resources.stringResource
 import com.example.melodist.data.repository.AppLocale
 import com.example.melodist.data.repository.AudioQuality
 import com.example.melodist.data.repository.DarkLevel
+import com.example.melodist.data.repository.IslandStyle
 import com.example.melodist.data.repository.LayoutMode
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.data.repository.RenderApi
+import com.example.melodist.data.repository.SeekBarStyle
 import com.example.melodist.data.repository.YouTubeRegion
 import com.example.melodist.viewmodels.LibrarySortOrder
 import com.example.melodist.viewmodels.YtmLibraryFilter
@@ -38,6 +40,21 @@ fun DarkLevel.displayName(): String = when (this) {
 fun LayoutMode.displayName(): String = when (this) {
     LayoutMode.ISLANDS -> stringResource(Res.string.layout_islands)
     LayoutMode.ATTACHED -> stringResource(Res.string.layout_attached)
+}
+
+@Composable
+fun IslandStyle.displayName(): String = when (this) {
+    IslandStyle.COMPACT -> stringResource(Res.string.island_style_compact)
+    IslandStyle.COMFORTABLE -> stringResource(Res.string.island_style_comfortable)
+    IslandStyle.SPACIOUS -> stringResource(Res.string.island_style_spacious)
+}
+
+@Composable
+fun SeekBarStyle.displayName(): String = when (this) {
+    SeekBarStyle.WAVY -> stringResource(Res.string.seek_bar_style_wavy)
+    SeekBarStyle.LINEAR -> stringResource(Res.string.seek_bar_style_linear)
+    SeekBarStyle.MATERIAL -> stringResource(Res.string.seek_bar_style_material)
+    SeekBarStyle.MINIMAL -> stringResource(Res.string.seek_bar_style_minimal)
 }
 
 @Composable

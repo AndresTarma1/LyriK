@@ -7,6 +7,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
+import lyrik.composeapp.generated.resources.Res
+import lyrik.composeapp.generated.resources.btn_cancel
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun ConfirmDestructiveActionDialog(
@@ -18,6 +22,8 @@ fun ConfirmDestructiveActionDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        tonalElevation = 0.dp,
         title = { Text(title) },
         text = { Text(message) },
         confirmButton = {
@@ -36,7 +42,7 @@ fun ConfirmDestructiveActionDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar")
+                Text(stringResource(Res.string.btn_cancel))
             }
         }
     )

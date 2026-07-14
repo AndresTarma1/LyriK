@@ -109,11 +109,13 @@ fun MelodistImage(
     } else {
 
         val effectiveLowRes = isLowRes || !highResEnabled
-        // Grid cards (MediaGridItem) pass isLowRes=true and render at GridCells.Adaptive(minSize
-        // = 150.dp) or wider — on a 2x HiDPI display that's 300+ physical px, well above the old
-        // 160px decode target, which made playlist/album covers look visibly blurrier in the
-        // Library grid than the same artwork on YouTube Music itself. 320 keeps the low-res path
-        // meaningfully cheaper than the full 512 while covering a 150-160dp card at ~2x density.
+        // Las tarjetas de cuadrícula (MediaGridItem) pasan isLowRes=true y renderizan en
+        // GridCells.Adaptive(minSize = 150.dp) o más ancho — en una pantalla HiDPI 2x eso son
+        // 300+ píxeles físicos, muy por encima del objetivo de decodificación anterior de 160px,
+        // que hacía que las portadas de listas/álbumes se vieran visiblemente más borrosas en la
+        // cuadrícula de la Biblioteca que la misma imagen en YouTube Music. 320 mantiene la ruta
+        // de baja resolución considerablemente más económica que el 512 completo, cubriendo una
+        // tarjeta de 150-160dp a una densidad de ~2x.
         val coilSize = if (effectiveLowRes) 320 else 512
 
         AsyncImage(

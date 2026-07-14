@@ -1,22 +1,18 @@
 package com.example.melodist
 
 import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ClosedCaption
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.OpenInFull
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -25,16 +21,16 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.rounded.CloudOff
 import androidx.compose.material.icons.rounded.CloudSync
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
+import com.kdroid.composetray.tray.api.Tray
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -52,12 +48,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.ApplicationScope
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
 import com.example.melodist.data.repository.AppLocale
@@ -81,7 +78,7 @@ import com.example.melodist.utils.LocalSnackbarHostState
 import com.example.melodist.utils.LocalSnackbarScope
 import com.example.melodist.utils.LocalUserPreferences
 import com.example.melodist.viewmodels.AppViewModel
-import com.example.melodist.viewmodels.UpdateDownloadState
+import com.example.melodist.viewmodels.UpdateStatus
 import com.example.melodist.viewmodels.DownloadViewModel
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
 import com.example.melodist.viewmodels.PlayerUiState
@@ -91,16 +88,20 @@ import com.example.melodist.overlay.GlobalHotkeyManager
 import com.example.melodist.overlay.HotkeyCombo
 import com.example.melodist.overlay.MusicOverlayWindow
 import com.example.melodist.overlay.OverlayController
-import com.kdroid.composetray.tray.api.Tray
-import kotlinx.coroutines.Dispatchers
+import com.example.melodist.ui.components.MelodistImage
+import com.example.melodist.ui.components.PlaceholderType
+import com.example.melodist.windows.WindowsThumbBar
+import com.metrolist.innertube.models.AccountInfo
+import io.github.aakira.napier.Napier
+import io.github.vinceglb.autolaunch.AutoLaunch
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import lyrik.composeapp.generated.resources.Music_note_circle
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.app_name
 import lyrik.composeapp.generated.resources.cancel
+import lyrik.composeapp.generated.resources.offline_mode
 import lyrik.composeapp.generated.resources.sync_now
 import lyrik.composeapp.generated.resources.sync_now_syncing
 import lyrik.composeapp.generated.resources.tray_exit
@@ -109,14 +110,10 @@ import lyrik.composeapp.generated.resources.tray_open
 import lyrik.composeapp.generated.resources.tray_pause
 import lyrik.composeapp.generated.resources.tray_play
 import lyrik.composeapp.generated.resources.tray_previous
-import lyrik.composeapp.generated.resources.update_download
-import lyrik.composeapp.generated.resources.update_install
-import lyrik.composeapp.generated.resources.update_downloading
-import lyrik.composeapp.generated.resources.update_installing
-import lyrik.composeapp.generated.resources.update_failed
-import lyrik.composeapp.generated.resources.update_later
-import lyrik.composeapp.generated.resources.update_message
-import lyrik.composeapp.generated.resources.update_title
+import lyrik.composeapp.generated.resources.update_ready_title
+import lyrik.composeapp.generated.resources.update_ready_message
+import lyrik.composeapp.generated.resources.update_install_now
+import lyrik.composeapp.generated.resources.update_install_later
 import lyrik.composeapp.generated.resources.ytm_sync
 import lyrik.composeapp.generated.resources.ytm_sync_warning_confirm
 import lyrik.composeapp.generated.resources.ytm_sync_warning_message
@@ -136,13 +133,12 @@ import org.jetbrains.jewel.window.TitleBar
 import org.jetbrains.jewel.window.TitleBarScope
 import org.jetbrains.jewel.window.styling.TitleBarColors
 import org.jetbrains.jewel.window.styling.TitleBarStyle
-import java.awt.Desktop
 import java.awt.Dimension
 import java.awt.EventQueue
 import java.awt.Frame
 import java.awt.event.ComponentAdapter
 import java.awt.event.ComponentEvent
-
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun ApplicationScope.App(
@@ -156,10 +152,8 @@ fun ApplicationScope.App(
 ) {
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
-    val updateInfo by appViewModel.updateInfo.collectAsState()
-
-    // Window size/placement is now set at construction in main() (read from prefs before the window
-    // is built), so it opens in the right placement on the first frame — no async placement race.
+    val updateStatus by appViewModel.updateStatus.collectAsState()
+    val showInstallPrompt by appViewModel.showInstallPrompt.collectAsState()
 
     LaunchedEffect(Unit) {
         appViewModel.checkForUpdates()
@@ -168,34 +162,31 @@ fun ApplicationScope.App(
     var isVisible by remember { mutableStateOf(false) }
     val minimizeToTray by remember { userPreferences.minimizeToTray }.collectAsState(false)
 
-    // When the window is hidden to the tray, return idle RAM to the OS (Skia surfaces, buffers,
-    // thread stacks sitting resident). Pages fault back on restore; doing it only while hidden
-    // avoids any visible stutter. Re-keys to true before the delay fires at startup, so it never
-    // trims during normal use.
+    // Cuando la ventana se oculta, si el usuario tiene activada la opción de liberar memoria
+    // se llama a la función trim() después de un retraso de 2 segundos.
     val trimMemoryOnTray by remember(userPreferences) { userPreferences.trimMemoryOnTray }.collectAsState(true)
     LaunchedEffect(isVisible, trimMemoryOnTray) {
         if (!isVisible && trimMemoryOnTray) {
-            kotlinx.coroutines.delay(2000)
+            kotlinx.coroutines.delay(2000.milliseconds)
             com.example.melodist.utils.WorkingSetTrimmer.trim()
         }
     }
 
-    // Launch-at-Windows-startup: keep the registry Run key in sync with the preference. Doing the
-    // registry write here (JVM/desktop layer) keeps SettingsViewModel pure. AutoLaunch resolves the
-    // real LyriK.exe in the packaged app; in a dev run it points at the dev launcher.
+    // Lanzar la app al iniciar, solo si está activado
     LaunchedEffect(Unit) {
-        val autoLaunch = io.github.vinceglb.autolaunch.AutoLaunch(appPackageName = "LyriK")
+        val autoLaunch = AutoLaunch(appPackageName = "LyriK")
         userPreferences.launchAtStartup.distinctUntilChanged().collect { enabled ->
             runCatching { if (enabled) autoLaunch.enable() else autoLaunch.disable() }
-                .onFailure { io.github.aakira.napier.Napier.w("AutoLaunch sync failed: ${it.message}") }
+                .onFailure { Napier.w("AutoLaunch sync failed: ${it.message}") }
         }
     }
 
-    // Game overlay: keep the global-hotkey manager in sync with the user's configured combo.
+    // Mantener el game overlay disponible y actualizado con la combinación de teclas y estado de activación del usuario.
     val hotkeyManager: GlobalHotkeyManager = koinInject()
     val overlayEnabled by remember(userPreferences) { userPreferences.overlayHotkeyEnabled }.collectAsState(true)
     val overlayCode by remember(userPreferences) { userPreferences.overlayHotkeyCode }.collectAsState(0)
     val overlayMods by remember(userPreferences) { userPreferences.overlayHotkeyMods }.collectAsState(0)
+
     LaunchedEffect(overlayEnabled, overlayCode, overlayMods) {
         hotkeyManager.setEnabled(overlayEnabled)
         hotkeyManager.updateCombo(HotkeyCombo.fromPrefs(overlayCode, overlayMods))
@@ -204,25 +195,25 @@ fun ApplicationScope.App(
     val overlayPosX by remember(userPreferences) { userPreferences.overlayPosX }.collectAsState(com.example.melodist.data.repository.OVERLAY_POS_UNSET)
     val overlayPosY by remember(userPreferences) { userPreferences.overlayPosY }.collectAsState(com.example.melodist.data.repository.OVERLAY_POS_UNSET)
 
-    // Quick sync menu in the title bar — same toggle/action as Settings, just closer at hand.
+    // Mantener el estado de sincronización de YTM en la barra de título y en el menú de la bandeja.
     val syncUtils: com.example.melodist.utils.SyncUtils = koinInject()
     val ytmSyncEnabled by remember(userPreferences) { userPreferences.ytmSyncEnabled }.collectAsState(false)
+    val offlineMode by remember(userPreferences) { userPreferences.offlineModeEnabled }.collectAsState(false)
     val syncState by syncUtils.syncState.collectAsState()
     var showYtmSyncWarningFromMenu by remember { mutableStateOf(false) }
 
-    // The menu's entry point shows the signed-in account's YouTube avatar (and name/email as a
-    // header inside the menu) instead of a generic icon. Fetched once per login-state transition —
-    // this is a single lightweight call, not a sync operation, so it doesn't need the cooldown.
+    // El punto de entrada del menú muestra el avatar de YouTube de la cuenta iniciada (y el nombre/correo electrónico como
+    // encabezado dentro del menú) en lugar de un icono genérico. Se obtiene una vez por cada transición de estado de inicio de sesión.
+    // Esta es una llamada ligera, no una operación de sincronización, por lo que no requiere tiempo de espera.
     val isLoggedIn by remember { com.example.melodist.data.account.AccountManager.loginState }.collectAsState(false)
-    var accountInfo by remember { mutableStateOf<com.metrolist.innertube.models.AccountInfo?>(null) }
+    var accountInfo by remember { mutableStateOf<AccountInfo?>(null) }
     LaunchedEffect(isLoggedIn) {
-        accountInfo = if (isLoggedIn) com.metrolist.innertube.YouTube.accountInfo().getOrNull() else null
+        accountInfo = if (isLoggedIn) YouTube.accountInfo().getOrNull() else null
     }
 
     fun handleExit() {
         scope.launch {
-            // Single atomic write (was two sequential DataStore edits) — halves the disk
-            // round-trip that used to run synchronously right before exit.
+            // Guardamos lo esencial del estado de la ventana antes de salir, para restaurarlo en el próximo inicio.
             userPreferences.setWindowState(
                 maximized = windowState.placement == WindowPlacement.Maximized,
                 width = windowState.size.width.value.toInt(),
@@ -264,6 +255,7 @@ fun ApplicationScope.App(
     val themeMode by remember(userPreferences) { userPreferences.themeMode }.collectAsState(ThemeMode.SYSTEM)
     val youtubeRegion by remember(userPreferences) { userPreferences.youtubeRegion }.collectAsState(YouTubeRegion.SYSTEM)
 
+    // Validamos que la region o el código de region sea válido, si no lo es, se asigna un valor por defecto (US/en-US)
     LaunchedEffect(youtubeRegion) {
         if (youtubeRegion == YouTubeRegion.SYSTEM) {
             val sysLocale = Locale.getDefault()
@@ -325,66 +317,26 @@ fun ApplicationScope.App(
                     title = stringResource(Res.string.app_name),
                     icon = painterResource(Res.drawable.Music_note_circle),
                 ) {
-                    val updateDownload by appViewModel.downloadState.collectAsState()
-                    updateInfo?.let { info ->
-                        val busy = updateDownload is UpdateDownloadState.Downloading ||
-                            updateDownload is UpdateDownloadState.Launching
+                    // La descarga corre silenciosamente, con la opción de instalar después o enseguida.
+                    // Si el usuario elige instalar enseguida, se llama a handleExit() para cerrar la app y que el instalador pueda reemplazar los archivos.
+                    val readyStatus = updateStatus as? UpdateStatus.Ready
+                    if (showInstallPrompt && readyStatus != null) {
+                        val info = readyStatus.info
                         AlertDialog(
-                            onDismissRequest = { appViewModel.dismissUpdate() },
-                            title = { Text(stringResource(Res.string.update_title)) },
-                            text = {
-                                Column {
-                                    Text(stringResource(Res.string.update_message, info.currentVersion, info.latestVersion))
-                                    when (val ds = updateDownload) {
-                                        is UpdateDownloadState.Downloading -> {
-                                            Spacer(Modifier.height(12.dp))
-                                            if (ds.progress >= 0f) {
-                                                LinearProgressIndicator(progress = { ds.progress }, modifier = Modifier.fillMaxWidth())
-                                                Text("${stringResource(Res.string.update_downloading)} ${(ds.progress * 100).toInt()}%")
-                                            } else {
-                                                LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                                                Text(stringResource(Res.string.update_downloading))
-                                            }
-                                        }
-                                        UpdateDownloadState.Launching -> {
-                                            Spacer(Modifier.height(12.dp))
-                                            Text(stringResource(Res.string.update_installing))
-                                        }
-                                        is UpdateDownloadState.Failed -> {
-                                            Spacer(Modifier.height(12.dp))
-                                            Text(stringResource(Res.string.update_failed))
-                                        }
-                                        else -> {}
-                                    }
-                                }
-                            },
+                            onDismissRequest = { appViewModel.postponeInstall() },
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            tonalElevation = 0.dp,
+                            icon = { Icon(Icons.Rounded.SystemUpdate, null) },
+                            title = { Text(stringResource(Res.string.update_ready_title)) },
+                            text = { Text(stringResource(Res.string.update_ready_message, info.latestVersion)) },
                             confirmButton = {
-                                if (info.installerUrl != null) {
-                                    // In-app: download the installer and launch it, then quit so it can update.
-                                    TextButton(enabled = !busy, onClick = { appViewModel.downloadAndInstall { handleExit() } }) {
-                                        Text(stringResource(Res.string.update_install))
-                                    }
-                                } else {
-                                    // No installer asset published — fall back to opening the release page.
-                                    TextButton(onClick = {
-                                        appViewModel.dismissUpdate()
-                                        scope.launch(Dispatchers.IO) {
-                                            try {
-                                                Desktop.getDesktop().browse(
-                                                    java.net.URI(info.releaseUrl ?: "https://github.com/AndresTarma1/LyriK/releases/latest")
-                                                )
-                                            } catch (_: Exception) {}
-                                        }
-                                    }) {
-                                        Text(stringResource(Res.string.update_download))
-                                    }
+                                TextButton(onClick = { appViewModel.installUpdate { handleExit() } }) {
+                                    Text(stringResource(Res.string.update_install_now))
                                 }
                             },
                             dismissButton = {
-                                // Dismissing is always safe: the download (if any) keeps running in
-                                // the background and the installer is ready next time, no progress lost.
-                                TextButton(onClick = { appViewModel.dismissUpdate() }) {
-                                    Text(stringResource(Res.string.update_later))
+                                TextButton(onClick = { appViewModel.postponeInstall() }) {
+                                    Text(stringResource(Res.string.update_install_later))
                                 }
                             }
                         )
@@ -393,6 +345,8 @@ fun ApplicationScope.App(
                     if (showYtmSyncWarningFromMenu) {
                         AlertDialog(
                             onDismissRequest = { showYtmSyncWarningFromMenu = false },
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            tonalElevation = 0.dp,
                             title = { Text(stringResource(Res.string.ytm_sync_warning_title)) },
                             text = { Text(stringResource(Res.string.ytm_sync_warning_message)) },
                             confirmButton = {
@@ -411,10 +365,10 @@ fun ApplicationScope.App(
 
                     window.minimumSize = Dimension(1024, 600)
 
-                    // Spotify-style taskbar thumbnail buttons (Prev / Play-Pause / Next) on Windows.
+                    // Spotify-style barra de tareas botones (Prev / Play-Pause / Next) para Windows.
                     val isWindows = remember { System.getProperty("os.name").orEmpty().lowercase().contains("win") }
                     val thumbBar = remember {
-                        com.example.melodist.windows.WindowsThumbBar(
+                        WindowsThumbBar(
                             onPrevious = { playerViewModel.previous() },
                             onPlayPause = { playerViewModel.togglePlayPause() },
                             onNext = { playerViewModel.next() },
@@ -424,9 +378,6 @@ fun ApplicationScope.App(
                     DisposableEffect(Unit) {
                         val startMaximized = windowState.placement == WindowPlacement.Maximized
                         if (isWindows) {
-                            // Wait for the first layout pass before showing: applying MAXIMIZED_BOTH
-                            // and only then flipping isVisible avoids the "opens floating, then jumps
-                            // to maximized" flicker — an AWT/Windows-specific quirk.
                             val listener = object : ComponentAdapter() {
                                 override fun componentResized(e: ComponentEvent) {
                                     window.removeComponentListener(this)
@@ -442,10 +393,6 @@ fun ApplicationScope.App(
                             window.addComponentListener(listener)
                             onDispose { window.removeComponentListener(listener) }
                         } else {
-                            // Other window managers (confirmed on WSLg) don't reliably fire
-                            // componentResized for a freshly-created window — waiting for it left the
-                            // window created (visible in the taskbar) but never actually shown. Just
-                            // apply the state and show immediately.
                             if (startMaximized) {
                                 window.extendedState = Frame.MAXIMIZED_BOTH
                             }
@@ -454,7 +401,7 @@ fun ApplicationScope.App(
                         }
                     }
 
-                    // Keep the middle button's glyph in sync with playback state.
+                    // sincronizar el estado de reproducción con la barra de tareas de Windows (Play/Pause)
                     if (isWindows) {
                         LaunchedEffect(playbackState) {
                             thumbBar.setPlaying(playbackState == PlaybackState.PLAYING)
@@ -468,9 +415,13 @@ fun ApplicationScope.App(
                             accountInfo = accountInfo,
                             ytmSyncEnabled = ytmSyncEnabled,
                             isSyncing = syncState.overallStatus is com.example.melodist.utils.SyncStatus.Syncing,
+                            isOfflineMode = offlineMode,
                             onToggleSync = { enable ->
                                 if (enable) showYtmSyncWarningFromMenu = true
                                 else scope.launch { userPreferences.setYtmSyncEnabled(false) }
+                            },
+                            onToggleOfflineMode = { enable ->
+                                scope.launch { userPreferences.setOfflineModeEnabled(enable) }
                             },
                             onSyncNow = {
                                 scope.launch { userPreferences.setLastFullSyncAt(System.currentTimeMillis()) }
@@ -488,8 +439,7 @@ fun ApplicationScope.App(
         }
     }
 
-    // Independent always-on-top overlay window, toggled by the global hotkey. Lives outside the
-    // main DecoratedWindow so it works even while the app is minimized to the tray.
+    // Independiente de la ventana principal, el overlay de música puede mostrarse en cualquier momento si el usuario lo ha activado.
     MusicOverlayWindow(
         visible = overlayVisible,
         onDismiss = { OverlayController.hide() },
@@ -544,7 +494,7 @@ private fun ApplicationScope.TrayCustom(
         )
         Divider()
         Item(
-            icon = Icons.Filled.ClosedCaption,
+            icon = Icons.AutoMirrored.Filled.ExitToApp,
             label = exitLabel,
             onClick = { handleExit() }
         )
@@ -555,9 +505,11 @@ private fun ApplicationScope.TrayCustom(
 private fun TitleBarScope.MelodistTitleBar(
     currentSong: String?,
     isPlaying: Boolean,
-    accountInfo: com.metrolist.innertube.models.AccountInfo?,
+    accountInfo: AccountInfo?,
     ytmSyncEnabled: Boolean,
     isSyncing: Boolean,
+    isOfflineMode: Boolean,
+    onToggleOfflineMode: (Boolean) -> Unit,
     onToggleSync: (Boolean) -> Unit,
     onSyncNow: () -> Unit,
 ) {
@@ -573,21 +525,20 @@ private fun TitleBarScope.MelodistTitleBar(
         )
     }
 
-    // Quick access to YTM sync — the same toggle/action that lives in Settings, closer at hand.
-    // Entry point is the signed-in account's YouTube avatar when available (falls back to a
-    // generic cloud icon while logged out or before the avatar loads).
     Box(modifier = Modifier.align(Alignment.End).padding(end = 4.dp)) {
         var showMenu by remember { mutableStateOf(false) }
-        IconButton(onClick = { showMenu = true }) {
+        IconButton(
+            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+            onClick = { showMenu = true }) {
             if (isSyncing) {
                 CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
             } else if (accountInfo?.thumbnailUrl != null) {
-                com.example.melodist.ui.components.MelodistImage(
+                MelodistImage(
                     url = accountInfo.thumbnailUrl,
                     contentDescription = accountInfo.name,
                     modifier = Modifier.size(24.dp),
-                    shape = androidx.compose.foundation.shape.CircleShape,
-                    placeholderType = com.example.melodist.ui.components.PlaceholderType.ARTIST,
+                    shape = CircleShape,
+                    placeholderType = PlaceholderType.ARTIST,
                 )
             } else {
                 Icon(
@@ -609,12 +560,12 @@ private fun TitleBarScope.MelodistTitleBar(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    com.example.melodist.ui.components.MelodistImage(
+                    MelodistImage(
                         url = accountInfo.thumbnailUrl,
                         contentDescription = accountInfo.name,
                         modifier = Modifier.size(36.dp),
-                        shape = androidx.compose.foundation.shape.CircleShape,
-                        placeholderType = com.example.melodist.ui.components.PlaceholderType.ARTIST,
+                        shape = CircleShape,
+                        placeholderType = PlaceholderType.ARTIST,
                     )
                     Column {
                         Text(accountInfo.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
@@ -644,6 +595,11 @@ private fun TitleBarScope.MelodistTitleBar(
                 },
                 enabled = !isSyncing,
                 onClick = { onSyncNow(); showMenu = false },
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.offline_mode)) },
+                trailingIcon = { Switch(checked = isOfflineMode, onCheckedChange = null) },
+                onClick = { onToggleOfflineMode(!isOfflineMode) },
             )
         }
     }

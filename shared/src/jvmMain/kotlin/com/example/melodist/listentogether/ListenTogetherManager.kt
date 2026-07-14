@@ -14,13 +14,14 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
- * Bridges [ListenTogetherClient] with Melodist's [PlayerViewModel].
+ * Conecta [ListenTogetherClient] con el [PlayerViewModel] de Melodist.
  *
- * HOST: observes player state (track / play-pause / seek) and broadcasts actions.
- * GUEST: applies incoming playback actions to the local player.
+ * ANFITRIÓN: observa el estado del reproductor (pista / pausa-reanudar / seek) y transmite acciones.
+ * INVITADO: aplica las acciones de reproducción entrantes al reproductor local.
  *
- * Adapted from Metrolist's `ListenTogetherManager` (which hooks ExoPlayer's `Player.Listener`);
- * here we observe Melodist's StateFlows instead, since mpv playback is event/flow-driven.
+ * Adaptado del `ListenTogetherManager` de Metrolist (que se conecta al `Player.Listener` de ExoPlayer);
+ * aquí observamos los StateFlows de Melodist en su lugar, ya que la reproducción con mpv es impulsada
+ * por eventos/flows.
  */
 class ListenTogetherManager(
     private val client: ListenTogetherClient,
@@ -41,7 +42,7 @@ class ListenTogetherManager(
     @Volatile
     private var isApplyingRemote = false
 
-    // Expose client state for the UI.
+    // Exponer el estado del cliente para la UI.
     val connectionState = client.connectionState
     val roomState = client.roomState
     val role = client.role
@@ -52,7 +53,7 @@ class ListenTogetherManager(
     val isInRoom: Boolean get() = client.isInRoom
     val isHost: Boolean get() = client.isHost
 
-    /** Collect client events once at app start. */
+    /** Recopilar eventos del cliente una vez al inicio de la app. */
     fun initialize() {
         scope.launch {
             client.events.collect { event -> runCatching { handleEvent(event) }.onFailure { Napier.e("$TAG handleEvent", it) } }
@@ -62,13 +63,13 @@ class ListenTogetherManager(
         }
     }
 
-    /** Provide (or clear) the player. Called when PlayerViewModel becomes available. */
+    /** Proporcionar (o limpiar) el reproductor. Se llama cuando PlayerViewModel está disponible. */
     fun setPlayer(playerViewModel: PlayerViewModel?) {
         player = playerViewModel
         refreshObservation()
     }
 
-    // ---- Room API passthrough (used by UI) ----
+    // ---- Passthrough de la API de sala (usado por la UI) ----
     fun createRoom(username: String) = client.createRoom(username)
     fun joinRoom(code: String, username: String) = client.joinRoom(code, username)
     fun leaveRoom() = client.leaveRoom()
@@ -77,11 +78,11 @@ class ListenTogetherManager(
     fun kickUser(userId: String) = client.kickUser(userId)
     fun transferHost(userId: String) = client.transferHost(userId)
 
-    // ---- Host observation ----
+    // ---- Observación del anfitrión ----
 
     private fun refreshObservation() {
         val pvm = player
-        // Guests can't control shared playback; their play/pause becomes mute/unmute.
+        // Los invitados no pueden controlar la reproducción compartida; su pausa/reanudar se convierte en silenciar/activar sonido.
         pvm?.listenTogetherGuestMode = isInRoom && !isHost
         if (pvm != null && isInRoom && isHost) startHostObservation(pvm) else stopHostObservation()
     }
@@ -93,7 +94,7 @@ class ListenTogetherManager(
         lastSentPlaying = pvm.uiState.value.playbackState == PlaybackState.PLAYING
 
         hostObserverJob = scope.launch {
-            // Track changes
+            // Cambios de pista
             launch {
                 pvm.uiState.map { it.currentSong?.id }.distinctUntilChanged().collect { trackId ->
                     if (!isHost || isApplyingRemote) return@collect
@@ -113,7 +114,7 @@ class ListenTogetherManager(
                     }
                 }
             }
-            // Play / pause
+            // Reproducir / pausar
             launch {
                 pvm.uiState.map { it.playbackState }.distinctUntilChanged().collect { pbState ->
                     if (!isHost || isApplyingRemote) return@collect
@@ -132,7 +133,7 @@ class ListenTogetherManager(
                     }
                 }
             }
-            // Seeks
+            // Búsquedas de posición (seek)
             launch {
                 pvm.seekEvents.collect { positionMs ->
                     if (!isHost || isApplyingRemote) return@collect
@@ -140,8 +141,8 @@ class ListenTogetherManager(
                     client.sendPlaybackAction(PlaybackActions.SEEK, trackId = trackId, position = positionMs)
                 }
             }
-            // Queue contents (additions/removals). Skipping within the same queue doesn't change
-            // the id list, so this only fires on real queue edits.
+            // Contenido de la cola (agregados/eliminados). Saltar dentro de la misma cola no cambia
+            // la lista de ids, así que esto solo se activa en ediciones reales de la cola.
             launch {
                 pvm.uiState.map { state -> state.queue.map { it.id } }.distinctUntilChanged().collect { ids ->
                     if (!isHost || isApplyingRemote || ids.isEmpty()) return@collect
@@ -160,7 +161,7 @@ class ListenTogetherManager(
         hostObserverJob = null
     }
 
-    // ---- Event handling ----
+    // ---- Manejo de eventos ----
 
     private fun handleEvent(event: ListenTogetherEvent) {
         when (event) {
@@ -176,7 +177,7 @@ class ListenTogetherManager(
                 applyFullState(event.state.currentTrack, event.state.isPlaying, event.state.position, event.state.queue)
             }
             is ListenTogetherEvent.UserJoined -> if (isHost) {
-                // Send current track to the newcomer.
+                // Enviar la pista actual al nuevo usuario.
                 val pvm = player ?: return
                 val state = pvm.uiState.value
                 val song = state.currentSong ?: return
@@ -217,7 +218,7 @@ class ListenTogetherManager(
         loadTrack(track, queue, position, autoplay = isPlaying)
     }
 
-    /** Guest: load the full queue (so skip/next works) positioned on [currentTrack]. */
+    /** Invitado: cargar la cola completa (para que skip/next funcione) posicionado en [currentTrack]. */
     private fun loadTrack(currentTrack: TrackInfo, queue: List<TrackInfo>, position: Long, autoplay: Boolean) {
         val pvm = player ?: return
         Napier.i("$TAG Guest load ${currentTrack.title} @ $position (queue=${queue.size})")
@@ -228,7 +229,7 @@ class ListenTogetherManager(
         } else {
             withRemote { pvm.playSingle(currentTrack.toMediaMetadata()) }
         }
-        // The stream resolves asynchronously; seek (and optionally pause) once it's playing.
+        // El stream se resuelve de forma asíncrona; hacer seek (y pausar opcionalmente) una vez que esté reproduciendo.
         scope.launch {
             delay(1200)
             if (position > POSITION_TOLERANCE_MS) withRemote { pvm.seekTo(position) }
@@ -238,13 +239,13 @@ class ListenTogetherManager(
         }
     }
 
-    /** Guest: reconcile queue edits without restarting playback (append-only for MVP). */
+    /** Invitado: reconciliar ediciones de la cola sin reiniciar la reproducción (solo agregar para MVP). */
     private fun applyQueueSync(queue: List<TrackInfo>) {
         if (isHost) return
         val pvm = player ?: return
         if (queue.isEmpty()) return
         val current = pvm.uiState.value.queue.map { it.id }.toSet()
-        if (current.isEmpty()) return // not loaded yet — CHANGE_TRACK will populate it
+        if (current.isEmpty()) return // aún no se cargó — CHANGE_TRACK lo llenará
         val newTracks = queue.filter { it.id !in current }
         if (newTracks.isEmpty()) return
         Napier.i("$TAG Guest queue sync: appending ${newTracks.size} track(s)")
@@ -272,7 +273,7 @@ class ListenTogetherManager(
         }
     }
 
-    /** Run [block] with the remote-applying guard set so host observers don't echo it. */
+    /** Ejecutar [block] con la bandera de aplicación remota activada para que los observadores del anfitrión no lo repliquen. */
     private inline fun withRemote(block: () -> Unit) {
         val pvm = player
         isApplyingRemote = true

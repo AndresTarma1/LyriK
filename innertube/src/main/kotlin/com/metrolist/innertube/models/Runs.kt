@@ -70,7 +70,23 @@ fun List<List<Run>>.clean(): List<List<Run>> {
     return if (hasArtistSignals) this else drop(1)
 }
 
-fun List<Run>.oddElements() =
-    filterIndexed { index, _ ->
-        index % 2 == 0
-    }
+/**
+ * Extracts the "entity" runs (artist/album names) from a mixed run list that also contains
+ * separators, conjunctions ("y", "&", ...), and trailing metadata (view counts). Used across most
+ * innertube artist/album parsing (18+ call sites).
+ *
+ * Prefers filtering by having a real browseId link rather than by index parity — a prior
+ * `index % 2 == 0` implementation assumed artists and separators strictly alternate one-for-one,
+ * which breaks as soon as a byline has an irregular separator count (e.g. more than 2 artists, or
+ * mixed ", "/" y " separators): the wrong run lands on an "even" index, producing blank/duplicated
+ * artist names and even sneaking the trailing view-count run into the result.
+ *
+ * Falls back to the old positional heuristic only when *no* run in the list has a link at all —
+ * label-uploaded albums/tracks (non-YTM-channel uploaders) name the artist as plain, unlinked text,
+ * so a strict link filter would wrongly return nothing for those instead of a best-effort guess.
+ */
+fun List<Run>.oddElements(): List<Run> {
+    val linked = filter { run -> run.navigationEndpoint?.browseEndpoint?.browseId != null }
+    if (linked.isNotEmpty()) return linked
+    return filterIndexed { index, _ -> index % 2 == 0 }
+}

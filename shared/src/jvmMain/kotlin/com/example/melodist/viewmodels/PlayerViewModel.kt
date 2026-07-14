@@ -45,6 +45,12 @@ class PlayerViewModel(
     private val log = Logger.getLogger("PlayerViewModel")
 
     val highResCoverArt = userPreferences.highResCoverArt
+    val seekBarStyle = userPreferences.seekBarStyle
+    val playbackSpeed = userPreferences.playbackSpeed
+
+    fun setPlaybackSpeed(speed: Float) {
+        viewModelScope.launch { userPreferences.setPlaybackSpeed(speed) }
+    }
 
     val likedSongIds: StateFlow<Set<String>> = databaseDao.likedSongs()
         .map { list -> list.map { it.id }.toSet() }
@@ -57,29 +63,31 @@ class PlayerViewModel(
     val progressState: StateFlow<PlayerProgressState> = _progressState.asStateFlow()
 
     /**
-     * Emits the target position (ms) whenever the user issues a seek. Used by Listen Together to
-     * broadcast host seeks; harmless when the feature is unused.
+     * Emite la posición objetivo (ms) cada vez que el usuario realiza un salto. Se usa en Listen Together
+     * para transmitir los saltos del anfitrión; es inofensivo cuando la función no está en uso.
      */
     private val _seekEvents = MutableSharedFlow<Long>(extraBufferCapacity = 8)
     val seekEvents: SharedFlow<Long> = _seekEvents.asSharedFlow()
 
-    /** User-facing transient messages (e.g. a song couldn't be played). UI shows these as snackbars. */
+    /** Mensajes transitorios para el usuario (por ejemplo, si una canción no se pudo reproducir). La UI los muestra como snackbars. */
     private val _playbackMessages = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val playbackMessages: SharedFlow<String> = _playbackMessages.asSharedFlow()
 
-    /** Consecutive resolve/playback failures; auto-skip stops once this hits [MAX_CONSECUTIVE_FAILURES]. */
+    /** Fallos consecutivos de resolución/reproducción; el salto automático se detiene al alcanzar [MAX_CONSECUTIVE_FAILURES]. */
     private var consecutiveFailures = 0
 
     /**
-     * When true, Listen Together is applying a remote command, so observers must not re-broadcast
-     * the resulting state change (prevents host/guest feedback loops).
+     * Cuando es verdadero, Listen Together está aplicando un comando remoto, por lo que los
+     * observadores no deben retransmitir el cambio de estado resultante (previene bucles de
+     * retroalimentación entre anfitrión e invitado).
      */
     @Volatile
     var allowInternalSync: Boolean = false
 
     /**
-     * True while the user is a Listen Together guest: they can't control shared playback, so the
-     * local play/pause toggle is repurposed to mute/unmute their own output instead.
+     * Verdadero mientras el usuario es invitado en Listen Together: no puede controlar la
+     * reproducción compartida, por lo que el botón de play/pause local se reutiliza para
+     * silenciar/activar su propia salida de audio.
      */
     @Volatile
     var listenTogetherGuestMode: Boolean = false
@@ -91,7 +99,7 @@ class PlayerViewModel(
     private var playRequestId = 0L
     private var currentQueue: Queue? = null
 
-    /** True when the user opted into offline mode, or a connectivity probe says we're down. */
+    /** Verdadero cuando el usuario activó el modo sin conexión, o una sonda de conectividad indica que estamos fuera de línea. */
     private suspend fun isEffectivelyOffline(): Boolean =
         userPreferences.offlineModeEnabled.first() || !NetworkMonitor.isOnline()
 
@@ -100,9 +108,10 @@ class PlayerViewModel(
      * Se llama desde main.kt solo cuando el ViewModel se crea por primera vez,
      * evitando la inicialización pesada al arrancar la app.
      *
-     * MediaSession (SMTC) is intentionally NOT initialized here: its transport controls need the
-     * creating thread to stay alive pumping a Windows message loop, unlike mpv. It's initialized
-     * separately by main.kt on the AWT Event Dispatch Thread, which lives for the app's lifetime.
+     * MediaSession (SMTC) NO se inicializa aquí intencionalmente: sus controles de transporte
+     * necesitan que el hilo que la crea siga vivo ejecutando un bucle de mensajes de Windows,
+     * a diferencia de mpv. Se inicializa por separado en main.kt en el Event Dispatch Thread
+     * de AWT, que vive durante toda la vida de la aplicación.
      */
     fun initialize() {
         playerService.init()
@@ -122,6 +131,12 @@ class PlayerViewModel(
         }
 
         viewModelScope.launch {
+            userPreferences.playbackSpeed.collect { speed ->
+                playerService.setPlaybackSpeed(speed)
+            }
+        }
+
+        viewModelScope.launch {
             playerService.playbackState.collect { state ->
                 _uiState.update { it.copy(playbackState = state) }
 
@@ -131,9 +146,9 @@ class PlayerViewModel(
                 )
 
                 when (state) {
-                    PlaybackState.PLAYING -> consecutiveFailures = 0 // a track actually started
+                    PlaybackState.PLAYING -> consecutiveFailures = 0 // una pista realmente inició
                     PlaybackState.ENDED -> onTrackEnded()
-                    PlaybackState.ERROR -> log.warning("Playback error; user can retry manually")
+                    PlaybackState.ERROR -> log.warning("Error de reproducción; el usuario puede reintentar manualmente")
                     else -> Unit
                 }
             }
@@ -205,7 +220,7 @@ class PlayerViewModel(
             tmpFile.writeBytes(bytes)
             "file:///${tmpFile.absolutePath.replace('\\', '/')}"
         } catch (e: Exception) {
-            log.fine("SMTC thumb download failed: ${e.message}")
+                    log.fine("Error al descargar miniatura SMTC: ${e.message}")
             url
         }
     }
@@ -295,12 +310,12 @@ class PlayerViewModel(
     fun playSingle(song: SongItem) = playSingle(song.toMediaMetadata())
 
     /**
-     * Queues a single song and begins playback immediately.
+     * Encola una sola canción e inicia la reproducción inmediatamente.
      *
-     * The related queue (for autoplay/next) loads in the background and does not
-     * block playback initiation.
+     * La cola relacionada (para reproducción automática/siguiente) se carga en segundo plano
+     * y no bloquea el inicio de la reproducción.
      *
-     * @param song The song to play.
+     * @param song La canción a reproducir.
      */
     fun playSingle(song: MediaMetadata) {
         val queue = LocalQueue(QueueSource.Single(song.id), listOf(song), 0)
@@ -318,23 +333,25 @@ class PlayerViewModel(
                 queueSession = uiState.queueSession,
             )
         }
-        // Play immediately; the radio queue (for autoplay/next) loads in the background and never
-        // blocks or fails playback — tapping a song must not depend on its radio endpoint.
+        // Reproducir inmediatamente; la cola de radio (para reproducción automática/siguiente) se carga
+        // en segundo plano y nunca bloquea ni falla la reproducción — tocar una canción no debe depender
+        // de su endpoint de radio.
         resolveAndPlay(song)
         fetchRelatedQueue(song, _uiState.value.queueSession)
     }
 
     /**
-     * Fetches an album by browse ID and begins playback.
+     * Obtiene un álbum por su browse ID e inicia la reproducción.
      *
-     * If songs are found, plays the album starting from the specified index. If [shuffle] is true,
-     * the queue is shuffled before playback. If no songs are found, invokes [onEmpty].
+     * Si se encuentran canciones, reproduce el álbum comenzando desde el índice especificado.
+     * Si [shuffle] es verdadero, la cola se barajea antes de la reproducción. Si no se encuentran
+     * canciones, invoca [onEmpty].
      *
-     * @param browseId The album's browse identifier.
-     * @param title The album title.
-     * @param startIndex The queue position at which to start playback.
-     * @param shuffle Whether to shuffle the queue.
-     * @param onEmpty Callback invoked if the album contains no songs.
+     * @param browseId El identificador browse del álbum.
+     * @param title El título del álbum.
+     * @param startIndex La posición de la cola desde la que iniciar la reproducción.
+     * @param shuffle Si se debe barajear la cola.
+     * @param onEmpty Callback invocado si el álbum no contiene canciones.
      */
     fun playAlbumFromBrowseId(
         browseId: String,
@@ -483,8 +500,9 @@ class PlayerViewModel(
     }
 
     fun togglePlayPause() {
-        // As a Listen Together guest, the host owns playback — the play/pause control mutes
-        // the local output instead. Remote-applied actions (allowInternalSync) bypass this.
+        // Como invitado en Listen Together, el anfitrión controla la reproducción — el botón de
+        // play/pause silencia la salida local en su lugar. Las acciones aplicadas remotamente
+        // (allowInternalSync) ignoran esto.
         if (listenTogetherGuestMode && !allowInternalSync) {
             toggleMute()
             return
@@ -507,25 +525,26 @@ class PlayerViewModel(
     }
 
     /**
-     * Toggles between muted and unmuted audio output.
+     * Alterna entre la salida de audio silenciada y activada.
      */
     fun toggleMute() {
         playerService.toggleMute()
     }
 
     /**
-     * Plays an endpoint with optional instant preview while loading the queue.
+     * Reproduce un endpoint con vista previa instantánea opcional mientras carga la cola.
      *
-     * Displays [previewSong] immediately in the miniplayer while fetching the full queue from the endpoint.
-     * If queue fetching succeeds, the fetched queue replaces the preview. If fetching fails and
-     * [previewSong] was provided, playback falls back to playing that song alone.
+     * Muestra [previewSong] inmediatamente en el mini-reproductor mientras obtiene la cola
+     * completa desde el endpoint. Si la obtención de la cola tiene éxito, la cola obtenida
+     * reemplaza la vista previa. Si la obtención falla y se proporcionó [previewSong], la
+     * reproducción recurre a reproducir esa canción sola.
      *
-     * @param previewSong An optional song to display immediately. If queue loading fails, this song is played as a single track.
+     * @param previewSong Una canción opcional para mostrar inmediatamente. Si la carga de la cola falla, esta canción se reproduce como pista individual.
      */
     fun playEndpoint(endpoint: WatchEndpoint, shuffle: Boolean = false, previewSong: MediaMetadata? = null) {
         viewModelScope.launch {
-            // Show the miniplayer instantly with the clicked song instead of waiting for the
-            // network queue build (YouTube.next). The real queue replaces it when it arrives.
+            // Mostrar el mini-reproductor instantáneamente con la canción clicada en lugar de esperar
+            // a la construcción de la cola por red (YouTube.next). La cola real la reemplaza cuando llega.
             _uiState.update {
                 it.copy(
                     currentSong = previewSong ?: it.currentSong,
@@ -559,7 +578,7 @@ class PlayerViewModel(
                 }
                 _uiState.value.currentSong?.let(::resolveAndPlay)
             } else if (previewSong != null) {
-                // Radio/queue fetch failed — still play the song solo instead of erroring out.
+                // La obtención de radio/cola falló — aún así reproducir la canción sola en lugar de mostrar error.
                 log.warning("next() failed for ${endpoint.videoId}; playing single song")
                 playSingle(previewSong)
             } else {
@@ -601,7 +620,7 @@ class PlayerViewModel(
         }
 
         if (session.continuation != null && session.endpoint != null && nextIndex >= session.order.size - 3) {
-            // Prevent multiple parallel fetches
+            // Prevenir múltiples obtenciones en paralelo
             val currentContinuation = session.continuation
             _uiState.update { it.copy(queueSession = it.queueSession.copy(continuation = null)) }
 
@@ -629,15 +648,15 @@ class PlayerViewModel(
                             )
                         }
                     } else {
-                        // Restore continuation if fetching failed and we want to retry?
-                        // Depending on the implementation, you could restore it or leave it null.
+                        // Restaurar continuation si la obtención falló y queremos reintentar?
+                        // Depende de la implementación, se puede restaurar o dejarlo null.
                         if (result?.continuation != null) {
                             _uiState.update { it.copy(queueSession = it.queueSession.copy(continuation = result.continuation)) }
                         }
                     }
                 } catch (e: Exception) {
-                    log.warning("Error fetching more songs: ${e.message}")
-                    // restore token to try again later
+                    log.warning("Error al obtener más canciones: ${e.message}")
+                    // restaurar el token para reintentar más tarde
                     _uiState.update { it.copy(queueSession = it.queueSession.copy(continuation = currentContinuation)) }
                 }
             }
@@ -661,7 +680,7 @@ class PlayerViewModel(
             )
         }
 
-        // Use QueueManager for auto-load if we have a queue
+        // Usar QueueManager para auto-carga si tenemos una cola
         currentQueue?.let { queue ->
             viewModelScope.launch(Dispatchers.IO) {
                 val newItems = queueManager.checkAndLoadMore(queue, nextIndex, _uiState.value.queueSession.items.size)
@@ -682,7 +701,7 @@ class PlayerViewModel(
                 }
             }
         }
-        // Fallback for old-style queues without Queue interface
+        // Respaldo para colas antiguas sin interfaz Queue
         if (currentQueue == null) {
             checkAndFetchMoreSongs(_uiState.value, nextIndex)
         }
@@ -738,18 +757,20 @@ class PlayerViewModel(
     fun addToQueue(song: SongItem) = addToQueue(song.toMediaMetadata())
 
     fun addToQueue(song: MediaMetadata) {
-        // append() adds the song to the end of the play order, which is correct whether or not
-        // shuffle is on (it lands at the end of the current shuffled order). No re-shuffle needed.
+        // append() agrega la canción al final del orden de reproducción, lo cual es correcto
+        // tanto si el barajeo está activado como no (termina al final del orden barajeo actual).
+        // No se necesita re-barajear.
         _uiState.update { state -> PlayerQueueCoordinator.append(state, song) }
     }
 
     fun playNext(song: SongItem) = playNext(song.toMediaMetadata())
 
     fun playNext(song: MediaMetadata) {
-        // insertNext() places the song right after the current one in the play order, which already
-        // respects shuffle (currentIndex is an index into the shuffled order). The previous code
-        // ALSO called rebuildShuffleOrder here, which duplicated the song and re-shuffled the whole
-        // queue — sending the "play next" track to a random/last position. Use insertNext alone.
+        // insertNext() coloca la canción justo después de la actual en el orden de reproducción,
+        // lo cual ya respeta el barajeo (currentIndex es un índice dentro del orden barajeo). El
+        // código anterior TAMBIÉN llamaba a rebuildShuffleOrder aquí, lo cual duplicaba la canción
+        // y re-barajeaba toda la cola — enviando la pista "reproducir siguiente" a una posición
+        // aleatoria/última. Usar insertNext solo.
         _uiState.update { state -> PlayerQueueCoordinator.insertNext(state, song) }
     }
 
@@ -811,7 +832,7 @@ class PlayerViewModel(
         _uiState.update { state -> PlayerQueueCoordinator.move(state, fromIndex, toIndex) }
     }
 
-    /** Re-attempts playback of the current song (for a "retry" action on a playback error). */
+    /** Reintenta la reproducción de la canción actual (para una acción de "reintentar" en un error de reproducción). */
     fun retry() {
         val song = _uiState.value.currentSong ?: return
         _uiState.update { it.copy(error = null) }
@@ -837,12 +858,15 @@ class PlayerViewModel(
     }
 
     /**
-     * Plays the given song, resolving its audio source through multiple fallback strategies.
+     * Reproduce la canción dada, resolviendo su fuente de audio mediante múltiples estrategias
+     * de respaldo.
      *
-     * Checks for a cached file first. If unavailable, resolves a stream URL and confirms playback
-     * has started. If playback fails to start, falls back to resolving via yt-dlp. Uses request ID
-     * tracking to ignore results from stale playback attempts. On success, caches song metadata and
-     * logs the playback event. Updates UI state with loading and error information as needed.
+     * Primero busca un archivo en caché. Si no está disponible, resuelve una URL de stream y
+     * confirma que la reproducción haya iniciado. Si la reproducción no logra iniciarse, recurre
+     * a resolver mediante yt-dlp. Usa seguimiento de ID de solicitud para ignorar resultados de
+     * intentos de reproducción obsoletos. Al tener éxito, almacena los metadatos de la canción
+     * en caché y registra el evento de reproducción. Actualiza el estado de la interfaz con
+     * información de carga y errores según sea necesario.
      */
     private fun resolveAndPlay(song: MediaMetadata) {
         resolveJob?.cancel()
@@ -863,17 +887,17 @@ class PlayerViewModel(
                 }
                 if (requestId != playRequestId) return@launch
 
-                // Non-cached songs need a live resolve; fail fast if we're offline (or the user
-                // opted into offline mode) instead of burning through the whole in-process + yt-dlp
-                // cascade only to time out anyway.
+                // Las canciones sin caché necesitan una resolución en vivo; fallar rápido si estamos
+                // sin conexión (o el usuario activó el modo sin conexión) en lugar de agotar toda la
+                // cascada de en-proceso + yt-dlp solo para que termine agotando el tiempo de todas formas.
                 val offline = cachedFile == null && isEffectivelyOffline()
                 if (offline) {
                     if (requestId == playRequestId) handlePlaybackFailure(song)
                     return@launch
                 }
 
-                // videostatsPlaybackUrl of the resolved track — used to register the play on the
-                // account afterwards (history/recommendations). Only the in-process path has it.
+                // videostatsPlaybackUrl de la pista resuelta — se usa para registrar la reproducción
+                // en la cuenta después (historial/recomendaciones). Solo la ruta en-proceso lo tiene.
                 var trackingUrl: String? = null
                 val played: Boolean = when {
                     cachedFile != null -> {
@@ -881,14 +905,16 @@ class PlayerViewModel(
                         true
                     }
                     YtDlpResolver.needsYtDlp(song.id) -> {
-                        // Known-hard video (all in-process clients 403 this session): skip straight to
-                        // yt-dlp instead of repeating the slow resolve + mpv-failure cycle.
+                        // Video conocido como problemático (todos los clientes en-proceso dan 403 en
+                        // esta sesión): saltar directamente a yt-dlp en lugar de repetir el ciclo lento
+                        // de resolución + fallo de mpv.
                         playViaYtDlp(song, requestId)
                     }
                     else -> {
-                        // In-process resolution can THROW for age/login-gated videos (every poToken-free
-                        // client returns LOGIN_REQUIRED). Don't bail to the next track — yt-dlp (with the
-                        // account cookie) can play those, so treat a thrown/empty resolve as "try yt-dlp".
+                        // La resolución en-proceso puede LANZAR excepciones para videos con restricción
+                        // de edad/login (cada cliente sin poToken retorna LOGIN_REQUIRED). No saltar a
+                        // la siguiente pista — yt-dlp (con la cookie de la cuenta) puede reproducirlos,
+                        // así que tratar una resolución lanzada/vacía como "intentar yt-dlp".
                         val playbackData = try {
                             withContext(Dispatchers.IO) {
                                 streamResolver.resolveAudioStream(song.id)
@@ -905,9 +931,10 @@ class PlayerViewModel(
 
                         if (!streamUrl.isNullOrEmpty()) {
                             playerService.play(streamUrl)
-                            // The resolved stream can pass HTTP validation yet 403 in mpv (e.g. spc-gated
-                            // IOS URLs). If playback doesn't actually start, fall back to yt-dlp, which
-                            // handles the hard videos our in-process pipeline can't.
+                            // El stream resuelto puede pasar la validación HTTP pero dar 403 en mpv
+                            // (por ejemplo, URLs IOS con restricción spc). Si la reproducción no
+                            // inicia realmente, recurrir a yt-dlp, que maneja los videos difíciles
+                            // que nuestro pipeline en-proceso no puede.
                             val started = playerService.awaitPlaybackStarted()
                             if (started || requestId != playRequestId) {
                                 true
@@ -917,7 +944,7 @@ class PlayerViewModel(
                                 playViaYtDlp(song, requestId)
                             }
                         } else {
-                            // Resolve threw or returned nothing (login/age-gated): last resort is yt-dlp.
+                            // La resolución lanzó o no retornó nada (login/restricción de edad): último recurso es yt-dlp.
                             YtDlpResolver.markNeedsYtDlp(song.id)
                             Napier.w("No in-process stream for ${song.id}; trying yt-dlp fallback")
                             playViaYtDlp(song, requestId)
@@ -941,8 +968,9 @@ class PlayerViewModel(
                     )
                 }
 
-                // Register the play on the user's YouTube account so it counts toward history and
-                // updates recommendations (fire-and-forget; only when signed in and tracking is known).
+                // Registrar la reproducción en la cuenta de YouTube del usuario para que cuente
+                // en el historial y actualice las recomendaciones (fire-and-forget; solo cuando se
+                // está conectado y se conoce el tracking).
                 trackingUrl?.takeIf { it.isNotBlank() && YouTube.cookie != null }?.let { url ->
                     viewModelScope.launch(Dispatchers.IO) {
                         runCatching { YouTube.registerPlayback(playbackTracking = url) }
@@ -950,7 +978,7 @@ class PlayerViewModel(
                     }
                 }
 
-                // Warm the next track's stream cache so skipping to it is near-instant.
+                // Pre-calentar el caché del stream de la siguiente pista para que saltar a ella sea casi instantáneo.
                 prefetchNext()
             } catch (e: CancellationException) {
                 throw e
@@ -966,10 +994,12 @@ class PlayerViewModel(
     }
 
     /**
-     * A track couldn't be resolved/played. If it's because we're offline, stop and let the user
-     * retry once connectivity is back — auto-advancing would just fail the same way on every
-     * remaining track in the queue. Otherwise notify and auto-advance to the next track, unless too
-     * many tracks in a row have failed (likely a broader problem) — then stop too.
+     * Una pista no pudo ser resuelta/reproducida. Si es porque estamos sin conexión, detener y
+     * dejar que el usuario reintente una vez que se restablezca la conectividad — la reproducción
+     * automática simplemente fallaría de la misma manera en cada pista restante de la cola. De lo
+     * contrario, notificar y avanzar automáticamente a la siguiente pista, a menos que muchas
+     * pistas consecutivas hayan fallado (probablemente un problema más amplio) — entonces también
+     * detenerse.
      */
     private suspend fun handlePlaybackFailure(song: MediaMetadata) {
         consecutiveFailures++
@@ -982,8 +1012,9 @@ class PlayerViewModel(
             else "Sin conexión a internet. Reproducción pausada."
             _playbackMessages.tryEmit(message)
             _uiState.update { it.copy(playbackState = PlaybackState.ERROR, error = message) }
-            // Only auto-resume for an actual connectivity drop — manual offline mode is a deliberate
-            // choice the user has to switch off themselves, not something we override on their behalf.
+            // Solo reanudar automáticamente por una caída real de conectividad — el modo sin
+            // conexión manual es una decisión deliberada que el usuario debe desactivar por sí
+            // mismo, no algo que anulamos en su nombre.
             if (!manualOffline) watchForReconnect(song)
             return
         }
@@ -1000,9 +1031,10 @@ class PlayerViewModel(
     }
 
     /**
-     * Watches for connectivity to come back and automatically retries [song] once it does — the
-     * user shouldn't have to notice and manually hit play again. Cancelled by the next
-     * [resolveAndPlay] call (song change, manual retry, etc.) so it never fires for a stale song.
+     * Vigila que se restablezca la conectividad y reintenta automáticamente [song] una vez que
+     * lo haga — el usuario no debería tener que darse cuenta y presionar reproducir manualmente
+     * de nuevo. Se cancela con la siguiente llamada a [resolveAndPlay] (cambio de canción,
+     * reintento manual, etc.) para que nunca se ejecute con una canción obsoleta.
      */
     private fun watchForReconnect(song: MediaMetadata) {
         reconnectWatchJob?.cancel()
@@ -1015,9 +1047,10 @@ class PlayerViewModel(
     }
 
     /**
-     * Pre-resolves the next track's stream URL in the background so [next] is near-instant
-     * (it warms the same StreamCache entry [resolveAndPlay] will hit). Skips cached files and
-     * known yt-dlp-only videos (re-resolving those in-process is pointless).
+     * Pre-resuelve la URL del stream de la siguiente pista en segundo plano para que [next] sea
+     * casi instantáneo (pre-calienta la misma entrada de StreamCache que usará [resolveAndPlay]).
+     * Omite archivos en caché y videos conocidos como exclusivos de yt-dlp (re-resolverlos en
+     * proceso es inútil).
      */
     private fun prefetchNext() {
         val state = _uiState.value
@@ -1031,15 +1064,15 @@ class PlayerViewModel(
                 if (DownloadService.getCachedFile(nextSong.id) != null) return@launch
                 streamResolver.resolveAudioStream(nextSong.id) // result discarded; StreamCache warmed
             } catch (_: Exception) {
-                // best-effort prefetch
+                // mejor esfuerzo de pre-carga
             }
         }
     }
 
     /**
-     * Resolves [song] via yt-dlp and plays it; keeps the miniplayer in LOADING meanwhile.
-     * Returns true if playback was started, false if the URL couldn't be resolved (caller handles
-     * the failure / skip).
+     * Resuelve [song] mediante yt-dlp y la reproduce; mantiene el mini-reproductor en LOADING
+     * mientras tanto. Retorna verdadero si la reproducción se inició, falso si la URL no pudo
+     * resolverse (el llamador maneja el fallo/salto).
      */
     private suspend fun playViaYtDlp(song: MediaMetadata, requestId: Long): Boolean {
         _uiState.update { it.copy(playbackState = PlaybackState.LOADING, error = null) }
@@ -1063,9 +1096,10 @@ class PlayerViewModel(
         val currentArtists = databaseDao.artistsForSong(song.id)
         if (currentArtists.isEmpty() && song.artists.isNotEmpty()) {
             song.artists.forEachIndexed { i, artist ->
-                // Songs coming from Listen Together (and some search results) carry only an artist
-                // name, no YouTube id. Without an id the song↔artist mapping was skipped entirely, so
-                // history showed no artist. Fall back to a stable synthetic id so the name persists.
+                // Las canciones que vienen de Listen Together (y algunos resultados de búsqueda) solo
+                // llevan el nombre del artista, sin id de YouTube. Sin un id, el mapeo canción↔artista
+                // se omitía por completo, por lo que el historial no mostraba artista. Usar un id
+                // sintético estable como respaldo para que el nombre persista.
                 val id = artist.id ?: "local:${artist.name.trim().lowercase().hashCode()}"
                 if (artist.name.isBlank()) return@forEachIndexed
                 val artistEntity = ArtistEntity(
@@ -1141,7 +1175,7 @@ class PlayerViewModel(
     private val _currentLyrics = MutableStateFlow<String?>(null)
     val currentLyrics: StateFlow<String?> = _currentLyrics.asStateFlow()
 
-    /** Time-synced lyrics (BetterLyrics or synced YouTube LRC). Null when only plain text exists. */
+    /** Letras sincronizadas por tiempo (BetterLyrics o LRC sincronizado de YouTube). Nulo cuando solo existe texto plano. */
     private val _syncedLyrics = MutableStateFlow<List<LyricLine>?>(null)
     val syncedLyrics: StateFlow<List<LyricLine>?> = _syncedLyrics.asStateFlow()
 
@@ -1154,10 +1188,10 @@ class PlayerViewModel(
             val artist = song.artists.joinToString(", ") { it.name }
             val album = song.album?.title
 
-            // Try synced providers in order of reliability. The first usable LRC wins.
-            //   1) LrcLib  — free, reliable, line-synced
-            //   2) KuGou   — line-synced
-            //   3) BetterLyrics — word-synced (best UX, but may be auth-gated/unavailable)
+            // Intentar proveedores sincronizados en orden de fiabilidad. El primer LRC utilizable gana.
+            //   1) LrcLib  — gratuito, confiable, sincronizado por líneas
+            //   2) KuGou   — sincronizado por líneas
+            //   3) BetterLyrics — sincronizado por palabras (mejor UX, pero puede requerir autenticación/no estar disponible)
             val lrc = runCatching { LrcLib.getLyrics(song.title, artist, song.duration, album).getOrNull() }.getOrNull()
                 ?: runCatching { KuGou.getLyrics(song.title, artist, song.duration, album).getOrNull() }.getOrNull()
                 ?: runCatching { BetterLyrics.getLyrics(song.title, artist, song.duration, album) }.getOrNull()
@@ -1171,12 +1205,12 @@ class PlayerViewModel(
                         return@launch
                     }
                 }
-                // Plain LRC with no timestamps — show as text.
+                // LRC plano sin marcas de tiempo — mostrar como texto.
                 _currentLyrics.value = lrc
                 return@launch
             }
 
-            // Fall back to YouTube lyrics (usually plain text, occasionally LRC).
+            // Recurrir a las letras de YouTube (usualmente texto plano, ocasionalmente LRC).
             try {
                 val nextResult = YouTube.next(WatchEndpoint(videoId = song.id)).getOrNull() ?: return@launch
                 val endpoint = nextResult.lyricsEndpoint ?: return@launch

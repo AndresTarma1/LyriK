@@ -1,8 +1,6 @@
 package com.example.melodist.bootstrap
 
 import com.example.melodist.data.AppDirs
-import com.metrolist.innertube.YouTube
-import com.metrolist.innertube.models.YouTubeLocale
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import java.io.File
@@ -23,15 +21,14 @@ object AppEnvironment {
         System.setProperty("java.io.tmpdir", tmpDir.absolutePath)
         System.setProperty("compose.swing.render.on.graphics", "true")
 
-        configureYouTubeLocale()
     }
 
     /**
-     * The system-tray library (composenativetray) re-renders every menu icon to a brand-new
-     * "tray_icon_*.ico/.png" file on each menu rebuild (song change, play/pause, ...), ignores our
-     * tmpdir override below, and relies solely on deleteOnExit() — which never runs on a forced
-     * kill. Sweep leftovers from previous runs before they pile up indefinitely in the real OS temp
-     * dir; must run before the tmpdir property is overridden, since it reads the real one.
+     * La biblioteca de la bandeja del sistema (composenativetray) vuelve a renderizar cada icono del menú en un archivo completamente nuevo
+     * "tray_icon_*.ico/.png" en cada reconstrucción del menú (cambio de canción, reproducir/pausar, ...), ignora nuestra
+     * anulación de tmpdir a continuación y se basa únicamente en deleteOnExit(), que nunca se ejecuta en caso de un
+     * cierre forzado. Elimina los restos de ejecuciones anteriores antes de que se acumulen indefinidamente en el directorio temporal real del sistema operativo;
+     * debe ejecutarse antes de que se anule la propiedad tmpdir, ya que lee la real.
      */
     private fun cleanupOrphanedTrayIcons() {
         runCatching {
@@ -50,17 +47,7 @@ object AppEnvironment {
             println("[${LocalDateTime.now()}] --- Application Starting ---")
             System.err.println("[${LocalDateTime.now()}] --- Application Starting ---")
         } catch (_: Exception) {
-            // Ignore logging setup failures to avoid blocking startup.
         }
-    }
-
-    private fun configureYouTubeLocale() {
-        val sysLocale = java.util.Locale.getDefault()
-        val rawCountry = sysLocale.country
-        val rawLang = sysLocale.toLanguageTag()
-        val safeGl = if (rawCountry.matches(Regex("^[a-zA-Z]{2}$"))) rawCountry.uppercase() else "US"
-        val safeHl = if (rawLang.matches(Regex("^[a-zA-Z]{2}(-[a-zA-Z]{2})?$"))) rawLang else "en-US"
-        YouTube.locale = YouTubeLocale(safeGl, safeHl)
     }
 }
 

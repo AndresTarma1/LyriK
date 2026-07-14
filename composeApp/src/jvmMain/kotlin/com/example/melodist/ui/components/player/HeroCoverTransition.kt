@@ -7,9 +7,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 
 /**
- * Hero/shared-element link between the MiniPlayer's thumbnail and the NowPlayingScreen's cover
- * art. Both sides apply this with the same [songId] so [SharedTransitionLayout] animates the
- * image's position/size between the two instead of cross-fading them.
+ * Hero cover element que me permite hacer la
+ * transición compartida de la carátula del álbum o canción en la pantalla de reproducción.
  */
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Composable

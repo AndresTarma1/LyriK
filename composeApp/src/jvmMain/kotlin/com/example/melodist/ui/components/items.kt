@@ -48,6 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Alignment.Horizontal
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
@@ -67,6 +68,7 @@ import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.components.context.SongContextMenuPopup
 import com.example.melodist.ui.components.context.CollectionContextMenuPopup
 import com.example.melodist.ui.helpers.contextMenuArea
+import com.example.melodist.ui.themes.LocalDimens
 import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.ui.utils.isCircleLikeShape
 import com.example.melodist.utils.LocalPlayerViewModel
@@ -188,11 +190,7 @@ fun YouTubeGridItem(
                             tint = Color.White,
                             modifier = Modifier
                                 .size(56.dp)
-                                .graphicsLayer {
-                                    alpha = playIconAlpha
-                                    scaleX = playIconScale
-                                    scaleY = playIconScale
-                                }
+                                .alpha(playIconAlpha)
                         )
                     }
                 }
@@ -204,7 +202,7 @@ fun YouTubeGridItem(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(6.dp)
-                        .graphicsLayer { alpha = menuBtnAlpha },
+                        .alpha(menuBtnAlpha),
                     buttonModifier = menuButtonModifier.pointerHoverIcon(PointerIcon.Hand),
                     visible = isHovered,
                     onButtonHoverChange = { if (it) isHovered = true }
@@ -218,7 +216,8 @@ fun YouTubeGridItem(
                         modifier = Modifier
                             .align(Alignment.BottomEnd)
                             .padding(6.dp)
-                            .graphicsLayer { alpha = quickPlayAlpha },
+                            .alpha(quickPlayAlpha)
+                        ,
                         buttonModifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
                         visible = isHovered,
                         size = quickPlay.size,
@@ -240,6 +239,8 @@ fun YouTubeGridItem(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = titleAlign
             )
+
+            // TODO: Cuando el usuario pase el mouse sobre los artistas, que pueda seleccionar alguno y llevarlo a dicha ArtistPage
 
             if (subtitle.isNotBlank()) {
                 Spacer(Modifier.height(2.dp))
@@ -326,9 +327,6 @@ fun MediaGridItem(
                         iconSize = 40.dp,
                         contentScale = ContentScale.Crop,
                         alignment = if (isCircle) Alignment.TopCenter else Alignment.Center,
-                        // Was hardcoded true, silently ignoring the user's "alta resolución de
-                        // carátulas" setting for every grid card. MelodistImage already falls back
-                        // to low-res when that preference is off; don't force it here too.
                     )
 
                     Box(
@@ -366,7 +364,7 @@ fun MediaGridItem(
                                 .align(Alignment.TopEnd)
                                 .size(32.dp)
                                 .padding(4.dp)
-                                .graphicsLayer { alpha = menuAlpha }
+                                .alpha(menuAlpha)
                         ) {
                             Icon(Icons.Default.MoreVert, stringResource(Res.string.options), modifier = Modifier.size(18.dp), tint = Color.White.copy(alpha = 0.9f))
                         }
@@ -379,7 +377,7 @@ fun MediaGridItem(
                                 .align(Alignment.BottomEnd)
                                 .padding(6.dp)
                                 .size(34.dp)
-                                .graphicsLayer { alpha = playAlpha },
+                                .alpha(playAlpha),
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = Color.Black.copy(alpha = 0.55f),
                                 contentColor = Color.White
@@ -451,11 +449,6 @@ fun MediaGridItem(
     )
 }
 
-/**
- * Asks Google's image CDN for a larger render. List thumbnails arrive tiny (~60px), which looks
- * blurry even at the 56dp display size; bumping the `wNNN-hNNN` segment yields a crisp image
- * without changing layout. No-op for URLs that don't carry a size segment.
- */
 internal fun String?.resizeThumbnailUrl(size: Int): String? {
     if (this.isNullOrEmpty()) return this
     val replaced = Regex("w\\d+-h\\d+").replace(this, "w$size-h$size")
@@ -475,7 +468,7 @@ fun YoutubeListItem(
     modifier: Modifier = Modifier,
 ) {
     val playerViewModel = LocalPlayerViewModel.current
-    val dimens = com.example.melodist.ui.themes.LocalDimens.current
+    val dimens = LocalDimens.current
     val shape = when (item) {
         is ArtistItem -> circleAwareShape()
         is PlaylistItem -> RoundedCornerShape(dimens.itemCorner)
@@ -570,7 +563,6 @@ fun YoutubeListItem(
                     },
                     contentScale = ContentScale.Crop,
                     iconSize = if (item is PlaylistItem) 28.dp else 24.dp,
-                    // Was hardcoded true, ignoring the user's high-res-covers setting here too.
                 )
             },
             trailingContent = {

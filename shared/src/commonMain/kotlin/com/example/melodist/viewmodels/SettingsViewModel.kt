@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.example.melodist.data.repository.AppLocale
 import com.example.melodist.data.repository.AudioQuality
 import com.example.melodist.data.repository.DarkLevel
+import com.example.melodist.data.repository.IslandStyle
 import com.example.melodist.data.repository.LayoutMode
+import com.example.melodist.data.repository.SeekBarStyle
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.data.repository.UserPreferencesRepository
@@ -34,6 +36,9 @@ class SettingsViewModel(
     val layoutMode: StateFlow<LayoutMode> = preferencesRepository.layoutMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), LayoutMode.ISLANDS)
 
+    val islandStyle: StateFlow<IslandStyle> = preferencesRepository.islandStyle
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), IslandStyle.COMFORTABLE)
+
     val dynamicColorFromArtwork: StateFlow<Boolean> = preferencesRepository.dynamicColorFromArtwork
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
@@ -42,6 +47,9 @@ class SettingsViewModel(
 
     val crossfadeEnabled: StateFlow<Boolean> = preferencesRepository.crossfadeEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
+    val seekBarStyle: StateFlow<SeekBarStyle> = preferencesRepository.seekBarStyle
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SeekBarStyle.WAVY)
 
     val cacheImages: StateFlow<Boolean> = preferencesRepository.cacheImages
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
@@ -79,7 +87,7 @@ class SettingsViewModel(
     val offlineModeEnabled: StateFlow<Boolean> = preferencesRepository.offlineModeEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
-    /** Sync progress for the manual "Sincronizar ahora" button — ignores the login cooldown. */
+    /** Progreso de la sincronización para el botón manual "Sincronizar ahora" — ignora el enfriamiento de inicio de sesión. */
     val syncState = syncUtils.syncState
 
     val overlayHotkeyEnabled: StateFlow<Boolean> = preferencesRepository.overlayHotkeyEnabled
@@ -104,6 +112,10 @@ class SettingsViewModel(
         viewModelScope.launch { preferencesRepository.setLayoutMode(mode) }
     }
 
+    fun setIslandStyle(style: IslandStyle) {
+        viewModelScope.launch { preferencesRepository.setIslandStyle(style) }
+    }
+
     fun setDynamicColorFromArtwork(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.setDynamicColorFromArtwork(enabled) }
     }
@@ -114,6 +126,10 @@ class SettingsViewModel(
 
     fun setCrossfadeEnabled(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.setCrossfadeEnabled(enabled) }
+    }
+
+    fun setSeekBarStyle(style: SeekBarStyle) {
+        viewModelScope.launch { preferencesRepository.setSeekBarStyle(style) }
     }
 
     fun setCacheImages(enabled: Boolean) {
@@ -159,8 +175,8 @@ class SettingsViewModel(
     fun setYtmSyncEnabled(enabled: Boolean) {
         viewModelScope.launch {
             preferencesRepository.setYtmSyncEnabled(enabled)
-            // Give immediate feedback that turning this on does something: reconcile YouTube-linked
-            // playlists right away instead of waiting for the next login/session-restore.
+            // Dar retroalimentación inmediata de que activar esto hace algo: reconciliar las playlists
+            // vinculadas a YouTube de inmediato en lugar de esperar al siguiente inicio de sesión/restauración de sesión.
             if (enabled) syncUtils.syncAutoSyncPlaylists()
         }
     }
@@ -170,8 +186,8 @@ class SettingsViewModel(
     }
 
     /**
-     * Manual "Sincronizar ahora" — bypasses AccountViewModel's 30-minute login cooldown, for
-     * testing or when the user wants a fresh pull right now (liked songs/albums/artists/playlists).
+     * "Sincronizar ahora" manual — omite el enfriamiento de 30 minutos de AccountViewModel, para
+     * pruebas o cuando el usuario quiere una sincronización completa ahora mismo (canciones/álbumes/artistas/playlists favoritas).
      */
     fun syncNow() {
         viewModelScope.launch {

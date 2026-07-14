@@ -28,6 +28,7 @@ import com.example.melodist.viewmodels.DownloadViewModel
 import com.example.melodist.viewmodels.PlayerViewModel
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
+import com.example.melodist.overlay.GlobalHotkeyManager
 import org.koin.core.context.startKoin
 
 fun main() {
@@ -47,11 +48,9 @@ fun main() {
 
     koin.get<JvmConfigLauncher>().applySync()
 
-    // Eagerly resolve so the network kill-switch reflects reality before the first request goes
-    // out — Koin singles are lazy, and nothing else depends on this one to trigger its creation.
+    // Facilitar la prueba de modo offline (sin Internet) para depuración y QA. Se puede forzar en el
     koin.get<com.example.melodist.utils.OfflineModeController>()
 
-    // Construct the VM now (the UI binds to it), but defer its native init (mpv) — see the thread below.
     val playerViewModel = PlatformCrashHandler.runSafely("Error creando PlayerViewModel") {
         koin.get<PlayerViewModel>()
     }
@@ -66,25 +65,22 @@ fun main() {
     }
     val lifecycleManager = koin.get<AppLifecycleManager>()
 
-    // Defer non-UI native services off the startup critical path. None of these are needed to paint
-    // the window — initializing them here delayed first paint by the cost of mpv, the SMTC media
-    // session, the jnativehook global hook and the Listen Together setup. They come online a beat
-    // after the UI on a background thread instead.
+    // Aplazar los servicios nativos que no son de la interfaz de usuario fuera de la ruta crítica de inicio. Ninguno de ellos es necesario para pintar
+    // la ventana; inicializarlos aquí retrasa la primera pintura debido al costo de mpv, la sesión de medios SMTC,
+    // el gancho global jnativehook y la configuración de Listen Together. Se activan un instante
+    // después de la interfaz de usuario en un hilo en segundo plano.
     Thread {
-        // mpv (native player) first: play() also self-inits as a fallback if the user plays before
-        // this runs (init() is idempotent), and any EQ/gapless requested meanwhile is cached and
-        // applied on init — so deferring it loses nothing.
         PlatformCrashHandler.runSafely("Error inicializando reproductor (mpv)") {
             playerViewModel.initialize()
         }
 
-        // SMTC (dev.toastbits:mediasession) has no persistent thread of its own — unlike
-        // jnativehook, which spawns its own native hook thread. Its transport controls need the
-        // creating thread to stay alive pumping a Windows message loop. Our previous throwaway
-        // "lyrik-deferred-init" thread died right after registering it, silently orphaning the
-        // session (Windows still showed it, but Play/Pause/Next stopped reaching our callbacks).
-        // The AWT Event Dispatch Thread lives for the app's whole lifetime and already pumps
-        // native messages, so initialize there instead.
+        // SMTC (dev.toastbits:mediasession) no tiene un hilo persistente propio, a diferencia de
+        // jnativehook, que genera su propio hilo de enlace nativo. Sus controles de transporte necesitan que el
+        // hilo creador se mantenga activo, procesando un bucle de mensajes de Windows. Nuestro anterior hilo desechable
+        // "lyrik-deferred-init" murió justo después de registrarlo, dejando la
+        // sesión huérfana silenciosamente (Windows aún la mostraba, pero Reproducir/Pausar/Siguiente dejó de llegar a nuestras devoluciones de llamada).
+        // El hilo de despacho de eventos de AWT existe durante toda la vida útil de la aplicación y ya procesa
+        // mensajes nativos, así que inicialícelo allí.
         java.awt.EventQueue.invokeLater {
             PlatformCrashHandler.runSafely("Error iniciando WindowsMediaSession") {
                 val mediaSession = koin.get<WindowsMediaSession>()
@@ -100,23 +96,23 @@ fun main() {
             }
         }
 
-        // Listen Together: wire the sync manager to the player.
+        // Escuchen juntos: conecte el administrador de sincronización a la reproductor.
+        // Basado en (Metrolist)
         PlatformCrashHandler.runSafely("Error iniciando ListenTogetherManager") {
             val listenTogetherManager = koin.get<com.example.melodist.listentogether.ListenTogetherManager>()
             listenTogetherManager.initialize()
             listenTogetherManager.setPlayer(playerViewModel)
         }
 
-        // Game overlay: start the global keyboard hook so the configured hotkey toggles the overlay
-        // even while another app/game is focused.
+        // Superposición del juego: inicia el gancho de teclado global para que la tecla de acceso rápido configurada active o desactive la superposición.
+        // Incluso cuando otra aplicación o juego esté en primer plano.
         PlatformCrashHandler.runSafely("Error iniciando GlobalHotkeyManager") {
-            koin.get<com.example.melodist.overlay.GlobalHotkeyManager>().start()
+            koin.get<GlobalHotkeyManager>().start()
         }
     }.apply { name = "lyrik-deferred-init"; isDaemon = true }.start()
 
-    // Read the saved window geometry BEFORE building the window so it opens in the right placement
-    // from the first frame. Setting placement asynchronously (after composition) is what forced the
-    // open-floating-then-maximize flicker and the componentResized workaround.
+    // Lee la config de tamaño/posición de ventana guardada y la aplica al estado inicial de la ventana.
+    // Esto debe hacerse antes de crear la ventana para que se abra con el tamaño correcto.
     val saved = runBlocking {
         Triple(
             userPreferencesRepository.windowWidth.first(),

@@ -15,21 +15,22 @@ class AppLifecycleManager(
 ) {
 
     fun cleanUpAndExit() {
-        // Must unregister the global low-level keyboard hook (WH_KEYBOARD_LL, via jnativehook)
-        // BEFORE the process dies. If we don't, Windows keeps the dead hook in its system-wide
-        // input chain until it notices the owning process is gone (LowLevelHooksTimeout, ~300ms
-        // by default) — every mouse/keyboard event on the whole system stalls until then. That was
-        // the cause of the "mouse freezes for a moment on exit" symptom.
+        // Se debe desregistrar el hook global de teclado de bajo nivel (WH_KEYBOARD_LL, via jnativehook)
+        // ANTES de que el proceso muera. Si no lo hacemos, Windows mantiene el hook muerto en su cadena
+        // de entrada de todo el sistema hasta que detecta que el proceso propietario desapareció
+        // (LowLevelHooksTimeout, ~300ms por defecto) — cada evento de ratón/teclado en todo el sistema
+        // se bloquea hasta entonces. Esa era la causa del síntoma de "el ratón se congela un momento al salir".
         runCatching { hotkeyManager.stop() }
         runCatching { syncUtils.cancelAllSyncs() }
         runCatching { downloadService.release() }
         runCatching { mediaSession.release() }
         runCatching { playerService.release() }
-        // Runtime.halt() skips JVM shutdown hooks (ours already ran above; any third-party
-        // library's hook is skipped too). Safe here: our state is already saved and released;
-        // anything a hook would "gracefully" free (temp files, GPU/native handles) is reclaimed
-        // by the OS on process death anyway. exitProcess()/System.exit() would run those hooks
-        // synchronously first, adding avoidable delay to close.
+        // Runtime.halt() omite los shutdown hooks del JVM (los nuestros ya se ejecutaron arriba;
+        // cualquier hook de biblioteca de terceros también se omite). Aquí es seguro: nuestro estado
+        // ya fue guardado y liberado; cualquier cosa que un hook "libere elegantemente" (archivos
+        // temporales, manejadores GPU/nativos) es reclamada por el SO al morir el proceso de todas formas.
+        // exitProcess()/System.exit() ejecutaría esos hooks sincronísticamente primero, añadiendo
+        // un retraso evitable al cierre.
         Runtime.getRuntime().halt(0)
     }
 }

@@ -11,9 +11,9 @@ import kotlinx.coroutines.withContext
 
 object YTPlayerutils {
     /**
-     * Resolves playback data and stream URL for a video at the specified audio quality.
+     * Resuelve los datos de reproducción y la URL del stream para un video con la calidad de audio especificada.
      *
-     * @return A `Result` containing the resolved playback data and stream URL.
+     * @return Un `Result` que contiene los datos de reproducción resueltos y la URL del stream.
      */
     suspend fun playerResponseForPlayback(
         videoId: String,
@@ -35,10 +35,10 @@ object YTPlayerutils {
             }
         }
 
-        // PoToken/JCEF generation is intentionally DISABLED: the embedded Chromium (JCEF) used a
-        // lot of RAM and stuttered the UI thread, and the yt-dlp fallback already covers the
-        // videos that would otherwise need a streaming poToken. We resolve with poToken-free
-        // clients here and let YtDlpResolver handle anything that fails to actually play.
+        // La generación de PoToken/JCEF está intencionalmente DESHABILITADA: el Chromium embebido (JCEF) consumía
+        // mucha RAM y provocaba tirones en el hilo de UI, y el fallback con yt-dlp ya cubre los
+        // videos que de otro modo necesitarían un poToken de streaming. Resolvemos con clientes sin
+        // poToken y dejamos que YtDlpResolver maneje cualquier cosa que falle al reproducir.
         val poTokenResult: PoTokenResult? = null
 
         val mainPlayerResponse =
@@ -82,9 +82,9 @@ object YTPlayerutils {
                 fallbackClient
             }
 
-            // With poTokens disabled, web clients (useWebPoTokens) 403 on the CDN and would load
-            // player.js for sig/n. Skip their stream resolution entirely — WEB_REMIX still served
-            // as the metadata source above; non-web clients + yt-dlp cover playback.
+            // Con los poTokens deshabilitados, los clientes web (useWebPoTokens) dan error 403 en el CDN y cargarían
+            // player.js para sig/n. Se omite completamente su resolución de stream — WEB_REMIX sigue sirviendo
+            // como fuente de metadatos arriba; los clientes no-web + yt-dlp cubren la reproducción.
             if ((client ?: FallbackClients.mainClient).useWebPoTokens) {
                 continue
             }
@@ -127,7 +127,7 @@ object YTPlayerutils {
                     continue
                 }
 
-                // Append pot=streamingDataPoToken for PoToken-enabled clients (WEB_REMIX, WEB, TVHTML5).
+                // Agregar pot=streamingDataPoToken para clientes con PoToken habilitado (WEB_REMIX, WEB, TVHTML5).
                 val effectiveClient = client ?: FallbackClients.mainClient
                 val streamingPot = poTokenResult?.streamingDataPoToken
                 if (effectiveClient.useWebPoTokens && streamingPot != null && "pot=" !in streamUrl) {
@@ -135,9 +135,9 @@ object YTPlayerutils {
                     Napier.d("Appended pot= to stream URL for $videoId client=${effectiveClient.clientName}")
                 }
 
-                // n-transform only for web clients (same as Metrolist). Non-web clients (VISIONOS,
-                // IOS, ANDROID_VR, ...) get URLs whose n is absent or already handled by NewPipe;
-                // transforming those with the web player's n-function would break them.
+                // Transformación de n solo para clientes web (igual que Metrolist). Los clientes no-web (VISIONOS,
+                // IOS, ANDROID_VR, ...) obtienen URLs cuya n está ausente o ya es manejada por NewPipe;
+                // transformarlas con la función n del reproductor web las rompería.
                 val needsNTransform = effectiveClient.useWebPoTokens ||
                     effectiveClient.clientName in listOf("WEB", "WEB_REMIX", "WEB_CREATOR", "TVHTML5")
                 if (needsNTransform) {
@@ -197,13 +197,13 @@ object YTPlayerutils {
     private var cachedSignatureTimestamp: Int? = null
 
     /**
-     * Computes and caches the signature timestamp for the YouTube player.
+     * Calcula y almacena en caché el timestamp de firma para el reproductor de YouTube.
      *
-     * @return The signature timestamp in days since Unix epoch.
+     * @return El timestamp de firma en días desde la época de Unix.
      */
     private fun getSignatureTimestampOrNull(videoId: String): Int? {
-        // signatureTimestamp = days since Unix epoch (SimpMusic approach)
-        // YouTube's player uses this to verify the client is up-to-date
+        // signatureTimestamp = días desde la época de Unix (enfoque de SimpMusic)
+        // El reproductor de YouTube usa esto para verificar que el cliente está actualizado
         cachedSignatureTimestamp?.let { return it }
         val ts = (System.currentTimeMillis() / 86400000L).toInt()
         cachedSignatureTimestamp = ts
@@ -212,9 +212,9 @@ object YTPlayerutils {
     }
 
     /**
-     * Invalidates the cached stream URLs for a video.
+     * Invalida las URLs de stream en caché para un video.
      *
-     * @param videoId The ID of the video.
+     * @param videoId El ID del video.
      */
     suspend fun forceRefreshForVideo(videoId: String) {
         StreamCache.invalidateForVideo(videoId)

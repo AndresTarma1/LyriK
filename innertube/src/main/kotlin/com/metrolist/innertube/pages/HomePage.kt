@@ -231,7 +231,10 @@ data class HomePage(
                                 ?.musicPlayButtonRenderer?.playNavigationEndpoint
                                 ?.watchPlaylistEndpoint?.playlistId ?: return null,
                             title = renderer.title.runs?.firstOrNull()?.text ?: return null,
-                            artists = renderer.subtitle?.runs?.oddElements()?.drop(1)?.map {
+                            // oddElements() already filters to browseId-linked runs, dropping the
+                            // leading type label ("Album") that isn't itself a link — no need to
+                            // additionally drop(1), which would instead chop the first artist.
+                            artists = renderer.subtitle?.runs?.oddElements()?.map {
                                 Artist(
                                     name = it.text,
                                     id = it.navigationEndpoint?.browseEndpoint?.browseId

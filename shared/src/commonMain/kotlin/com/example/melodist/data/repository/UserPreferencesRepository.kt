@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -14,7 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
-/** Sentinel for an overlay position that has never been set by the user. */
+/** Valor sentinela para la posición del overlay que nunca ha sido configurada por el usuario. */
 const val OVERLAY_POS_UNSET = Int.MIN_VALUE
 
 enum class AudioQuality {
@@ -25,14 +26,36 @@ enum class ThemeMode {
     SYSTEM, DARK, LIGHT
 }
 
-/** How dark the dark theme's surfaces are. DIM = tinted dark gray, BLACK = pure-black (AMOLED). */
+/** Qué tan oscuras son las superficies del tema oscuro. DIM = gris oscuro teñido, BLACK = negro puro (AMOLED). */
 enum class DarkLevel {
     DIM, BLACK
 }
 
-/** Overall layout style. ISLANDS = rounded, spaced cards (current). ATTACHED = edge-to-edge, compact. */
+/** Estilo de diseño general. ISLANDS = tarjetas redondeadas y espaciadas (actual). ATTACHED = de borde a borde, compacto. */
 enum class LayoutMode {
     ISLANDS, ATTACHED
+}
+
+/**
+ * Qué tan pronunciadas están las "islas" — redondez de esquinas + el espaciado alrededor de cada superficie —
+ * solo tiene sentido cuando [LayoutMode.ISLANDS] está activo. Los valores (dp) son consumidos por `dimensFor`
+ * en el módulo de UI (se mantienen como Int aquí para que esto permanezca en commonMain, libre de tipos de Compose).
+ */
+enum class IslandStyle(val cornerDp: Int, val gapDp: Int) {
+    COMPACT(12, 8),
+    COMFORTABLE(18, 12),
+    SPACIOUS(26, 18),
+}
+
+/**
+ * Estilo visual de la barra de progreso de reproducción, elegido desde un diálogo de vista previa.
+ *  - WAVY: garabato animado (estilo Metrolist).
+ *  - LINEAR: barra plana delgada con un pulgar de punto redondo (estilo Spotify).
+ *  - MATERIAL: el control deslizante grueso estándar de Material 3 con un amplio mango.
+ *  - MINIMAL: una línea delgada de seguimiento sin pulgar hasta que se arrastra.
+ */
+enum class SeekBarStyle {
+    WAVY, LINEAR, MATERIAL, MINIMAL
 }
 
 enum class AppLocale(val tag: String?) {
@@ -88,6 +111,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val YOUTUBE_REGION = stringPreferencesKey("youtube_region")
         val DARK_LEVEL = stringPreferencesKey("dark_level")
         val LAYOUT_MODE = stringPreferencesKey("layout_mode")
+        val ISLAND_STYLE = stringPreferencesKey("island_style")
         val YTM_SYNC = booleanPreferencesKey("ytm_sync_enabled")
         val LAST_FULL_SYNC_AT = longPreferencesKey("last_full_sync_at")
         val OVERLAY_HOTKEY_ENABLED = booleanPreferencesKey("overlay_hotkey_enabled")
@@ -100,9 +124,11 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val LAST_ACCOUNT_ID = stringPreferencesKey("last_account_id")
         val OFFLINE_MODE = booleanPreferencesKey("offline_mode_enabled")
         val PENDING_ACTIONS = stringPreferencesKey("pending_sync_actions")
+        val SEEK_BAR_STYLE = stringPreferencesKey("seek_bar_style")
+        val PLAYBACK_SPEED = floatPreferencesKey("playback_speed")
     }
 
-    /** Last overlay window position in dp, or [OVERLAY_POS_UNSET] when never moved (→ default corner). */
+    /** Última posición de la ventana de overlay en dp, o [OVERLAY_POS_UNSET] cuando nunca se ha movido (→ esquina predeterminada). */
     val overlayPosX: Flow<Int> = dataStore.data.map { it[PreferencesKeys.OVERLAY_POS_X] ?: OVERLAY_POS_UNSET }
     val overlayPosY: Flow<Int> = dataStore.data.map { it[PreferencesKeys.OVERLAY_POS_Y] ?: OVERLAY_POS_UNSET }
 
@@ -113,25 +139,25 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    /** Remembered display name for joining/creating Listen Together rooms. */
+    /** Nombre de usuario recordado para unirse/crear salas de Escuchar Juntos. */
     val listenTogetherUsername: Flow<String> = dataStore.data.map { it[PreferencesKeys.LT_USERNAME] ?: "" }
 
     suspend fun setListenTogetherUsername(name: String) {
         dataStore.edit { it[PreferencesKeys.LT_USERNAME] = name }
     }
 
-    /** Identity (email) of the last signed-in YouTube account — used to detect account switches. */
+    /** Identidad (email) de la última cuenta de YouTube iniciada — se usa para detectar cambios de cuenta. */
     val lastAccountId: Flow<String> = dataStore.data.map { it[PreferencesKeys.LAST_ACCOUNT_ID] ?: "" }
 
     suspend fun setLastAccountId(id: String) {
         dataStore.edit { it[PreferencesKeys.LAST_ACCOUNT_ID] = id }
     }
 
-    // ── Game overlay hotkey ─────────────────────────────────────────────────
-    // A global shortcut that toggles a Steam-style always-on-top overlay for controlling music
-    // without leaving the current game/app. The combo is stored as a jnativehook key code plus a
-    // packed modifier mask (bit0 ctrl, bit1 alt, bit2 shift, bit3 meta); code 0 means "unset, use
-    // the manager's built-in default". [label] is the pre-formatted human-readable combo.
+    // ── Atajos de teclado del overlay del juego ─────────────────────────────────────────────────
+    // Un atajo global que activa/desactiva un overlay estilo Steam siempre visible para controlar la música
+    // sin salir del juego/aplicación actual. La combinación se almacena como un código de tecla de jnativehook
+    // más una máscara de modificadores empaquetada (bit0 ctrl, bit1 alt, bit2 shift, bit3 meta); código 0
+    // significa "sin configurar, usar el predeterminado del gestor". [label] es la combinación legible preformateada.
 
     val overlayHotkeyEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.OVERLAY_HOTKEY_ENABLED] ?: true }
     val overlayHotkeyCode: Flow<Int> = dataStore.data.map { it[PreferencesKeys.OVERLAY_HOTKEY_CODE] ?: 0 }
@@ -150,10 +176,10 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         }
     }
 
-    // ── YouTube Music sync (experimental) ───────────────────────────────────
-    // When enabled, adding/removing a song in a local playlist is mirrored to a YouTube Music
-    // playlist on the signed-in account. Local→remote playlist ids are stored here (not in the
-    // SQLite schema) so the feature needs no destructive DB migration.
+    // ── Sincronización con YouTube Music (experimental) ───────────────────────────────────
+    // Cuando está habilitado, agregar/eliminar una canción en una playlist local se refleja en una
+    // playlist de YouTube Music en la cuenta iniciada. Los IDs de playlist local→remoto se almacenan
+    // aquí (no en el esquema SQLite) para que la función no necesite una migración de BD destructiva.
 
     val ytmSyncEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.YTM_SYNC] ?: false }
 
@@ -162,11 +188,11 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     }
 
     /**
-     * Epoch millis of the last full library sync (liked songs/albums/artists/playlists). Used to
-     * cooldown-gate re-syncing: AccountViewModel is recreated every time the user navigates to the
-     * Account screen (it's a Koin factory), so without this a full sync — including a complete
-     * re-pull of every YouTube-linked playlist's songs when ytmSyncEnabled is on — would fire on
-     * every visit instead of just periodically.
+     * Milisegundos de época de la última sincronización completa de la biblioteca (canciones/álbumes/artistas/playlists
+     * marcados como favoritos). Se usa para limitar la resincronización: AccountViewModel se recrea cada vez que el
+     * usuario navega a la pantalla de Cuenta (es una fábrica de Koin), por lo que sin esto, una sincronización completa
+     — incluyendo una recarga completa de las canciones de cada playlist vinculada a YouTube cuando ytmSyncEnabled está
+     * activo — se ejecutaría en cada visita en lugar de solo periódicamente.
      */
     val lastFullSyncAt: Flow<Long> = dataStore.data.map { it[PreferencesKeys.LAST_FULL_SYNC_AT] ?: 0L }
 
@@ -176,7 +202,7 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     private fun remotePlaylistKey(localId: String) = stringPreferencesKey("ytm_remote_$localId")
 
-    /** Remote YTM playlist id mirroring a given local playlist, or null if none yet. */
+    /** ID remoto de playlist YTM que refleja una playlist local dada, o null si aún no existe. */
     suspend fun getRemotePlaylistId(localId: String): String? =
         dataStore.data.first()[remotePlaylistKey(localId)]
 
@@ -206,6 +232,15 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[PreferencesKeys.LAYOUT_MODE] = mode.name }
     }
 
+    val islandStyle: Flow<IslandStyle> = dataStore.data.map { pref ->
+        try { IslandStyle.valueOf(pref[PreferencesKeys.ISLAND_STYLE] ?: IslandStyle.COMFORTABLE.name) }
+        catch (_: Exception) { IslandStyle.COMFORTABLE }
+    }
+
+    suspend fun setIslandStyle(style: IslandStyle) {
+        dataStore.edit { it[PreferencesKeys.ISLAND_STYLE] = style.name }
+    }
+
     val audioQuality: Flow<AudioQuality> = dataStore.data.map { preferences ->
         try {
             AudioQuality.valueOf(preferences[PreferencesKeys.AUDIO_QUALITY] ?: AudioQuality.NORMAL.name)
@@ -225,12 +260,28 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     val dynamicColorFromArtwork: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.DYNAMIC_COLOR] ?: false }
     val highResCoverArt: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.HIGH_RES_COVER] ?: true }
     val crossfadeEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.CROSSFADE] ?: false }
+
+    val seekBarStyle: Flow<SeekBarStyle> = dataStore.data.map { pref ->
+        try { SeekBarStyle.valueOf(pref[PreferencesKeys.SEEK_BAR_STYLE] ?: SeekBarStyle.WAVY.name) }
+        catch (_: Exception) { SeekBarStyle.WAVY }
+    }
+
+    suspend fun setSeekBarStyle(style: SeekBarStyle) {
+        dataStore.edit { it[PreferencesKeys.SEEK_BAR_STYLE] = style.name }
+    }
+
+    /** Multiplicador de velocidad de reproducción que se pasa directamente a la propiedad `speed` de mpv. */
+    val playbackSpeed: Flow<Float> = dataStore.data.map { it[PreferencesKeys.PLAYBACK_SPEED] ?: 1f }
+
+    suspend fun setPlaybackSpeed(speed: Float) {
+        dataStore.edit { it[PreferencesKeys.PLAYBACK_SPEED] = speed.coerceIn(0.5f, 2f) }
+    }
     val cacheImages: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.CACHE_IMAGES] ?: true }
     val imagesEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.IMAGES_ENABLED] ?: true }
     val minimizeToTray: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.MINIMIZE_TO_TRAY] ?: true }
     val trimMemoryOnTray: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.TRIM_MEMORY_ON_TRAY] ?: true }
 
-    /** Whether LyriK registers itself to start when Windows boots (synced to the registry Run key). */
+    /** Si LyriK se registra para iniciarse cuando Windows arranca (sincronizado con la clave de registro Run). */
     val launchAtStartup: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.LAUNCH_AT_STARTUP] ?: false }
 
     suspend fun setLaunchAtStartup(enabled: Boolean) {
@@ -300,10 +351,11 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     }
 
     /**
-     * Persists placement + size in a single atomic write. DataStore's `edit` serializes and
-     * atomically replaces the whole preferences file on every call, so calling it twice in a row
-     * (as the old setWindowMaximized + setWindowSize combo did) doubles that disk round-trip right
-     * before app exit — noticeable as a brief close-time hitch. One combined edit halves it.
+     * Persiste la posición y el tamaño en una sola escritura atómica. La función `edit` de DataStore serializa
+     * y reemplaza atómicamente todo el archivo de preferencias en cada llamada, por lo que llamarla dos veces
+     * seguidas (como hacía la combinación anterior de setWindowMaximized + setWindowSize) duplica ese viaje de
+     * disco justo antes de cerrar la aplicación — noticeable como un breve titubeo al cerrar. Una edición
+     * combinada lo reduce a la mitad.
      */
     suspend fun setWindowState(maximized: Boolean, width: Int, height: Int) {
         dataStore.edit {
@@ -351,11 +403,11 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     }
 
     /**
-     * Manual "offline mode" — when on, the app never attempts network calls (search, home feed,
-     * lyrics fetch, library sync) and only plays downloaded/cached songs, regardless of whether a
-     * connection is actually available. Independent from automatic offline DETECTION
-     * ([com.example.melodist.utils.NetworkMonitor]), which reacts to a connection actually being
-     * down; this is the user proactively opting out of network use.
+     * "Modo offline" manual — cuando está activo, la aplicación nunca intenta llamadas de red (búsqueda,
+     * feed principal, obtención de letras, sincronización de biblioteca) y solo reproduce canciones
+     * descargadas/en caché, independientemente de si una conexión está realmente disponible. Independiente
+     * de la DETECCIÓN automática de offline ([com.example.melodist.utils.NetworkMonitor]), que reacciona
+     * cuando una conexión realmente cae; esto es cuando el usuario opta proactivamente por no usar la red.
      */
     val offlineModeEnabled: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.OFFLINE_MODE] ?: false }
 
@@ -363,9 +415,10 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[PreferencesKeys.OFFLINE_MODE] = enabled }
     }
 
-    // ── Deferred remote-sync actions (offline queue) ────────────────────────
-    // Remote pushes to YouTube (like, subscribe, ...) that failed while offline get queued here as
-    // JSON and retried by PendingSyncQueue once connectivity is back. See [PendingAction].
+    // ── Acciones de sincronización remota diferidas (cola offline) ────────────────────────
+    // Los envíos remotos a YouTube (like, suscribirse, ...) que fallaron mientras estaba offline se
+    // encolan aquí como JSON y se reintenta con PendingSyncQueue una vez que la conectividad vuelve.
+    // Ver [PendingAction].
 
     private val pendingActionsJson = Json { ignoreUnknownKeys = true }
 
