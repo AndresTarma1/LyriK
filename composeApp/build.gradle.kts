@@ -12,7 +12,10 @@ plugins {
 val melodistJvmArgs = listOf(
     "--add-modules=java.sql",
     "--enable-native-access=ALL-UNNAMED",
-    "-Dorg.sqlite.tmpdir=${System.getProperty("user.home")}/.melodist/tmp",
+    // NOTA: no fijar aquí -Dorg.sqlite.tmpdir con System.getProperty("user.home"): eso hornea el
+    // home de la MÁQUINA QUE COMPILA en el .cfg del instalador, y si esa ruta contiene una secuencia
+    // tipo escape (p. ej. "\r" en C:\Users\runneradmin del runner de CI) jpackage la parte en dos y el
+    // launcher no arranca. AppEnvironment.initialize() ya fija org.sqlite.tmpdir en runtime.
     "-XX:+UseG1GC",
     "-Xmx512m",
     "-Xms64m",
