@@ -28,6 +28,7 @@ import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.example.melodist.FpsCounter
 import com.example.melodist.data.repository.LayoutMode
 import com.example.melodist.ui.components.MiniPlayer
 import com.example.melodist.ui.components.dialogs.SnackBar
@@ -40,6 +41,7 @@ import com.example.melodist.viewmodels.PlayerViewModel
 import org.koin.compose.koinInject
 import com.example.melodist.ui.screens.YouTubeBrowseScreenRoute
 import com.example.melodist.ui.screens.*
+import com.example.melodist.ui.screens.album.AlbumScreenRoute
 import com.example.melodist.ui.screens.home.HomeScreenRoute
 import com.example.melodist.ui.screens.library.LibraryScreenRoute
 import com.example.melodist.ui.themes.LocalDimens
@@ -286,6 +288,12 @@ fun NavigationDesktop(rootComponent: RootComponent) {
                     )
                 }
             }
+
+            FpsCounter(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(8.dp)
+            )
 
             val currentSong = playerState.currentSong
             SnackBar(

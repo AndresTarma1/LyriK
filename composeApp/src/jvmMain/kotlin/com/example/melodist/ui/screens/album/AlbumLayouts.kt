@@ -39,8 +39,6 @@ import com.example.melodist.ui.components.LoadingMoreSongsItem
 import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.PlaceholderType
 import com.example.melodist.ui.utils.circleAwareShape
-import com.example.melodist.ui.screens.AlbumScreenActions
-import com.example.melodist.ui.screens.AlbumScreenState
 import com.example.melodist.ui.screens.playlist.MultiSongSelectionBar
 import com.example.melodist.ui.screens.playlist.SongListItem
 import com.example.melodist.ui.screens.shared.calculateTotalDuration

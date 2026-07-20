@@ -16,16 +16,9 @@ import com.example.melodist.ui.components.artwork.ArtworkColors
 import com.materialkolor.PaletteStyle
 import com.materialkolor.rememberDynamicMaterialThemeState
 
-val Primary = Color(0xFF687988)
-val Secondary = Color(0xFF72787E)
 
-/**
- * MelodistTheme — MaterialKolor seed-based scheme, with the dark scheme's surfaces re-derived for
- * a configurable darkness ([DarkLevel]: DIM dark-gray tinted with the accent, or BLACK / AMOLED),
- * the Roboto type scale, and layout tokens ([LocalDimens]/[LocalLayoutMode]) exposed to the tree.
- */
 @Composable
-fun MelodistTheme(
+fun AppTheme(
     artworkColors: ArtworkColors? = null,
     userPreferences: UserPreferencesRepository,
     content: @Composable () -> Unit,

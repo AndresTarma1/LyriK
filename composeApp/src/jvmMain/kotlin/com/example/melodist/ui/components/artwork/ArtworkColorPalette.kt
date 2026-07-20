@@ -8,7 +8,8 @@ import com.kmpalette.loader.rememberNetworkLoader
 import com.kmpalette.rememberPaletteState
 import io.ktor.http.Url
 import kotlinx.coroutines.delay
-
+import kotlinx.coroutines.CancellationException
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Extracted color palette from a song's artwork.
@@ -31,19 +32,21 @@ data class ArtworkColors(
     }
 }
 
-/**
- * CompositionLocal that provides artwork colors from the App level.
- */
 val LocalArtworkColors = staticCompositionLocalOf { ArtworkColors.Default }
 
-/**
- * ✅ LRU cache con tamaño máximo para evitar consumo excesivo de memoria.
- * Limita a 30 entradas (30 carátulas ≈ ~3MB en paletas vs crecimiento ilimitado anterior).
- */
-private class ArtworkPaletteCache(private val maxSize: Int = 30) : LinkedHashMap<String, ArtworkColors>(maxSize, 0.75f, true) {
-    override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ArtworkColors>?): Boolean {
+// Opciones de caché optimizadas para lectura directa
+private class ArtworkPaletteCache(private val maxSize: Int = 30) {
+    private val map = LinkedHashMap<String, ArtworkColors>(maxSize, 0.75f, true)
 
-        return size > maxSize
+    // Usamos funciones con Intrínsecos de sincronización simples o accesos directos
+    fun get(key: String): ArtworkColors? = synchronized(map) { map[key] }
+
+    fun put(key: String, value: ArtworkColors) = synchronized(map) {
+        map[key] = value
+        if (map.size > maxSize) {
+            val eldest = map.keys.iterator().next()
+            map.remove(eldest)
+        }
     }
 }
 
@@ -54,7 +57,14 @@ fun rememberArtworkColors(url: String?): ArtworkColors {
     val loader = rememberNetworkLoader()
     val paletteState = rememberPaletteState(loader = loader)
 
-    var colors by remember { mutableStateOf(ArtworkColors.Default) }
+    // 1. SOLUCIÓN AL PARPADEO: Inicializamos el estado directamente buscando en la caché.
+    // Si ya existe, se renderiza instantáneamente con los colores correctos sin esperar al LaunchedEffect.
+    var colors by remember(url) {
+        mutableStateOf(
+            if (!url.isNullOrBlank()) artworkPaletteCache.get(url) ?: ArtworkColors.Default
+            else ArtworkColors.Default
+        )
+    }
 
     LaunchedEffect(url) {
         if (url.isNullOrBlank()) {
@@ -62,16 +72,11 @@ fun rememberArtworkColors(url: String?): ArtworkColors {
             return@LaunchedEffect
         }
 
-        synchronized(artworkPaletteCache) {
-            artworkPaletteCache[url]?.let {
-                colors = it
-                return@LaunchedEffect
-            }
-        }
+        // Si la caché ya lo tenía (ya lo inicializamos arriba), no hacemos nada más
+        if (artworkPaletteCache.get(url) != null) return@LaunchedEffect
 
         try {
-            // ✅ Delay de 200ms reducido a 120ms — respuesta más rápida sin parpadeo
-            delay(120)
+            delay(120.milliseconds)
             paletteState.generate(Url(url))
 
             val dominant = paletteState.palette?.dominantSwatch?.color
@@ -88,13 +93,15 @@ fun rememberArtworkColors(url: String?): ArtworkColors {
                 darkMuted = darkMuted ?: finalDominant,
                 isLight = finalDominant.luminance() > 0.5f
             )
-            synchronized(artworkPaletteCache) {
-                artworkPaletteCache[url] = resolved
-            }
+
+            artworkPaletteCache.put(url, resolved)
             colors = resolved
 
-        } catch (_: Exception) {
-            // Conserva el último color válido para evitar parpadeos al fallar una portada.
+        } catch (e: Exception) {
+            // 2. CORRECCIÓN DE CORRUTINAS: Si la excepción es por cancelación, la dejamos pasar.
+            // Si no, destruimos el ciclo cooperativo de Compose.
+            if (e is CancellationException) throw e
+            // Conserva el último color válido en caso de error de red
         }
     }
 

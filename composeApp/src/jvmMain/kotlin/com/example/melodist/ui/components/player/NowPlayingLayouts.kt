@@ -37,7 +37,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.outlined.FavoriteBorder
-import androidx.compose.material.icons.rounded.Album
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Explicit
 import androidx.compose.material.icons.rounded.GraphicEq
@@ -64,7 +63,6 @@ import androidx.compose.ui.unit.dp
 import com.example.melodist.navigation.Route
 import com.example.melodist.models.MediaMetadata
 import com.example.melodist.ui.components.*
-import com.example.melodist.ui.components.background.BlurredImageBackground
 import com.example.melodist.ui.components.skeletons.AnimatedEqualizer
 import com.example.melodist.utils.upscaleThumbnailUrl
 import com.example.melodist.ui.components.song.DownloadIndicator
@@ -98,6 +96,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.text.TextStyle
+import com.example.melodist.ui.components.background.NowBackground
 import com.example.melodist.ui.components.context.SongContextMenuPopup
 import com.example.melodist.ui.components.dialogs.ArtistsModal
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
@@ -113,7 +112,6 @@ import kotlin.math.abs
 /** Las tres vistas disponibles en el panel derecho de la pantalla de Reproduciendo Ampliada. */
 enum class NowPlayingTab { LYRICS, QUEUE, INFO }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 fun NowPlayingLayout(
     state: PlayerUiState,
@@ -133,9 +131,9 @@ fun NowPlayingLayout(
     var showMenu by remember { mutableStateOf(false) }
     var showEqualizer by remember { mutableStateOf(false) }
     val preferencesRepo = LocalUserPreferences.current
-    val equalizerBands by preferencesRepo.equalizerBands.collectAsState(initial = List(10) { 0f })
+    val equalizerBands by preferencesRepo.equalizerBands.collectAsState(initial = List(5) { 0f })
 
-    BlurredImageBackground(
+    NowBackground(
         imageUrl = song.thumbnailUrl,
         modifier = Modifier
             .fillMaxSize()
@@ -144,8 +142,6 @@ fun NowPlayingLayout(
                 indication = null,
                 onClick = {}
             ),
-        darkOverlayAlpha = 0.62f,
-        gradientFraction = 0.52f
     ) {
         BoxWithConstraints(
             modifier = Modifier
@@ -198,24 +194,11 @@ fun NowPlayingLayout(
 
     // --- Diálogo del Ecualizador ---
     if (showEqualizer) {
-        AlertDialog(
-            onDismissRequest = { showEqualizer = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 0.dp,
-            icon = { Icon(Icons.Rounded.GraphicEq, null) },
-            title = { Text(stringResource(Res.string.equalizer_title)) },
-            text = {
-                EqualizerPanel(
-                    bands = equalizerBands,
-                    onBandsChange = { scope.launch { preferencesRepo.setEqualizerBands(it) } }
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { showEqualizer = false }) {
-                    Text(stringResource(Res.string.close_equalizer))
-                }
-            }
-        )
+            EqualizerDialog(
+                bands = equalizerBands,
+                onBandsChange = { scope.launch { preferencesRepo.setEqualizerBands(it) } },
+                onDismiss = { showEqualizer = false }
+            )
     }
 }
 
@@ -228,7 +211,6 @@ fun NowPlayingLayout(
  * a la izquierda; el lado derecho es un panel con pestañas (Letras / Cola / Información) que
  * cambia el contenido sin alterar el lado izquierdo.
  */
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun ExpandedNowPlayingLayout(
     song: MediaMetadata,
@@ -289,7 +271,6 @@ private fun ExpandedNowPlayingLayout(
                     mediaInfo = mediaInfo,
                     lyricsTextStyle = MaterialTheme.typography.headlineSmall,
                     onNavigate = onNavigate,
-                    onCollapse = onCollapse,
                 )
             }
         }
@@ -297,7 +278,6 @@ private fun ExpandedNowPlayingLayout(
 }
 
 /** Respaldo para ventana estrecha: portada + información arriba, la pestaña seleccionada ocupa el resto abajo. */
-@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun CompactNowPlayingLayout(
     song: MediaMetadata,
@@ -348,7 +328,6 @@ private fun CompactNowPlayingLayout(
                 lyrics = lyrics,
                 lyricsTextStyle = MaterialTheme.typography.bodyLarge,
                 onNavigate = onNavigate,
-                onCollapse = onCollapse,
                 mediaInfo = mediaInfo,
             )
         }
@@ -376,38 +355,37 @@ private fun NowPlayingTabRow(
     val tabs = NowPlayingTab.entries
     val selectedIndex = tabs.indexOf(selectedTab)
 
-    TabRow(
+    PrimaryTabRow(
         selectedTabIndex = selectedIndex,
         modifier = modifier,
         containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.primary,
-        divider = { HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)) },
-    ) {
-        tabs.forEach { tab ->
-            val selected = tab == selectedTab
-            val label = when (tab) {
-                NowPlayingTab.LYRICS -> lyricsLabel
-                NowPlayingTab.QUEUE -> queueLabel
-                NowPlayingTab.INFO -> infoLabel
+        tabs = {
+            tabs.forEach { tab ->
+                val selected = tab == selectedTab
+                val label = when (tab) {
+                    NowPlayingTab.LYRICS -> lyricsLabel
+                    NowPlayingTab.QUEUE -> queueLabel
+                    NowPlayingTab.INFO -> infoLabel
+                }
+                LeadingIconTab(
+                    selected = selected,
+                    onClick = { onTabSelected(tab) },
+                    selectedContentColor = MaterialTheme.colorScheme.primary,
+                    unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
+                    icon = { Icon(tabIcon(tab), contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    text = {
+                        Text(
+                            label,
+                            style = MaterialTheme.typography.labelLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                )
             }
-            LeadingIconTab(
-                selected = selected,
-                onClick = { onTabSelected(tab) },
-                selectedContentColor = MaterialTheme.colorScheme.primary,
-                unselectedContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
-                icon = { Icon(tabIcon(tab), contentDescription = null, modifier = Modifier.size(18.dp)) },
-                text = {
-                    Text(
-                        label,
-                        style = MaterialTheme.typography.labelLarge,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                },
-            )
-        }
-    }
+        })
 }
 
 @Composable
@@ -419,7 +397,6 @@ private fun NowPlayingTabContent(
     mediaInfo: MediaInfo?,
     lyricsTextStyle: TextStyle,
     onNavigate: ((Route) -> Unit)?,
-    onCollapse: () -> Unit,
 ) {
     when (tab) {
         NowPlayingTab.LYRICS -> LyricsContent(lyrics = lyrics, textAlign = TextAlign.Start, style = lyricsTextStyle)
@@ -430,18 +407,16 @@ private fun NowPlayingTabContent(
             containerColor = Color.Transparent,
             showCloseButton = false,
         )
-        NowPlayingTab.INFO -> SongInfoContent(song = song, state = state, mediaInfo = mediaInfo, onNavigate = onNavigate, onCollapse = onCollapse)
+        NowPlayingTab.INFO -> SongInfoContent(song = song, state = state, mediaInfo = mediaInfo, onNavigate = onNavigate)
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SongInfoContent(
     song: MediaMetadata,
     state: PlayerUiState,
     mediaInfo: MediaInfo?,
     onNavigate: ((Route) -> Unit)?,
-    onCollapse: () -> Unit,
 ) {
     val scrollState = rememberScrollState()
 

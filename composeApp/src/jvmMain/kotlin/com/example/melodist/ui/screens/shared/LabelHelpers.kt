@@ -8,6 +8,7 @@ import com.example.melodist.data.repository.AudioQuality
 import com.example.melodist.data.repository.DarkLevel
 import com.example.melodist.data.repository.IslandStyle
 import com.example.melodist.data.repository.LayoutMode
+import com.example.melodist.data.repository.NowPlayingBackground
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
 import com.example.melodist.data.repository.RenderApi
@@ -68,6 +69,13 @@ fun ThemePalette.displayName(): String = when (this) {
     ThemePalette.AMBAR -> stringResource(Res.string.palette_amber)
     ThemePalette.INDIGO -> stringResource(Res.string.palette_indigo)
     ThemePalette.YTMUSIC -> stringResource(Res.string.palette_ytmusic)
+}
+
+@Composable
+fun NowPlayingBackground.displayName(): String = when (this) {
+    NowPlayingBackground.GRADIENT -> stringResource(Res.string.background_style_gradient)
+    NowPlayingBackground.BLURRED_COVER -> stringResource(Res.string.background_style_blur)
+    NowPlayingBackground.SOLID_COLOR -> stringResource(Res.string.background_style_solid)
 }
 
 @Composable

@@ -26,7 +26,9 @@ import com.alorma.compose.settings.ui.SettingsMenuLink
 import com.alorma.compose.settings.ui.SettingsSwitch
 import com.example.melodist.data.AppDirs
 import com.example.melodist.data.repository.*
-import com.example.melodist.ui.components.EqualizerPanel
+import com.example.melodist.overlay.GlobalHotkeyManager
+import com.example.melodist.overlay.HotkeyCombo.Companion.DEFAULT
+import com.example.melodist.ui.components.EqualizerDialog
 import com.example.melodist.ui.components.PlayerSeekBar
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.screens.shared.displayName
@@ -45,7 +47,7 @@ import java.awt.Desktop
 import java.net.URI
 import java.net.URLEncoder
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val scrollState = rememberScrollState()
@@ -57,7 +59,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     var showYtmSyncWarning by remember { mutableStateOf(false) }
     var showOverlayCapture by remember { mutableStateOf(false) }
     val jvmSettingsViewModel: JvmSettingsViewModel = koinInject()
-    val hotkeyManager: com.example.melodist.overlay.GlobalHotkeyManager = koinInject()
+    val hotkeyManager: GlobalHotkeyManager = koinInject()
     val appViewModel: AppViewModel = koinInject()
 
     var showThemeDropdown by remember { mutableStateOf(false) }
@@ -69,6 +71,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     var showLanguageDropdown by remember { mutableStateOf(false) }
     var showRegionDropdown by remember { mutableStateOf(false) }
     var showSeekBarStyleDialog by remember { mutableStateOf(false) }
+    var showNowPBdropdown by remember { mutableStateOf(false) }
 
     val colors = ListItemDefaults.segmentedColors(
         containerColor = MaterialTheme.colorScheme.surface,
@@ -97,7 +100,8 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val offlineModeEnabled by viewModel.offlineModeEnabled.collectAsState()
     val overlayHotkeyEnabled by viewModel.overlayHotkeyEnabled.collectAsState()
     val overlayHotkeyLabel by viewModel.overlayHotkeyLabel.collectAsState()
-    val defaultHotkeyLabel = remember { com.example.melodist.overlay.HotkeyCombo.DEFAULT.label() }
+    val nowPlayingBackground by viewModel.nowPlayingBackground.collectAsState()
+    val defaultHotkeyLabel = remember { DEFAULT.label() }
     val updateCheckState by appViewModel.checkState.collectAsState()
     val updateStatus by appViewModel.updateStatus.collectAsState()
 
@@ -239,6 +243,19 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
                         shape = RoundedCornerShape(16.dp),
                         state = highResCover,
                         onCheckedChange = { viewModel.setHighResCoverArt(it) }
+                    )
+
+                    DropdownSelector(
+                        label = stringResource(Res.string.now_playing_background),
+                        icon = Icons.Rounded.Style,
+                        expanded = showNowPBdropdown,
+                        colors = colors,
+                        currentValue = nowPlayingBackground.displayName(),
+                        onExpandedChange = { showNowPBdropdown = it },
+                        options = NowPlayingBackground.entries.map { it to it.displayName() },
+                        isSelected = { it == nowPlayingBackground},
+                        onSelect = { viewModel.setNowPlayingBackground(it) },
+                        paletteItem = true
                     )
                     SettingsSwitch(
                         icon = { Icon(Icons.Rounded.Image, null) },
@@ -575,16 +592,11 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     }
 
     if (showEqualizerDialog) {
-        ResponsiveSettingsDialog(
+        EqualizerDialog(
             onDismiss = { showEqualizerDialog = false },
-            icon = Icons.Rounded.GraphicEq,
-            title = stringResource(Res.string.equalizer_title),
-        ) {
-            EqualizerPanel(
-                bands = equalizerBands,
-                onBandsChange = { viewModel.setEqualizerBands(it) }
-            )
-        }
+            bands = equalizerBands,
+            onBandsChange = { viewModel.setEqualizerBands(it) }
+        )
     }
 
     if (showSeekBarStyleDialog) {

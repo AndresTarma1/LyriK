@@ -20,7 +20,7 @@ fun robotoFamily(): FontFamily = FontFamily(
 
 /**
  * Roboto-based type scale tuned to feel like YouTube Music: medium-weight titles, slightly tighter
- * tracking, comfortable body sizes. Applied app-wide via [MelodistTheme].
+ * tracking, comfortable body sizes. Applied app-wide via [AppTheme].
  */
 @Composable
 fun melodistTypography(): Typography {

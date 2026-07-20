@@ -156,7 +156,6 @@ fun ArtistScreen(
 }
 
 // Contenido principal
-
 @Composable
 private fun ArtistScreenContent(
     artistPage: ArtistPage,
@@ -241,7 +240,6 @@ private fun ArtistScreenContent(
 }
 
 // BANNER — imagen con gradientes multicapa al estilo YouTube Music
-
 @Composable
 private fun ArtistBanner(
     artistPage: ArtistPage,
@@ -255,7 +253,7 @@ private fun ArtistBanner(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(520.dp)   // alto generoso para que la imagen respire
+            .height(520.dp)
     ) {
         MelodistImage(
             url = artistPage.artist.thumbnail,
@@ -266,8 +264,6 @@ private fun ArtistBanner(
             contentScale = ContentScale.Crop,
             alignment = Alignment.TopCenter
         )
-
-// Esta capa actúa igual en todos los píxeles de izquierda a derecha
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -287,7 +283,7 @@ private fun ArtistBanner(
 
         Box(
             modifier = Modifier
-                .fillMaxWidth()  // ← solo ocupa el 65% superior, no toca el fade de abajo
+                .fillMaxWidth()
                 .align(Alignment.TopStart)
                 .background(
                     Brush.horizontalGradient(
@@ -522,8 +518,8 @@ private fun ArtistSectionGridItem(
         onMoreClick = if (isArtist) ({ onClick(item) }) else null,
         quickPlay = when (item) {
             is AlbumItem -> CornerQuickPlayConfig(
-                size = 28.dp,
-                iconSize = 16.dp,
+                size = 42.dp,
+                iconSize = 20.dp,
                 onClick = {
                     playerViewModel.playAlbumFromBrowseId(
                         browseId = item.browseId,

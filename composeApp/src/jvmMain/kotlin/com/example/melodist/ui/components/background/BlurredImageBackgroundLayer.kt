@@ -4,93 +4,129 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.unit.dp
+import com.example.melodist.data.repository.NowPlayingBackground
+import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.artwork.ArtworkColors
 import com.example.melodist.ui.components.artwork.rememberArtworkColors
+import com.example.melodist.utils.LocalUserPreferences
 
-/**
- * Fondo de pantalla difuminado usando la imagen provista.
- */
+
 @Composable
-fun BlurredImageBackground(
+fun NowBackground(
     imageUrl: String?,
     modifier: Modifier = Modifier,
-    darkOverlayAlpha: Float = 0.50f,
-    gradientFraction: Float = 0.55f,
     content: @Composable BoxScope.() -> Unit
 ) {
+
+    val userPreferences = LocalUserPreferences.current
+    val backgroundMode by userPreferences.nowPlayingBackground.collectAsState(initial = NowPlayingBackground.GRADIENT)
+
     val artworkColors = rememberArtworkColors(imageUrl)
-    BlurredImageBackground(
-        artworkColors = artworkColors,
-        modifier = modifier,
-        darkOverlayAlpha = darkOverlayAlpha,
-        gradientFraction = gradientFraction,
-        content = content
-    )
+
+    when(backgroundMode){
+        NowPlayingBackground.GRADIENT -> NowPlayingBackgroundWithGradient(
+            artworkColors = artworkColors,
+            modifier = modifier,
+            content = content
+        )
+        NowPlayingBackground.BLURRED_COVER -> NowPlayingBackgroundWithBlur(
+            imageUrl = imageUrl,
+            modifier = modifier,
+            content = content
+        )
+        NowPlayingBackground.SOLID_COLOR -> NowPlayingBackgroundWithGradient(
+            artworkColors = artworkColors,
+            modifier = modifier,
+            content = content
+        )
+    }
 }
 
+
+@JvmName("NowPlayingBackgroundWithGradient")
 @Composable
-fun BlurredImageBackground(
+fun NowPlayingBackgroundWithGradient(
     artworkColors: ArtworkColors,
     modifier: Modifier = Modifier,
-    darkOverlayAlpha: Float = 0.50f,
-    gradientFraction: Float = 0.55f,
     content: @Composable BoxScope.() -> Unit
 ) {
     val surfaceColor = MaterialTheme.colorScheme.surface
-    val isLight = surfaceColor.luminance() > 0.5f
 
-    val topColor = if (artworkColors == ArtworkColors.Default) {
-        surfaceColor
-    } else {
-        artworkColors.vibrant
+    // Creamos un degradado diagonal usando los colores extraídos.
+    // Esto simula las esquinas iluminadas de una portada real sin cargar archivos.
+    val ambientGradient = remember(artworkColors, surfaceColor) {
+        val topColor = if (artworkColors == ArtworkColors.Default) surfaceColor else artworkColors.vibrant
+        val bottomColor = if (artworkColors == ArtworkColors.Default) surfaceColor else artworkColors.darkMuted
+
+        Brush.linearGradient(
+            colors = listOf(
+                topColor.copy(alpha = 0.35f),
+                bottomColor.copy(alpha = 0.15f),
+                surfaceColor
+            )
+        )
     }
-    val bottomColor = if (artworkColors == ArtworkColors.Default) {
-        MaterialTheme.colorScheme.surfaceContainer
-    } else {
-        artworkColors.darkMuted
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(surfaceColor)
+            .background(ambientGradient) // Una sola pasada de dibujo nativo
+    ) {
+        val rememberedContent = remember(content) { content }
+        rememberedContent()
     }
+}
 
-    Box(modifier = modifier.background(surfaceColor)) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0.00f to topColor,
-                        gradientFraction to topColor.copy(alpha = 0.72f),
-                        1.00f to bottomColor
-                    )
+
+@JvmName("NowPlayingBackgroundFromImageUrlWithBlur")
+@Composable
+fun NowPlayingBackgroundWithBlur(
+    imageUrl: String?,
+    modifier: Modifier = Modifier,
+    content: @Composable BoxScope.() -> Unit
+) {
+    val surfaceColor = MaterialTheme.colorScheme.surface
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(surfaceColor)
+    ) {
+        // Capa de la imagen de fondo borrosa y semitransparente
+        if (!imageUrl.isNullOrBlank()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .blur(radius = 15.dp, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                    .alpha(0.25f)
+            ) {
+                MelodistImage(
+                    url = imageUrl,
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
                 )
-        )
+            }
+        }
 
-        val overlayColor = if (isLight) Color.White else Color.Black
-        val overlayAlpha = if (isLight) 0.58f else darkOverlayAlpha
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(overlayColor.copy(alpha = overlayAlpha))
-        )
-
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        0.00f to overlayColor.copy(alpha = if (isLight) 0.03f else 0.08f),
-                        gradientFraction to overlayColor.copy(alpha = if (isLight) 0.12f else 0.28f),
-                        1.00f to overlayColor.copy(alpha = if (isLight) 0.34f else 0.72f)
-                    )
-                )
-        )
-
-        content()
+        // Slot de contenido estable
+        val rememberedContent = remember(content) { content }
+        rememberedContent()
     }
 }
