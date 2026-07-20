@@ -47,7 +47,7 @@ object YTPlayerutils {
                 playlistId,
                 FallbackClients.mainClient,
                 signatureTimestamp,
-                poTokenResult?.playerRequestPoToken,
+                null,
             ).getOrThrow()
         Napier.d("Resolving playback stream for $videoId with quality=$audioQuality signatureTimestamp=$signatureTimestamp")
         val audioConfig = mainPlayerResponse.playerConfig?.audioConfig
@@ -73,7 +73,7 @@ object YTPlayerutils {
                     continue
                 }
                 val clientPoToken =
-                    if (fallbackClient.useWebPoTokens) poTokenResult?.playerRequestPoToken else null
+                    if (fallbackClient.useWebPoTokens) null else null
                 val result = YouTube.player(videoId, playlistId, fallbackClient, signatureTimestamp, clientPoToken)
                 streamPlayerResponse = result.getOrNull()
                 if (streamPlayerResponse == null) {
@@ -129,11 +129,7 @@ object YTPlayerutils {
 
                 // Agregar pot=streamingDataPoToken para clientes con PoToken habilitado (WEB_REMIX, WEB, TVHTML5).
                 val effectiveClient = client ?: FallbackClients.mainClient
-                val streamingPot = poTokenResult?.streamingDataPoToken
-                if (effectiveClient.useWebPoTokens && streamingPot != null && "pot=" !in streamUrl) {
-                    streamUrl += if ("?" in streamUrl) "&pot=$streamingPot" else "?pot=$streamingPot"
-                    Napier.d("Appended pot= to stream URL for $videoId client=${effectiveClient.clientName}")
-                }
+                val streamingPot = null
 
                 // Transformación de n solo para clientes web (igual que Metrolist). Los clientes no-web (VISIONOS,
                 // IOS, ANDROID_VR, ...) obtienen URLs cuya n está ausente o ya es manejada por NewPipe;

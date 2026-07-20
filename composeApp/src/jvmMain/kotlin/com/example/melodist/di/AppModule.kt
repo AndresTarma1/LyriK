@@ -68,7 +68,7 @@ val appModule = module {
 
     // Reproductor (singletons — compartidos en toda la app)
     // ✅ PlayerService se inicializa perezosamente — solo al primero play()
-    single<PlayerService> { PlayerService() }
+    single<PlayerService> { PlayerService(get()) }
     single<AudioStreamResolver> { AudioStreamResolver(get()) }
     single<WindowsMediaSession> { WindowsMediaSession() }
     single<DownloadService> { DownloadService(get(), get()) }
