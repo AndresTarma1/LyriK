@@ -96,7 +96,7 @@ fun main() {
             }
         }
 
-        // Escuchen juntos: conecte el administrador de sincronización a la reproductor.
+        // Escuchen juntos: conecte el administrador de sincronización a el reproductor.
         // Basado en (Metrolist)
         PlatformCrashHandler.runSafely("Error iniciando ListenTogetherManager") {
             val listenTogetherManager = koin.get<com.example.melodist.listentogether.ListenTogetherManager>()

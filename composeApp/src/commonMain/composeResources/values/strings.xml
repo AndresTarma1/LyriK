@@ -51,6 +51,7 @@
     <string name="section_player">Reproductor</string>
     <string name="high_res_artwork">Carátulas en alta resolución</string>
     <string name="high_res_artwork_subtitle">Cargar imágenes de portada en alta resolución (si está disponible)</string>
+    <string name="now_playing_background">Estilo del fondo del reproductor</string>
     <string name="show_images">Mostrar imágenes</string>
     <string name="show_images_subtitle">Mostrar imágenes de portada</string>
     <string name="crossfade">Crossfade</string>
@@ -398,6 +399,11 @@
     <string name="palette_amber">Ámbar</string>
     <string name="palette_indigo">Índigo</string>
     <string name="palette_ytmusic">YouTube Music</string>
+
+    <!-- Background Styles -->
+    <string name="background_style_gradient">Gradiente</string>
+    <string name="background_style_blur">Desenfocada</string>
+    <string name="background_style_solid">Sólida</string>
 
     <!-- Render APIs -->
     <string name="render_directx">DirectX</string>

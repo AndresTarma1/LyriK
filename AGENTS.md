@@ -30,7 +30,7 @@
 
 ## i18n / Locale
 - `Locale.setDefault()` must be called before any Compose composition to avoid a SYSTEM→saved-locale transition at startup.
-- When using `key(appLocale)` to force recomposition on locale change, wrap **only** the content inside `DecoratedWindow` (NavigationDesktop, SnackbarHost, etc.), never the window chrome (`DecoratedWindow`, `IntUiTheme`, `MelodistTheme`) or Jewel theme providers. Wrapping the window chrome causes the entire window to destroy and recreate, making the app appear to close and reopen.
+- When using `key(appLocale)` to force recomposition on locale change, wrap **only** the content inside `DecoratedWindow` (NavigationDesktop, SnackbarHost, etc.), never the window chrome (`DecoratedWindow`, `IntUiTheme`, `AppTheme`) or Jewel theme providers. Wrapping the window chrome causes the entire window to destroy and recreate, making the app appear to close and reopen.
 - `stringResource()` captures values at composition time. After changing the locale, the content must be recomposed (via `key(appLocale)`) for strings to update. The window chrome and title bar strings do not need dynamic locale switching (they follow the initial locale set at startup).
 
 ## Data And Downloads

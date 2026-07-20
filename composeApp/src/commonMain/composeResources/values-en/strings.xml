@@ -51,6 +51,7 @@
     <string name="section_player">Player</string>
     <string name="high_res_artwork">High resolution artwork</string>
     <string name="high_res_artwork_subtitle">Load high-resolution cover images (if available)</string>
+    <string name="now_playing_background">Player background style</string>
     <string name="show_images">Show images</string>
     <string name="show_images_subtitle">Display cover images</string>
     <string name="crossfade">Crossfade</string>
@@ -398,6 +399,11 @@
     <string name="palette_amber">Amber</string>
     <string name="palette_indigo">Indigo</string>
     <string name="palette_ytmusic">YouTube Music</string>
+
+    <!-- Background Styles -->
+    <string name="background_style_gradient">Gradient</string>
+    <string name="background_style_blur">Blurred</string>
+    <string name="background_style_solid">Solid</string>
 
     <!-- Render APIs -->
     <string name="render_directx">DirectX</string>
