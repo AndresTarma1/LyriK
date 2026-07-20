@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.logging.Logger
+import kotlin.time.Duration.Companion.milliseconds
 
 class MpvAudioPlayer {
     private val log = Logger.getLogger("MpvAudioPlayer")
@@ -199,7 +200,7 @@ class MpvAudioPlayer {
      */
     suspend fun awaitPlaybackStarted(timeoutMs: Long = 10000): Boolean {
         val r = loadResult
-        return withTimeoutOrNull(timeoutMs) { r.await() } ?: false
+        return withTimeoutOrNull(timeoutMs.milliseconds) { r.await() } ?: false
     }
 
     /**

@@ -7,6 +7,7 @@ import com.example.melodist.data.repository.AudioQuality
 import com.example.melodist.data.repository.DarkLevel
 import com.example.melodist.data.repository.IslandStyle
 import com.example.melodist.data.repository.LayoutMode
+import com.example.melodist.data.repository.NowPlayingBackground
 import com.example.melodist.data.repository.SeekBarStyle
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.ThemePalette
@@ -70,7 +71,7 @@ class SettingsViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
 
     val equalizerBands: StateFlow<List<Float>> = preferencesRepository.equalizerBands
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), List(10) { 0f })
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), List(5) { 0f })
 
     val themePalette: StateFlow<ThemePalette> = preferencesRepository.themePalette
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemePalette.DEFAULT)
@@ -95,6 +96,9 @@ class SettingsViewModel(
 
     val overlayHotkeyLabel: StateFlow<String> = preferencesRepository.overlayHotkeyLabel
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), "")
+
+    val nowPlayingBackground: StateFlow<NowPlayingBackground> = preferencesRepository.nowPlayingBackground
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), NowPlayingBackground.GRADIENT)
 
     fun setAudioQuality(quality: AudioQuality) {
         viewModelScope.launch { preferencesRepository.setAudioQuality(quality) }
@@ -179,6 +183,10 @@ class SettingsViewModel(
             // vinculadas a YouTube de inmediato en lugar de esperar al siguiente inicio de sesión/restauración de sesión.
             if (enabled) syncUtils.syncAutoSyncPlaylists()
         }
+    }
+
+    fun setNowPlayingBackground(style: NowPlayingBackground) {
+        viewModelScope.launch { preferencesRepository.setNowPlayingBackground(style) }
     }
 
     fun setOfflineModeEnabled(enabled: Boolean) {
