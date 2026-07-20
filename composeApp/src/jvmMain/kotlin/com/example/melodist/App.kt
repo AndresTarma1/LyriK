@@ -1,38 +1,12 @@
 package com.example.melodist
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.OpenInFull
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.rounded.CloudOff
-import androidx.compose.material.icons.rounded.CloudSync
-import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import com.kdroid.composetray.tray.api.Tray
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,21 +17,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.pointer.PointerIcon
-import androidx.compose.ui.input.pointer.pointerHoverIcon
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
+import com.example.melodist.data.account.AccountManager
 import com.example.melodist.data.repository.AppLocale
+import com.example.melodist.data.repository.OVERLAY_POS_UNSET
 import com.example.melodist.data.repository.ThemeMode
 import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.data.repository.YouTubeRegion
@@ -69,8 +41,7 @@ import com.example.melodist.navigation.RootComponent
 import com.example.melodist.player.PlaybackState
 import com.example.melodist.ui.components.artwork.LocalArtworkColors
 import com.example.melodist.ui.components.artwork.rememberArtworkColors
-import com.example.melodist.ui.components.skeletons.AnimatedEqualizer
-import com.example.melodist.ui.themes.MelodistTheme
+import com.example.melodist.ui.themes.AppTheme
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.LocalPlaylistsViewModel
@@ -81,40 +52,26 @@ import com.example.melodist.viewmodels.AppViewModel
 import com.example.melodist.viewmodels.UpdateStatus
 import com.example.melodist.viewmodels.DownloadViewModel
 import com.example.melodist.viewmodels.LibraryPlaylistsViewModel
-import com.example.melodist.viewmodels.PlayerUiState
 import com.example.melodist.viewmodels.PlayerViewModel
 import org.koin.compose.koinInject
 import com.example.melodist.overlay.GlobalHotkeyManager
 import com.example.melodist.overlay.HotkeyCombo
 import com.example.melodist.overlay.MusicOverlayWindow
 import com.example.melodist.overlay.OverlayController
-import com.example.melodist.ui.components.MelodistImage
-import com.example.melodist.ui.components.PlaceholderType
 import com.example.melodist.windows.WindowsThumbBar
 import com.metrolist.innertube.models.AccountInfo
 import io.github.aakira.napier.Napier
 import io.github.vinceglb.autolaunch.AutoLaunch
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import lyrik.composeapp.generated.resources.Music_note_circle
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.app_name
 import lyrik.composeapp.generated.resources.cancel
-import lyrik.composeapp.generated.resources.offline_mode
-import lyrik.composeapp.generated.resources.sync_now
-import lyrik.composeapp.generated.resources.sync_now_syncing
-import lyrik.composeapp.generated.resources.tray_exit
-import lyrik.composeapp.generated.resources.tray_next
-import lyrik.composeapp.generated.resources.tray_open
-import lyrik.composeapp.generated.resources.tray_pause
-import lyrik.composeapp.generated.resources.tray_play
-import lyrik.composeapp.generated.resources.tray_previous
 import lyrik.composeapp.generated.resources.update_ready_title
 import lyrik.composeapp.generated.resources.update_ready_message
 import lyrik.composeapp.generated.resources.update_install_now
 import lyrik.composeapp.generated.resources.update_install_later
-import lyrik.composeapp.generated.resources.ytm_sync
 import lyrik.composeapp.generated.resources.ytm_sync_warning_confirm
 import lyrik.composeapp.generated.resources.ytm_sync_warning_message
 import lyrik.composeapp.generated.resources.ytm_sync_warning_title
@@ -130,7 +87,6 @@ import org.jetbrains.jewel.intui.window.styling.light
 import org.jetbrains.jewel.ui.ComponentStyling
 import org.jetbrains.jewel.window.DecoratedWindow
 import org.jetbrains.jewel.window.TitleBar
-import org.jetbrains.jewel.window.TitleBarScope
 import org.jetbrains.jewel.window.styling.TitleBarColors
 import org.jetbrains.jewel.window.styling.TitleBarStyle
 import java.awt.Dimension
@@ -192,8 +148,8 @@ fun ApplicationScope.App(
         hotkeyManager.updateCombo(HotkeyCombo.fromPrefs(overlayCode, overlayMods))
     }
     val overlayVisible by OverlayController.visible.collectAsState()
-    val overlayPosX by remember(userPreferences) { userPreferences.overlayPosX }.collectAsState(com.example.melodist.data.repository.OVERLAY_POS_UNSET)
-    val overlayPosY by remember(userPreferences) { userPreferences.overlayPosY }.collectAsState(com.example.melodist.data.repository.OVERLAY_POS_UNSET)
+    val overlayPosX by remember(userPreferences) { userPreferences.overlayPosX }.collectAsState(OVERLAY_POS_UNSET)
+    val overlayPosY by remember(userPreferences) { userPreferences.overlayPosY }.collectAsState(OVERLAY_POS_UNSET)
 
     // Mantener el estado de sincronización de YTM en la barra de título y en el menú de la bandeja.
     val syncUtils: com.example.melodist.utils.SyncUtils = koinInject()
@@ -202,13 +158,9 @@ fun ApplicationScope.App(
     val syncState by syncUtils.syncState.collectAsState()
     var showYtmSyncWarningFromMenu by remember { mutableStateOf(false) }
 
-    // El punto de entrada del menú muestra el avatar de YouTube de la cuenta iniciada (y el nombre/correo electrónico como
-    // encabezado dentro del menú) en lugar de un icono genérico. Se obtiene una vez por cada transición de estado de inicio de sesión.
-    // Esta es una llamada ligera, no una operación de sincronización, por lo que no requiere tiempo de espera.
-    val isLoggedIn by remember { com.example.melodist.data.account.AccountManager.loginState }.collectAsState(false)
-    var accountInfo by remember { mutableStateOf<AccountInfo?>(null) }
-    LaunchedEffect(isLoggedIn) {
-        accountInfo = if (isLoggedIn) YouTube.accountInfo().getOrNull() else null
+    val isLoggedIn by remember { AccountManager.loginState }.collectAsState(false)
+    val accountInfo by produceState<AccountInfo?>(initialValue = null, isLoggedIn) {
+        value = if (isLoggedIn) YouTube.accountInfo().getOrNull() else null
     }
 
     fun handleExit() {
@@ -223,25 +175,9 @@ fun ApplicationScope.App(
         }
     }
 
-    if (!isVisible || minimizeToTray) {
-        val trayState by playerViewModel.uiState.collectAsState()
-        val isPlaying = trayState.playbackState == PlaybackState.PLAYING
-        TrayCustom(
-            trayState = trayState,
-            isPlaying = isPlaying,
-            playerViewModel = playerViewModel,
-            onToggleVisibility = { isVisible = !isVisible },
-            onShow = { isVisible = true },
-            handleExit = ::handleExit
-        )
-    }
-
-    val currentSongFlow = remember(playerViewModel) {
-        playerViewModel.uiState.map { it.currentSong }.distinctUntilChanged()
-    }
-    val playbackStateFlow = remember(playerViewModel) {
-        playerViewModel.uiState.map { it.playbackState }.distinctUntilChanged()
-    }
+    val playerUiState by playerViewModel.uiState.collectAsState()
+    val isPlaying = playerUiState.playbackState == PlaybackState.PLAYING
+    val currentSong = playerUiState.currentSong
 
     val appLocale by remember(userPreferences) { userPreferences.locale }.collectAsState(AppLocale.SYSTEM)
     LaunchedEffect(appLocale) {
@@ -249,12 +185,18 @@ fun ApplicationScope.App(
         if (newLocale != null) Locale.setDefault(newLocale)
     }
 
-    val currentSong by currentSongFlow.collectAsState(initial = playerViewModel.uiState.value.currentSong)
-    val playbackState by playbackStateFlow.collectAsState(initial = playerViewModel.uiState.value.playbackState)
     val artworkColors = rememberArtworkColors(currentSong?.thumbnailUrl)
     val themeMode by remember(userPreferences) { userPreferences.themeMode }.collectAsState(ThemeMode.SYSTEM)
     val youtubeRegion by remember(userPreferences) { userPreferences.youtubeRegion }.collectAsState(YouTubeRegion.SYSTEM)
 
+    if (!isVisible || minimizeToTray) {
+        TrayCustom(
+            playerViewModel = playerViewModel,
+            onToggleVisibility = { isVisible = !isVisible },
+            onShow = { isVisible = true },
+            handleExit = ::handleExit
+        )
+    }
     // Validamos que la region o el código de region sea válido, si no lo es, se asigna un valor por defecto (US/en-US)
     LaunchedEffect(youtubeRegion) {
         if (youtubeRegion == YouTubeRegion.SYSTEM) {
@@ -275,7 +217,7 @@ fun ApplicationScope.App(
         ThemeMode.SYSTEM -> isSystemInDarkTheme()
     }
 
-    MelodistTheme(artworkColors = artworkColors, userPreferences = userPreferences) {
+    AppTheme(artworkColors = artworkColors, userPreferences = userPreferences) {
         val surfaceColor = MaterialTheme.colorScheme.background
 
         val titleBarStyle = if (isDark) {
@@ -317,6 +259,8 @@ fun ApplicationScope.App(
                     title = stringResource(Res.string.app_name),
                     icon = painterResource(Res.drawable.Music_note_circle),
                 ) {
+
+                    windowBackgroundFlashingWorkaround(MaterialTheme.colorScheme.surface)
                     // La descarga corre silenciosamente, con la opción de instalar después o enseguida.
                     // Si el usuario elige instalar enseguida, se llama a handleExit() para cerrar la app y que el instalador pueda reemplazar los archivos.
                     val readyStatus = updateStatus as? UpdateStatus.Ready
@@ -403,15 +347,15 @@ fun ApplicationScope.App(
 
                     // sincronizar el estado de reproducción con la barra de tareas de Windows (Play/Pause)
                     if (isWindows) {
-                        LaunchedEffect(playbackState) {
-                            thumbBar.setPlaying(playbackState == PlaybackState.PLAYING)
+                        LaunchedEffect(isPlaying) {
+                            thumbBar.setPlaying(isPlaying)
                         }
                     }
 
                     TitleBar{
-                        MelodistTitleBar(
+                        DesktopTitleBar(
                             currentSong = currentSong?.title,
-                            isPlaying = playbackState == PlaybackState.PLAYING,
+                            isPlaying = isPlaying,
                             accountInfo = accountInfo,
                             ytmSyncEnabled = ytmSyncEnabled,
                             isSyncing = syncState.overallStatus is com.example.melodist.utils.SyncStatus.Syncing,
@@ -448,190 +392,4 @@ fun ApplicationScope.App(
         savedPosX = overlayPosX,
         savedPosY = overlayPosY,
     )
-}
-@Composable
-private fun ApplicationScope.TrayCustom(
-    trayState: PlayerUiState,
-    isPlaying: Boolean,
-    playerViewModel: PlayerViewModel,
-    onToggleVisibility: () -> Unit,
-    onShow: () -> Unit,
-    handleExit: () -> Unit
-) {
-    val tooltipText = trayState.currentSong?.title ?: stringResource(Res.string.app_name)
-    val pauseLabel = stringResource(Res.string.tray_pause)
-    val playLabel = stringResource(Res.string.tray_play)
-    val nextLabel = stringResource(Res.string.tray_next)
-    val previousLabel = stringResource(Res.string.tray_previous)
-    val openLabel = stringResource(Res.string.tray_open)
-    val exitLabel = stringResource(Res.string.tray_exit)
-
-    Tray(
-        icon = Res.drawable.Music_note_circle,
-        tooltip = tooltipText,
-        primaryAction = { onToggleVisibility() },
-    ) {
-        Item(
-            icon = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            label = if (isPlaying) pauseLabel else playLabel,
-            onClick = { playerViewModel.togglePlayPause() }
-        )
-        Item(
-            icon = Icons.Filled.SkipNext,
-            label = nextLabel,
-            onClick = { playerViewModel.next() }
-        )
-        Item(
-            icon = Icons.Filled.SkipPrevious,
-            label = previousLabel,
-            onClick = { playerViewModel.previous() }
-        )
-        Divider()
-        Item(
-            icon = Icons.Filled.OpenInFull,
-            label = openLabel,
-            onClick = { onShow() }
-        )
-        Divider()
-        Item(
-            icon = Icons.AutoMirrored.Filled.ExitToApp,
-            label = exitLabel,
-            onClick = { handleExit() }
-        )
-    }
-}
-
-@Composable
-private fun TitleBarScope.MelodistTitleBar(
-    currentSong: String?,
-    isPlaying: Boolean,
-    accountInfo: AccountInfo?,
-    ytmSyncEnabled: Boolean,
-    isSyncing: Boolean,
-    isOfflineMode: Boolean,
-    onToggleOfflineMode: (Boolean) -> Unit,
-    onToggleSync: (Boolean) -> Unit,
-    onSyncNow: () -> Unit,
-) {
-    Row(
-        modifier = Modifier.align(Alignment.Start).padding(start = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        Text(
-            text = stringResource(Res.string.app_name),
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
-    }
-
-    Box(modifier = Modifier.align(Alignment.End).padding(end = 4.dp)) {
-        var showMenu by remember { mutableStateOf(false) }
-        IconButton(
-            modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
-            onClick = { showMenu = true }) {
-            if (isSyncing) {
-                CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-            } else if (accountInfo?.thumbnailUrl != null) {
-                MelodistImage(
-                    url = accountInfo.thumbnailUrl,
-                    contentDescription = accountInfo.name,
-                    modifier = Modifier.size(24.dp),
-                    shape = CircleShape,
-                    placeholderType = PlaceholderType.ARTIST,
-                )
-            } else {
-                Icon(
-                    if (ytmSyncEnabled) Icons.Rounded.CloudSync else Icons.Rounded.CloudOff,
-                    contentDescription = stringResource(Res.string.ytm_sync),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        DropdownMenu(
-            expanded = showMenu,
-            onDismissRequest = { showMenu = false },
-            containerColor = MaterialTheme.colorScheme.surfaceContainer,
-            tonalElevation = 0.dp,
-        ) {
-            if (accountInfo != null) {
-                Row(
-                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                ) {
-                    MelodistImage(
-                        url = accountInfo.thumbnailUrl,
-                        contentDescription = accountInfo.name,
-                        modifier = Modifier.size(36.dp),
-                        shape = CircleShape,
-                        placeholderType = PlaceholderType.ARTIST,
-                    )
-                    Column {
-                        Text(accountInfo.name, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                        accountInfo.email?.let {
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                            )
-                        }
-                    }
-                }
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            }
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.ytm_sync)) },
-                trailingIcon = { Switch(checked = ytmSyncEnabled, onCheckedChange = null) },
-                onClick = { onToggleSync(!ytmSyncEnabled) },
-            )
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
-            DropdownMenuItem(
-                text = { Text(stringResource(if (isSyncing) Res.string.sync_now_syncing else Res.string.sync_now)) },
-                leadingIcon = {
-                    if (isSyncing) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                    else Icon(Icons.Rounded.Sync, contentDescription = null)
-                },
-                enabled = !isSyncing,
-                onClick = { onSyncNow(); showMenu = false },
-            )
-            DropdownMenuItem(
-                text = { Text(stringResource(Res.string.offline_mode)) },
-                trailingIcon = { Switch(checked = isOfflineMode, onCheckedChange = null) },
-                onClick = { onToggleOfflineMode(!isOfflineMode) },
-            )
-        }
-    }
-
-    AnimatedContent(
-        targetState = currentSong,
-        modifier = Modifier.align(Alignment.CenterHorizontally),
-    ) { song ->
-        if (song != null) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                if (isPlaying) {
-                    AnimatedEqualizer(
-                        isPlaying = true,
-                        modifier = Modifier.size(width = 20.dp, height = 14.dp)
-                    )
-                }
-                    Text(
-                        text = song,
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier
-                            .widthIn(max = 450.dp)
-                            .basicMarquee(
-                                velocity = if(isPlaying) 25.dp else 0.dp,
-                            ),
-                    )
-            }
-        }
-    }
 }
