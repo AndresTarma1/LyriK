@@ -83,6 +83,7 @@ fun MiniPlayer(
 ) {
     val playerViewModel = LocalPlayerViewModel.current
     val state by playerViewModel.uiState.collectAsState()
+    val volume by playerViewModel.volume.collectAsState()
     val song = state.currentSong ?: return
 
     val isError = state.playbackState == PlaybackState.ERROR
@@ -374,8 +375,8 @@ fun MiniPlayer(
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        val volumeFloat = (state.volume.coerceIn(0, 100)) / 100f
-                        val volumePercent = state.volume.coerceIn(0, 100)
+                        val volumeFloat = (volume.coerceIn(0, 100)) / 100f
+                        val volumePercent = volume.coerceIn(0, 100)
 
                         Text(
                             text = "$volumePercent",

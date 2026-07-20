@@ -9,9 +9,15 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.example.melodist.utils.PendingAction
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -88,6 +94,10 @@ enum class ThemePalette(val primary: Long, val secondary: Long) {
     YTMUSIC(0xFFFF0033, 0xFFB00020)
 }
 
+enum class NowPlayingBackground {
+    GRADIENT, BLURRED_COVER, SOLID_COLOR
+}
+
 class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
 
     private object PreferencesKeys {
@@ -126,6 +136,8 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         val PENDING_ACTIONS = stringPreferencesKey("pending_sync_actions")
         val SEEK_BAR_STYLE = stringPreferencesKey("seek_bar_style")
         val PLAYBACK_SPEED = floatPreferencesKey("playback_speed")
+        val NOW_PLAYING_BACKGROUND = stringPreferencesKey("now_playing_background")
+        val VOLUMEN = intPreferencesKey("volumen")
     }
 
     /** Última posición de la ventana de overlay en dp, o [OVERLAY_POS_UNSET] cuando nunca se ha movido (→ esquina predeterminada). */
@@ -145,6 +157,21 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setListenTogetherUsername(name: String) {
         dataStore.edit { it[PreferencesKeys.LT_USERNAME] = name }
     }
+
+    suspend fun setVolumen(volumen: Int) {
+        dataStore.edit { it[PreferencesKeys.VOLUMEN] = volumen.coerceIn(0, 100) }
+    }
+
+    suspend fun readSavedVolume(): Int = dataStore.data
+        .map { it[PreferencesKeys.VOLUMEN] ?: 100 }
+        .first()
+
+    val volume: StateFlow<Int> = dataStore.data
+        .map { it[PreferencesKeys.VOLUMEN] ?: 100 }
+        .stateIn(
+            scope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+            SharingStarted.WhileSubscribed(5000), 100)
+
 
     /** Identidad (email) de la última cuenta de YouTube iniciada — se usa para detectar cambios de cuenta. */
     val lastAccountId: Flow<String> = dataStore.data.map { it[PreferencesKeys.LAST_ACCOUNT_ID] ?: "" }
@@ -241,6 +268,15 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
         dataStore.edit { it[PreferencesKeys.ISLAND_STYLE] = style.name }
     }
 
+    suspend fun setNowPlayingBackground(background: NowPlayingBackground) {
+        dataStore.edit { it[PreferencesKeys.NOW_PLAYING_BACKGROUND] = background.name }
+    }
+
+    val nowPlayingBackground: Flow<NowPlayingBackground> = dataStore.data.map { pref ->
+        try { NowPlayingBackground.valueOf(pref[PreferencesKeys.NOW_PLAYING_BACKGROUND] ?: NowPlayingBackground.GRADIENT.name) }
+        catch (_: Exception) { NowPlayingBackground.GRADIENT }
+    }
+
     val audioQuality: Flow<AudioQuality> = dataStore.data.map { preferences ->
         try {
             AudioQuality.valueOf(preferences[PreferencesKeys.AUDIO_QUALITY] ?: AudioQuality.NORMAL.name)
@@ -293,13 +329,13 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     val windowMaximized: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.WINDOW_MAXIMIZED] ?: false }
     val queueLocked: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.QUEUE_LOCKED] ?: false }
 
-    // Almacenamos 10 bandas separadas por coma, default a 0.0
+    // Almacenamos 5 bandas separadas por coma, default a 0.0
     val equalizerBands: Flow<List<Float>> = dataStore.data.map { pref ->
-        val str = pref[PreferencesKeys.EQUALIZER_BANDS] ?: "0,0,0,0,0,0,0,0,0,0"
+        val str = pref[PreferencesKeys.EQUALIZER_BANDS] ?: "0,0,0,0,0"
         try {
             str.split(",").map { it.toFloat() }
         } catch(e: Exception) {
-            List(10) { 0f }
+            List(5) { 0f }
         }
     }
 

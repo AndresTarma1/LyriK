@@ -60,6 +60,9 @@ class PlayerViewModel(
     private val _uiState = MutableStateFlow(PlayerUiState())
     val uiState: StateFlow<PlayerUiState> = _uiState.asStateFlow()
 
+    private val _volume = MutableStateFlow(100)
+    val volume: StateFlow<Int> = _volume.asStateFlow()
+
     private val _progressState = MutableStateFlow(PlayerProgressState())
     val progressState: StateFlow<PlayerProgressState> = _progressState.asStateFlow()
 
@@ -165,9 +168,10 @@ class PlayerViewModel(
         }
 
         viewModelScope.launch {
-            playerService.volume.collect { vol ->
-                _uiState.update { it.copy(volume = vol) }
-            }
+            playerService.volume
+                .collect { vol ->
+                    _volume.value = vol
+                }
         }
 
         viewModelScope.launch {
@@ -199,6 +203,8 @@ class PlayerViewModel(
                 .collectLatest { fetchLyrics(); fetchMetadataInfo() }
         }
     }
+
+    val volumen: StateFlow<Int> = userPreferences.volume
 
     suspend fun downloadThumbToTemp(url: String?): String? = withContext(Dispatchers.IO)  {
         if (url.isNullOrBlank()) return@withContext null
@@ -521,8 +527,15 @@ class PlayerViewModel(
         _seekEvents.tryEmit(millis)
     }
 
+    private var volumePersistJob: Job? = null
+
     fun setVolume(value: Int) {
         playerService.setVolume(value)
+        volumePersistJob?.cancel()
+        volumePersistJob = viewModelScope.launch {
+            delay(500)
+            userPreferences.setVolumen(value)
+        }
     }
 
     /**

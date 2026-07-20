@@ -1,13 +1,18 @@
 package com.example.melodist.player
 
+import com.example.melodist.data.repository.UserPreferencesRepository
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import java.util.logging.Logger
 import kotlin.time.Duration.Companion.milliseconds
 
-class PlayerService {
+class PlayerService
+    (
+    private val userPreferences: UserPreferencesRepository
+            ){
 
     private val log = Logger.getLogger("PlayerService")
     private val mpvPlayer = MpvAudioPlayer()
@@ -50,6 +55,8 @@ class PlayerService {
         mpvPlayer.init()
         startPositionTicker()
 
+        loadSavedVolume()
+
         // Fin natural de la pista, reportado por el evento END_FILE(EOF) de mpv (autoritativo).
         scope.launch {
             mpvPlayer.ended.collect {
@@ -58,6 +65,18 @@ class PlayerService {
                     _playbackState.value = PlaybackState.ENDED
                 }
             }
+        }
+    }
+
+    private fun loadSavedVolume() {
+        val savedVolume = runBlocking {
+            userPreferences.readSavedVolume()
+        }
+        _volume.value = savedVolume
+        _previousVolume = savedVolume
+
+        if (!isMpvDisabled) {
+            mpvPlayer.volume = savedVolume.toFloat() / 100f
         }
     }
 
@@ -215,7 +234,7 @@ class PlayerService {
                 } catch (e: Throwable) {
                     // Captura silenciosa para el ticker en segundo plano
                 }
-                delay(250.milliseconds)
+                delay(1000.milliseconds)
             }
         }
     }

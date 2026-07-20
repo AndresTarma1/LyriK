@@ -54,11 +54,10 @@ import com.example.melodist.data.repository.UserPreferencesRepository
 import com.example.melodist.listentogether.ConnectionState
 import com.example.melodist.listentogether.ListenTogetherManager
 import com.example.melodist.listentogether.UserInfo
-import com.example.melodist.models.MediaMetadata
 import com.example.melodist.player.PlaybackState
 import com.example.melodist.ui.components.MelodistImage
 import com.example.melodist.ui.components.PlaceholderType
-import com.example.melodist.ui.themes.MelodistTheme
+import com.example.melodist.ui.themes.AppTheme
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.utils.LocalUserPreferences
 import com.example.melodist.viewmodels.LibraryViewModel
@@ -164,7 +163,7 @@ fun MusicOverlayWindow(
         // actualiza state.position, que el efecto anterior persiste). El botón de cerrar está fuera de ella.
         val draggable: @Composable (@Composable () -> Unit) -> Unit = { content -> WindowDraggableArea(content = content) }
 
-        MelodistTheme(userPreferences = userPreferences) {
+        AppTheme(userPreferences = userPreferences) {
             CompositionLocalProvider(
                 LocalPlayerViewModel provides playerViewModel,
                 LocalUserPreferences provides userPreferences,
@@ -191,6 +190,7 @@ private fun OverlayContent(
     draggable: @Composable (@Composable () -> Unit) -> Unit,
 ) {
     val state by playerViewModel.uiState.collectAsState()
+    val volume by playerViewModel.volume.collectAsState()
     val progress by playerViewModel.progressState.collectAsState()
     val song = state.currentSong
     val isPlaying = state.playbackState == PlaybackState.PLAYING
@@ -320,7 +320,7 @@ private fun OverlayContent(
                 modifier = Modifier.size(18.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Slider(
-                value = state.volume.coerceIn(0, 100) / 100f,
+                value = volume.coerceIn(0, 100) / 100f,
                 onValueChange = { playerViewModel.setVolume((it * 100).toInt()) },
                 modifier = Modifier.weight(1f),
             )

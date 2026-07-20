@@ -51,7 +51,6 @@ data class PlayerUiState(
     val queue: List<MediaMetadata> = emptyList(),
     val currentIndex: Int = -1,
     val playbackState: PlaybackState = PlaybackState.IDLE,
-    val volume: Int = 100,
     val queueSource: QueueSource? = null,
     val isShuffled: Boolean = false,
     val repeatMode: RepeatMode = RepeatMode.OFF,
