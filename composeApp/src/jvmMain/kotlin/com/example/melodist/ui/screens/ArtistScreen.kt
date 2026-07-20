@@ -45,6 +45,12 @@ import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.components.song.DownloadIndicator
 import com.example.melodist.ui.helpers.rememberSongDownloadState
+import com.example.melodist.ui.screens.shared.AlbumGridItem
+import com.example.melodist.ui.screens.shared.ArtistGridItem
+import com.example.melodist.ui.screens.shared.PlaylistGridItem
+import com.example.melodist.ui.screens.shared.SongGridItem
+import com.example.melodist.ui.screens.shared.YTListItem
+import com.example.melodist.ui.screens.shared.onYTItemClick
 import com.example.melodist.ui.utils.circleAwareShape
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
@@ -203,7 +209,7 @@ private fun ArtistScreenContent(
                     if (index == 0) {
                         Column {
                             section.items.forEach { item ->
-                                ArtistSectionListItem(
+                                YTListItem(
                                     item = item,
                                     onNavigate = onNavigate
                                 )
@@ -218,9 +224,9 @@ private fun ArtistScreenContent(
                             items(
                                 section.items,
                                 key = { it.id }
-                            ) {
-                                ArtistSectionGridItem(
-                                    item = it,
+                            ) { item ->
+                                ArtistGridSectionItem(
+                                    item = item,
                                     onNavigate = onNavigate
                                 )
                             }
@@ -447,176 +453,23 @@ private fun ArtistBanner(
     }
 }
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Composable
-private fun ArtistSectionListItem(
+private fun ArtistGridSectionItem(
     item: YTItem,
     onNavigate: (Route) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val playerViewModel = LocalPlayerViewModel.current
-
-    YoutubeListItem(
-        item = item,
-        source = ItemContentSource.YOUTUBE,
-        onItemClick = { clicked ->
-            when (clicked) {
-                is AlbumItem -> onNavigate(Route.Album(clicked.browseId))
-                is PlaylistItem -> onNavigate(Route.Playlist(clicked.id))
-                is ArtistItem -> onNavigate(Route.Artist(clicked.id))
-                is SongItem -> playerViewModel.playSingle(clicked)
-                else -> {}
-            }
-        },
-        modifier = modifier
-    )
-}
-
-@OptIn(ExperimentalComposeUiApi::class)
-@Composable
-private fun ArtistSectionGridItem(
-    item: YTItem,
-    onNavigate: (Route) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val playerViewModel = LocalPlayerViewModel.current
-    val downloadViewModel = LocalDownloadViewModel.current
-    val isArtist = item is ArtistItem
-
-    var showMenu by remember { mutableStateOf(false) }
-
-    val downloadState by if (item is SongItem)
-        rememberSongDownloadState(item.id, downloadViewModel)
-    else
-        remember { mutableStateOf(null) }
-
-    val onClick: (YTItem) -> Unit = { clicked ->
-        when (clicked) {
-            is AlbumItem -> onNavigate(Route.Album(clicked.browseId))
-            is PlaylistItem -> onNavigate(Route.Playlist(clicked.id))
-            is ArtistItem -> onNavigate(Route.Artist(clicked.id))
-            is SongItem -> playerViewModel.playSingle(clicked)
-            else -> {}
-        }
+    val onClick = { it: YTItem -> onYTItemClick(it, onNavigate, null) }
+    when (item) {
+        is SongItem -> SongGridItem(
+            item = item,
+            onClick = onClick,
+            onClickSubtitle = { onNavigate(Route.Artist(it)) },
+            modifier = modifier,
+        )
+        is AlbumItem -> AlbumGridItem(item = item, onClick = onClick, modifier = modifier)
+        is PlaylistItem -> PlaylistGridItem(item = item, onClick = onClick, modifier = modifier)
+        is ArtistItem -> ArtistGridItem(item = item, onClick = onClick, modifier = modifier)
+        else -> {}
     }
-
-    YouTubeGridItem(
-        item = item,
-        onClick = onClick,
-        imageShape = if (isArtist) circleAwareShape() else RoundedCornerShape(10.dp),
-        alignment = if (isArtist) Alignment.CenterHorizontally else Alignment.Start,
-        titleAlign = if (isArtist) TextAlign.Center else TextAlign.Start,
-        placeholderType = when (item) {
-            is ArtistItem -> PlaceholderType.ARTIST
-            is AlbumItem -> PlaceholderType.ALBUM
-            is PlaylistItem -> PlaceholderType.PLAYLIST
-            else -> PlaceholderType.SONG
-        },
-        centerPlayVisible = item is SongItem,
-        contextMenuEnabled = item is SongItem || item is AlbumItem || item is PlaylistItem,
-        onContextMenuAction = { showMenu = true },
-        onMoreClick = if (isArtist) ({ onClick(item) }) else null,
-        quickPlay = when (item) {
-            is AlbumItem -> CornerQuickPlayConfig(
-                size = 42.dp,
-                iconSize = 20.dp,
-                onClick = {
-                    playerViewModel.playAlbumFromBrowseId(
-                        browseId = item.browseId,
-                        playlistId = item.playlistId,
-                        title = item.title,
-                        onEmpty = { onClick(item) }
-                    )
-                }
-            )
-
-            is PlaylistItem -> CornerQuickPlayConfig(
-                size = 42.dp,
-                iconSize = 20.dp,
-                onClick = {
-                    playerViewModel.playPlaylistFromId(
-                        playlistId = item.id,
-                        endpoint = item.playEndpoint,
-                        title = item.title,
-                        onEmpty = { onClick(item) }
-                    )
-                }
-            )
-
-            else -> null
-        },
-        subtitle = when (item) {
-            is SongItem -> item.artists.firstOrNull()?.name.orEmpty()
-            is AlbumItem -> item.artists?.firstOrNull()?.name ?: stringResource(Res.string.item_album)
-            is ArtistItem -> stringResource(Res.string.item_artist)
-            is PlaylistItem -> item.author?.name ?: stringResource(Res.string.item_list)
-            else -> ""
-        },
-        modifier = modifier,
-        topStartOverlay = {
-            if (item is SongItem && downloadState != null) {
-                DownloadIndicator(
-                    state = downloadState,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(6.dp)
-                        .background(Color.Black.copy(alpha = 0.55f), circleAwareShape())
-                        .padding(4.dp)
-                )
-            }
-        },
-        overlayContent = {
-            if (item is SongItem) {
-                SongContextMenuPopup(
-                    expanded = showMenu,
-                    onDismiss = { showMenu = false },
-                    song = item
-                )
-            } else if (item is AlbumItem || item is PlaylistItem) {
-                CollectionContextMenuPopup(
-                    expanded = showMenu,
-                    onDismiss = { showMenu = false },
-                    title = item.title,
-                    isPlaylist = item is PlaylistItem,
-                    onOpen = { onClick(item) },
-                    onPlay = {
-                        when (item) {
-                            is AlbumItem -> playerViewModel.playAlbumFromBrowseId(
-                                browseId = item.browseId,
-                                playlistId = item.playlistId,
-                                title = item.title,
-                                onEmpty = { onClick(item) }
-                            )
-
-                            is PlaylistItem -> playerViewModel.playPlaylistFromId(
-                                playlistId = item.id,
-                                endpoint = item.playEndpoint,
-                                title = item.title,
-                                onEmpty = { onClick(item) }
-                            )
-                        }
-                    },
-                    onShuffle = {
-                        when (item) {
-                            is AlbumItem -> playerViewModel.playAlbumFromBrowseId(
-                                browseId = item.browseId,
-                                playlistId = item.playlistId,
-                                title = item.title,
-                                shuffle = true,
-                                onEmpty = { onClick(item) }
-                            )
-
-                            is PlaylistItem -> playerViewModel.playPlaylistFromId(
-                                playlistId = item.id,
-                                endpoint = item.shuffleEndpoint ?: item.playEndpoint,
-                                title = item.title,
-                                shuffle = true,
-                                onEmpty = { onClick(item) }
-                            )
-                        }
-                    }
-                )
-            }
-        }
-    )
 }

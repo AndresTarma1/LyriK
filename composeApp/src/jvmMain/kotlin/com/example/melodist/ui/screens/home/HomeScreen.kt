@@ -35,6 +35,11 @@ import com.example.melodist.ui.components.YoutubeListItem
 import com.example.melodist.ui.components.layout.AppVerticalScrollbar
 import com.example.melodist.ui.components.layout.HorizontalScrollableRow
 import com.example.melodist.ui.helpers.rememberSongDownloadState
+import com.example.melodist.ui.screens.shared.AlbumGridItem
+import com.example.melodist.ui.screens.shared.ArtistGridItem
+import com.example.melodist.ui.screens.shared.PlaylistGridItem
+import com.example.melodist.ui.screens.shared.SongGridItem
+import com.example.melodist.ui.screens.shared.onYTItemClick
 import com.example.melodist.utils.LocalDownloadViewModel
 import com.example.melodist.utils.LocalPlayerViewModel
 import com.example.melodist.viewmodels.HomeState
@@ -300,7 +305,7 @@ private fun HomeSectionRow(
                 YoutubeListItem(
                     item = item,
                     source = ItemContentSource.YOUTUBE,
-                    onItemClick = { onHomeItemClick(it, onNavigate, playerViewModel) },
+                    onItemClick = { onYTItemClick(it, onNavigate, playerViewModel) },
                     modifier = Modifier.fillMaxWidth().height(64.dp),
                 )
             }
@@ -327,21 +332,6 @@ private fun HomeSectionRow(
     }
 }
 
-// Componente compartido que permite la navegación a distintas páginas (Artista/Album/Playlist)
-private fun onHomeItemClick(
-    item: YTItem,
-    onNavigate: (Route) -> Unit,
-    playerViewModel: PlayerViewModel?,
-) {
-    when (item) {
-        is SongItem -> playerViewModel?.playSingle(item)
-        is AlbumItem -> onNavigate(Route.Album(item.browseId))
-        is PlaylistItem -> onNavigate(Route.Playlist(item.id))
-        is ArtistItem -> onNavigate(Route.Artist(item.id))
-        else -> {}
-    }
-}
-
 /**
  * Renderizar un item del home dependiendo del tipo de contenido (Song, Album, Playlist, Artist).
  */
@@ -352,32 +342,17 @@ private fun HomeSectionItem(
     playerViewModel: PlayerViewModel?,
     modifier: Modifier = Modifier,
 ) {
+    val onClick = { it: YTItem -> onYTItemClick(it, onNavigate, playerViewModel) }
     when (item) {
-        is SongItem -> SongHomeItem(
+        is SongItem -> SongGridItem(
             item = item,
-            onClick = { playerViewModel?.playSingle(item) },
+            onClick = onClick,
             onClickSubtitle = { onNavigate(Route.Artist(it)) },
             modifier = modifier,
         )
-
-        is AlbumItem -> AlbumHomeItem(
-            item = item,
-            onClick = { onNavigate(Route.Album((it as AlbumItem).browseId)) },
-            modifier = modifier,
-        )
-
-        is PlaylistItem -> PlaylistHomeItem(
-            item = item,
-            onClick = { onNavigate(Route.Playlist((it as PlaylistItem).id)) },
-            modifier = modifier,
-        )
-
-        is ArtistItem -> ArtistHomeItem(
-            item = item,
-            onClick = { onNavigate(Route.Artist((it as ArtistItem).id)) },
-            modifier = modifier,
-        )
-
+        is AlbumItem -> AlbumGridItem(item = item, onClick = onClick, modifier = modifier)
+        is PlaylistItem -> PlaylistGridItem(item = item, onClick = onClick, modifier = modifier)
+        is ArtistItem -> ArtistGridItem(item = item, onClick = onClick, modifier = modifier)
         else -> {}
     }
 }
