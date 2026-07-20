@@ -46,6 +46,8 @@
     <string name="ten_bands">10 bandas</string>
     <string name="section_appearance">Apariencia</string>
     <string name="theme">Tema</string>
+    <string name="navigation_rail">Barra de navegación</string>
+    <string name="navigation_rail_style">Estilo de la barra de navegación</string>
     <string name="color_palette">Paleta de colores</string>
     <string name="dynamic_colors">Colores dinámicos desde la carátula</string>
     <string name="section_player">Reproductor</string>
@@ -382,6 +384,8 @@
     <string name="settings_layout">Diseño</string>
     <string name="dark_level_dim">Oscuro</string>
     <string name="dark_level_black">AMOLED (negro puro)</string>
+    <string name="navigation_rail_default">Por defecto</string>
+    <string name="navigation_rail_wide">Expandible</string>
     <string name="layout_islands">Islas dinámicas</string>
     <string name="layout_attached">Pegado / compacto</string>
     <string name="settings_island_style">Estilo de las islas</string>

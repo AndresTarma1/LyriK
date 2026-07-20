@@ -142,7 +142,7 @@ kotlin {
 
 compose.desktop {
     application {
-        mainClass = "com.example.melodist.MainKt"
+        mainClass = "com.example.musicApp.MainKt"
 
         jvmArgs(*melodistJvmArgs.toTypedArray())
 

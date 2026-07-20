@@ -382,6 +382,8 @@
     <string name="settings_layout">Layout</string>
     <string name="dark_level_dim">Dark</string>
     <string name="dark_level_black">AMOLED (pure black)</string>
+    <string name="navigation_rail_default">Default</string>
+    <string name="navigation_rail_wide">Wide</string>
     <string name="layout_islands">Dynamic islands</string>
     <string name="layout_attached">Attached / compact</string>
     <string name="settings_island_style">Island style</string>

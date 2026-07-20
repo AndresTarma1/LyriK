@@ -75,7 +75,7 @@ kotlin {
 sqldelight {
     databases {
         create("MelodistDatabase") {
-            packageName.set("com.example.melodist.db")
+            packageName.set("com.example.musicApp.db")
         }
     }
 }
