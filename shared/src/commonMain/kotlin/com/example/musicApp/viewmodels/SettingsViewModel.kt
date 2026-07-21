@@ -104,6 +104,9 @@ class SettingsViewModel(
     val navigationRailStyle: StateFlow<NavigationRailStyle> = preferencesRepository.navigationRailStyle
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), NavigationRailStyle.DEFAULT)
 
+    val fullScreenPlayer: StateFlow<Boolean> = preferencesRepository.fullScreenPlayer
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), false)
+
 
     fun setAudioQuality(quality: AudioQuality) {
         viewModelScope.launch { preferencesRepository.setAudioQuality(quality) }
@@ -151,6 +154,10 @@ class SettingsViewModel(
 
     fun setMinimizeToTray(enabled: Boolean) {
         viewModelScope.launch { preferencesRepository.setMinimizeToTray(enabled) }
+    }
+
+    fun setFullScreenPlayer(enabled: Boolean) {
+        viewModelScope.launch { preferencesRepository.setFullScreenPlayer(enabled) }
     }
 
     fun setTrimMemoryOnTray(enabled: Boolean) {

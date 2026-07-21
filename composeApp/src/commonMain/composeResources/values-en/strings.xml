@@ -43,7 +43,7 @@
     <string name="section_audio">Audio</string>
     <string name="streaming_quality">Audio quality</string>
     <string name="equalizer">Equalizer</string>
-    <string name="ten_bands">10 bands</string>
+    <string name="ten_bands">5 bands</string>
     <string name="section_appearance">Appearance</string>
     <string name="theme">Theme</string>
     <string name="color_palette">Color palette</string>
@@ -636,4 +636,8 @@
     <string name="spotify_import_result">%1$d of %2$d songs imported</string>
     <string name="spotify_import_error">Error: %1$s</string>
     <string name="spotify_not_configured">Spotify not configured. Check the .env file</string>
+
+    <!-- Full screen player -->
+    <string name="full_screen_player">Fullscreen player</string>
+    <string name="full_screen_player_subtitle">Hide the navigation rail and mini player when Now Playing is expanded</string>
 </resources>

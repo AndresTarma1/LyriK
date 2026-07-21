@@ -26,6 +26,7 @@ fun PlayerSettingsGroup(
     val imagesEnabled by viewModel.imagesEnabled.collectAsState()
     val crossfadeEnabled by viewModel.crossfadeEnabled.collectAsState()
     val seekBarStyle by viewModel.seekBarStyle.collectAsState()
+    val fullScreenPlayer by viewModel.fullScreenPlayer.collectAsState()
     var showNowPBdropdown by remember { mutableStateOf(false) }
 
     SettingsGroup(
@@ -36,7 +37,7 @@ fun PlayerSettingsGroup(
             icon = { Icon(Icons.Rounded.HighQuality, null) },
             title = { Text(stringResource(Res.string.high_res_artwork)) },
             subtitle = { Text(stringResource(Res.string.high_res_artwork_subtitle)) },
-            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 5),
+            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 6),
             colors = colors,
             state = highResCover,
             onCheckedChange = { viewModel.setHighResCoverArt(it) }
@@ -47,7 +48,7 @@ fun PlayerSettingsGroup(
             expanded = showNowPBdropdown,
             colors = colors,
             currentValue = nowPlayingBackground.displayName(),
-            segmentedShape = ListItemDefaults.segmentedShapes(index = 1, count = 5),
+            segmentedShape = ListItemDefaults.segmentedShapes(index = 1, count = 6),
             onExpandedChange = { showNowPBdropdown = it },
             options = NowPlayingBackground.entries.map { it to it.displayName() },
             isSelected = { it == nowPlayingBackground },
@@ -58,7 +59,7 @@ fun PlayerSettingsGroup(
             icon = { Icon(Icons.Rounded.Image, null) },
             title = { Text(stringResource(Res.string.show_images)) },
             subtitle = { Text(stringResource(Res.string.show_images_subtitle)) },
-            shapes = ListItemDefaults.segmentedShapes(index = 2, count = 5),
+            shapes = ListItemDefaults.segmentedShapes(index = 2, count = 6),
             colors = colors,
             state = imagesEnabled,
             onCheckedChange = { viewModel.setImagesEnabled(it) }
@@ -66,7 +67,7 @@ fun PlayerSettingsGroup(
         SettingsSwitch(
             icon = { Icon(Icons.Rounded.Shuffle, null) },
             subtitle = { Text(stringResource(Res.string.crossfade_subtitle)) },
-            shapes = ListItemDefaults.segmentedShapes(index = 3, count = 5),
+            shapes = ListItemDefaults.segmentedShapes(index = 3, count = 6),
             title = { Text(stringResource(Res.string.crossfade)) },
             colors = colors,
             state = crossfadeEnabled,
@@ -74,7 +75,7 @@ fun PlayerSettingsGroup(
         )
         SettingsMenuLink(
             icon = { Icon(Icons.AutoMirrored.Rounded.ShowChart, null) },
-            shapes = ListItemDefaults.segmentedShapes(index = 4, count = 5),
+            shapes = ListItemDefaults.segmentedShapes(index = 4, count = 6),
             title = { Text(stringResource(Res.string.seek_bar_style)) },
             subtitle = { Text(seekBarStyle.displayName()) },
             colors = colors,
@@ -84,6 +85,15 @@ fun PlayerSettingsGroup(
                 }
             },
             onClick = onOpenSeekBarStyleDialog
+        )
+        SettingsSwitch(
+            icon = { Icon(Icons.Rounded.Fullscreen, null) },
+            title = { Text(stringResource(Res.string.full_screen_player)) },
+            subtitle = { Text(stringResource(Res.string.full_screen_player_subtitle)) },
+            shapes = ListItemDefaults.segmentedShapes(index = 5, count = 6),
+            colors = colors,
+            state = fullScreenPlayer,
+            onCheckedChange = { viewModel.setFullScreenPlayer(it) }
         )
     }
 }

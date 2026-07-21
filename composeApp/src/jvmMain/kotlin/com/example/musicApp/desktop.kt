@@ -177,12 +177,6 @@ fun TitleBarScope.DesktopTitleBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                if (isPlaying) {
-                    AnimatedEqualizer(
-                        isPlaying = true,
-                        modifier = Modifier.size(width = 20.dp, height = 14.dp)
-                    )
-                }
                 Text(
                     text = song,
                     fontSize = 12.sp,

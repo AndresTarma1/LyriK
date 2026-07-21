@@ -2,6 +2,7 @@ package com.example.musicApp.navigation
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -16,13 +17,17 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.onPointerEvent
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import com.arkivanov.decompose.extensions.compose.stack.Children
 import com.arkivanov.decompose.extensions.compose.stack.animation.fade
 import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
@@ -51,6 +56,7 @@ import com.example.musicApp.utils.LocalPlayerViewModel
 import com.example.musicApp.utils.LocalSnackbarHostState
 import lyrik.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.stringResource
+import kotlin.time.Duration.Companion.milliseconds
 
 
 data class TabInfo(
@@ -71,6 +77,7 @@ val bottomTabs = listOf(
 )
 
 
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun NavigationDesktop(rootComponent: RootComponent, userPreferences: UserPreferencesRepository) {
     val childStack by rootComponent.childStack.subscribeAsState()
@@ -91,6 +98,21 @@ fun NavigationDesktop(rootComponent: RootComponent, userPreferences: UserPrefere
     var isQueueVisible by remember { mutableStateOf(false) }
     var nowPlayingTab by remember { mutableStateOf(NowPlayingTab.QUEUE) }
 
+    val fullScreenPlayer by userPreferences.fullScreenPlayer.collectAsState(false)
+    val isFullScreenNowPlaying = isNowPlayingExpanded && fullScreenPlayer
+
+    var lastMouseMoveAt by remember { mutableStateOf(0L) }
+    var mouseActive by remember { mutableStateOf(false) }
+
+    LaunchedEffect(lastMouseMoveAt) {
+        if (lastMouseMoveAt > 0L) {
+            mouseActive = true
+            delay(3000L.milliseconds)
+            mouseActive = false
+        }
+    }
+
+    val currentSong = playerState.currentSong
     val queueWidth = 420.dp
 
     // Nos permite entender o mostrar los errores de reproducción en un Snackbar, sin bloquear la UI principal.
@@ -107,29 +129,33 @@ fun NavigationDesktop(rootComponent: RootComponent, userPreferences: UserPrefere
         color = MaterialTheme.colorScheme.background,
     ) {
         // El Box nos permite superponer elementos (como el Snackbar) sin alterar el layout principal
-        Box(Modifier.fillMaxSize()) {
+        Box(Modifier.fillMaxSize().onPointerEvent(PointerEventType.Move) { lastMouseMoveAt = System.currentTimeMillis()}) {
 
             // CONTENIDO PRINCIPAL
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
 
-                    when(navigationRailStyle){
-                        NavigationRailStyle.DEFAULT -> {
-                            NavigationRailDefault(
-                                activeConfig = activeConfig,
-                                changeQueueVisible = { isQueueVisible = it },
-                                rootComponent = rootComponent,
-                                changeNowPlayingExpanded = { isNowPlayingExpanded = it }
-                            )
-                        }
 
-                        NavigationRailStyle.WIDE -> {
-                            WideNavigationRail(
-                                activeConfig = activeConfig,
-                                changeQueueVisible = { isQueueVisible = it },
-                                rootComponent = rootComponent,
-                                changeNowPlayingExpanded = { isNowPlayingExpanded = it }
-                            )
+                        AnimatedVisibility(visible=!isFullScreenNowPlaying) {
+
+                        when(navigationRailStyle){
+                            NavigationRailStyle.DEFAULT -> {
+                                NavigationRailDefault(
+                                    activeConfig = activeConfig,
+                                    changeQueueVisible = { isQueueVisible = it },
+                                    rootComponent = rootComponent,
+                                    changeNowPlayingExpanded = { isNowPlayingExpanded = it }
+                                )
+                            }
+
+                            NavigationRailStyle.WIDE -> {
+                                WideNavigationRail(
+                                    activeConfig = activeConfig,
+                                    changeQueueVisible = { isQueueVisible = it },
+                                    rootComponent = rootComponent,
+                                    changeNowPlayingExpanded = { isNowPlayingExpanded = it }
+                                )
+                            }
                         }
                     }
 
@@ -142,7 +168,11 @@ fun NavigationDesktop(rootComponent: RootComponent, userPreferences: UserPrefere
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(end = dimens.windowPadding, bottom = bottomPadding)
+                            .then(
+                                if (!isFullScreenNowPlaying)
+                                    Modifier.padding(end = dimens.windowPadding, bottom = bottomPadding)
+                                else Modifier
+                            )
                     ) {
 
                         Row(
@@ -197,7 +227,6 @@ fun NavigationDesktop(rootComponent: RootComponent, userPreferences: UserPrefere
                                 }
                             }
 
-                            // Solo se muestra si el nowPlaying NO está expandido, para evitar que se superponga con el NowPlayingLayout
                             AnimatedVisibility(
                                 visible = isQueueVisible && !isNowPlayingExpanded
                             ) {
@@ -223,8 +252,6 @@ fun NavigationDesktop(rootComponent: RootComponent, userPreferences: UserPrefere
                     }
                 }
 
-                // El MiniPlayer se queda al final del Column principal ocupando su espacio correspondiente
-                val currentSong = playerState.currentSong
                 AnimatedVisibility(
                     visible = currentSong != null,
                 ) {
@@ -249,20 +276,18 @@ fun NavigationDesktop(rootComponent: RootComponent, userPreferences: UserPrefere
                 }
             }
 
-            FpsCounter(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp)
-            )
 
-            val currentSong = playerState.currentSong
+//            FpsCounter(
+//                modifier = Modifier
+//                    .align(Alignment.BottomEnd)
+//                    .padding(8.dp)
+//            )
+
             SnackBar(
                 currentSong = currentSong,
                 snackbarHostState = snackbarHostState,
             )
 
-            // Que funcione como una importacion en segundo plano, sin bloquear la UI principal.
-            // Se muestra un overlay con el progreso de la importación.
             CsvImportProgressOverlay(
                 state = csvImportState,
                 onCancel = { playlistsViewModel.cancelCsvImport() },

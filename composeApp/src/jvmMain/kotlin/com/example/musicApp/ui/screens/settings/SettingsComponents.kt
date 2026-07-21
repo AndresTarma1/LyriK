@@ -76,7 +76,10 @@ internal fun <T> DropdownSelector(
                         options.forEach { (value, displayName) ->
                             DropdownMenuItem(
                                 text = { Text(displayName) },
-                                onClick = { onSelect(value) },
+                                onClick = {
+                                    onSelect(value)
+                                    onExpandedChange(false)
+                                },
                                 leadingIcon = {
                                     if (paletteItem && value is ThemePalette) {
                                         Box(

@@ -60,10 +60,7 @@ import org.jetbrains.jewel.foundation.modifier.onHover
 
 
 @OptIn(
-    ExperimentalMaterial3Api::class,
     ExperimentalMaterial3ExpressiveApi::class,
-    ExperimentalComposeUiApi::class,
-    ExperimentalSharedTransitionApi::class,
 )
 @Composable
 fun MiniPlayer(
@@ -72,6 +69,7 @@ fun MiniPlayer(
     isNowPlayingExpanded: Boolean,
     onToggleQueue: () -> Unit,
     isQueueVisible: Boolean,
+    bgTransparent: Boolean = false,
     modifier: Modifier = Modifier,
     sharedTransitionScope: SharedTransitionScope? = null,
 ) {
@@ -103,7 +101,7 @@ fun MiniPlayer(
                 else Modifier
             )
             .height(88.dp),
-        color = if (islands) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface,
+        color = if (bgTransparent) Color.Transparent else if (islands) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface,
         shape = RoundedCornerShape(if (islands) dimens.surfaceCorner else 0.dp),
         tonalElevation = 0.dp,
         shadowElevation = if (islands) dimens.surfaceElevation else 0.dp,

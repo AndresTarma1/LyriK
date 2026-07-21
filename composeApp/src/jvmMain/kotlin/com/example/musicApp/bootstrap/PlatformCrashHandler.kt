@@ -49,6 +49,7 @@ object PlatformCrashHandler {
             }
             logFile.appendText(entry)
         }
+        Runtime.getRuntime().halt(1)
     }
 
     inline fun <T> runSafely(context: String, block: () -> T): T {

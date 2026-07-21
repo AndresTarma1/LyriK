@@ -52,7 +52,6 @@ fun AdvancedJvmSettingsScreen(
             Surface(
                 modifier = Modifier.width(dialogWidth).height(dialogHeight),
                 shape = RoundedCornerShape(16.dp),
-                // surfaceContainer + sin superposición tonal para que AMOLED se mantenga neutro-oscuro (sin tinte de color acento).
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 tonalElevation = 0.dp,
             ) {
@@ -89,11 +88,6 @@ fun AdvancedJvmSettingsScreen(
 
                         Spacer(Modifier.height(16.dp))
                     }
-
-                    AppVerticalScrollbar(
-                        state = scrollState,
-                        modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().padding(end = 2.dp),
-                    )
                 }
             }
         }

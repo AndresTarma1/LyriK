@@ -46,11 +46,25 @@ fun NowBackground(
             modifier = modifier,
             content = content
         )
-        NowPlayingBackground.SOLID_COLOR -> NowPlayingBackgroundWithGradient(
-            artworkColors = artworkColors,
+        NowPlayingBackground.SOLID_COLOR -> NowPlayingBackgroundWithSolidColor(
             modifier = modifier,
             content = content
         )
+    }
+}
+
+@Composable
+fun NowPlayingBackgroundWithSolidColor(
+    modifier: Modifier,
+    content: @Composable (BoxScope.() -> Unit)
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        val rememberedContent = remember(content) { content }
+        rememberedContent()
     }
 }
 

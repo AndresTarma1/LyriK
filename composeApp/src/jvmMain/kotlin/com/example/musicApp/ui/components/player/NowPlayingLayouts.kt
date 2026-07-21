@@ -19,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerIcon
 import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.ui.text.style.TextAlign
@@ -259,7 +260,7 @@ private fun NowPlayingTabRow(
     PrimaryTabRow(
         selectedTabIndex = selectedIndex,
         modifier = modifier,
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        containerColor = Color.Transparent,
         contentColor = MaterialTheme.colorScheme.primary,
         tabs = {
             tabs.forEach { tab ->
@@ -313,7 +314,7 @@ private fun NowPlayingTabContent(
                 state = state,
                 onDismiss = {},
                 modifier = Modifier.fillMaxSize(),
-                containerColor = androidx.compose.ui.graphics.Color.Transparent,
+                containerColor = Color.Transparent,
                 showCloseButton = false,
             )
             NowPlayingTab.INFO -> SongInfoContent(song = song, state = state, mediaInfo = mediaInfo, onNavigate = onNavigate)

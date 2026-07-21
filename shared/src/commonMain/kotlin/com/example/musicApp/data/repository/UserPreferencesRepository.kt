@@ -158,6 +158,10 @@ class UserPreferencesRepository(private val dataStore: DataStore<Preferences>) {
     }
     val fullScreenPlayer: Flow<Boolean> = dataStore.data.map { it[PreferencesKeys.FULL_SCREEN_PLAYER] ?: false }
 
+    suspend fun setFullScreenPlayer(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.FULL_SCREEN_PLAYER] = enabled }
+    }
+
     /** Última posición de la ventana de overlay en dp, o [OVERLAY_POS_UNSET] cuando nunca se ha movido (→ esquina predeterminada). */
     val overlayPosX: Flow<Int> = dataStore.data.map { it[PreferencesKeys.OVERLAY_POS_X] ?: OVERLAY_POS_UNSET }
     val overlayPosY: Flow<Int> = dataStore.data.map { it[PreferencesKeys.OVERLAY_POS_Y] ?: OVERLAY_POS_UNSET }

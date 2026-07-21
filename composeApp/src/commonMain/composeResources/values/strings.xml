@@ -43,7 +43,7 @@
     <string name="section_audio">Audio</string>
     <string name="streaming_quality">Calidad de audio</string>
     <string name="equalizer">Ecualizador</string>
-    <string name="ten_bands">10 bandas</string>
+    <string name="ten_bands">5 bandas</string>
     <string name="section_appearance">Apariencia</string>
     <string name="theme">Tema</string>
     <string name="navigation_rail">Barra de navegación</string>
@@ -634,4 +634,8 @@
     <string name="view_artist">Ver artista</string>
     <string name="play">Reproducir</string>
     <string name="selected">Seleccionado</string>
+
+    <!-- Full screen player -->
+    <string name="full_screen_player">Reproductor a pantalla completa</string>
+    <string name="full_screen_player_subtitle">Oculta la barra de navegación y el mini reproductor al expandir Now Playing</string>
 </resources>
