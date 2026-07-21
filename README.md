@@ -43,10 +43,22 @@
 
 <div align="center">
 
+<!-- Hero: artist screen (la más visual) -->
+<img src="docs/screenshots/artist-screen.png" alt="Pantalla de artista" width="90%">
+<sub><b>Artista</b> · discografía, sencillos y shuffle play</sub>
+
+<br><br>
+
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/search.png" alt="Búsqueda y géneros"><br><sub><b>Búsqueda</b> · novedades, estados de ánimo y géneros</sub></td>
-    <td width="50%"><img src="docs/screenshots/library.png" alt="Biblioteca"><br><sub><b>Biblioteca</b> · álbumes, artistas y playlists sincronizados con tu cuenta</sub></td>
+    <td width="33%"><img src="docs/screenshots/home.png" alt="Inicio"><br><sub><b>Inicio</b> · recomendaciones y recientes</sub></td>
+    <td width="33%"><img src="docs/screenshots/album-screen.png" alt="Álbum"><br><sub><b>Álbum</b> · tracklist con carátula</sub></td>
+    <td width="33%"><img src="docs/screenshots/nowplaying-queue.png" alt="Now Playing"><br><sub><b>Now Playing</b> · letras y cola de reproducción</sub></td>
+  </tr>
+  <tr>
+    <td width="33%"><img src="docs/screenshots/search.png" alt="Búsqueda"><br><sub><b>Búsqueda</b> · géneros y novedades</sub></td>
+    <td width="33%"><img src="docs/screenshots/library.png" alt="Biblioteca"><br><sub><b>Biblioteca</b> · álbumes, artistas y playlists</sub></td>
+    <td width="33%"><img src="docs/screenshots/playlist-screen.png" alt="Playlist"><br><sub><b>Playlist</b> · reproducción y gestión</sub></td>
   </tr>
 </table>
 
