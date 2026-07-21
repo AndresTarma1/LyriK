@@ -108,7 +108,7 @@ private fun GroupMenuItem(
     icon: ImageVector,
     itemIndex: Int,
     groupItemCount: Int,
-    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    tint: Color = MaterialTheme.colorScheme.primary,
     onClick: () -> Unit,
 ) {
     DropdownMenuItem(
@@ -171,7 +171,6 @@ fun SongContextMenuContent(
                 icon = if (liked) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
                 itemIndex = 1,
                 groupItemCount = 3,
-                tint = if (liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = { onAction(SongMenuAction.ToggleLike) },
             )
             GroupMenuItem(
@@ -291,7 +290,6 @@ fun CollectionContextMenuContent(
                     icon = Icons.Default.PlayArrow,
                     itemIndex = 1,
                     groupItemCount = mainGroupCount,
-                    tint = MaterialTheme.colorScheme.primary,
                     onClick = action,
                 )
             }
@@ -302,7 +300,6 @@ fun CollectionContextMenuContent(
                     icon = Icons.Default.Shuffle,
                     itemIndex = if (onPlay != null) 2 else 1,
                     groupItemCount = mainGroupCount,
-                    tint = MaterialTheme.colorScheme.primary,
                     onClick = action,
                 )
             }
