@@ -61,7 +61,7 @@ class AppViewModel : ViewModel() {
 
     companion object {
         /** Fuente única de verdad para la versión de la app mostrada/comparada (también se muestra en Configuración). */
-        const val CURRENT_VERSION = "0.5.0"
+        const val CURRENT_VERSION = "0.6.0"
     }
 
     private val _status = MutableStateFlow<UpdateStatus>(UpdateStatus.None)
