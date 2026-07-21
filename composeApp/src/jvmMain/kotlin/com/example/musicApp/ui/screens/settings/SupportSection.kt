@@ -3,6 +3,7 @@ package com.example.musicApp.ui.screens.settings
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -10,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.alorma.compose.settings.ui.SettingsGroup
 import com.alorma.compose.settings.ui.expressive.SettingsMenuLink
+import com.example.musicApp.data.repository.CrashReportRepository
 import com.example.musicApp.viewmodels.AppViewModel
 import com.example.musicApp.viewmodels.UpdateCheckState
 import com.example.musicApp.viewmodels.UpdateStatus
@@ -24,6 +26,7 @@ fun SupportSettingsGroup(
 ) {
     val updateCheckState by appViewModel.checkState.collectAsState()
     val updateStatus by appViewModel.updateStatus.collectAsState()
+    val pendingCrashReports = remember { CrashReportRepository.getUnsentReports().size }
 
     SettingsGroup(
         title = { Text(stringResource(Res.string.section_support)) },
@@ -33,7 +36,7 @@ fun SupportSettingsGroup(
         val ready = updateStatus is UpdateStatus.Ready
         SettingsMenuLink(
             icon = { Icon(Icons.Rounded.SystemUpdate, null) },
-            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 2),
+            shapes = ListItemDefaults.segmentedShapes(index = 0, count = 3),
             title = { Text(stringResource(Res.string.check_updates)) },
             subtitle = {
                 Text(
@@ -77,9 +80,59 @@ fun SupportSettingsGroup(
             subtitle = stringResource(Res.string.report_bug_subtitle),
             icon = Icons.Rounded.BugReport,
             btnLabel = stringResource(Res.string.btn_report),
-            segmentedShape = ListItemDefaults.segmentedShapes(index = 1, count = 2),
+            segmentedShape = ListItemDefaults.segmentedShapes(index = 1, count = 3),
             onClick = { openReportBugPage() },
             colors = colors
+        )
+        SettingsMenuLink(
+            icon = {
+                if (pendingCrashReports > 0) {
+                    BadgedBox(
+                        badge = {
+                            Badge(containerColor = MaterialTheme.colorScheme.error) {
+                                Text("$pendingCrashReports")
+                            }
+                        }
+                    ) {
+                        Icon(Icons.Rounded.ErrorOutline, null)
+                    }
+                } else {
+                    Icon(Icons.Rounded.BugReport, null)
+                }
+            },
+            shapes = ListItemDefaults.segmentedShapes(index = 2, count = 3),
+            title = { Text(stringResource(Res.string.send_crash_report)) },
+            subtitle = {
+                Text(
+                    if (pendingCrashReports > 0)
+                        stringResource(Res.string.crash_pending_count, pendingCrashReports)
+                    else
+                        stringResource(Res.string.no_crash_reports)
+                )
+            },
+            colors = colors,
+            action = {
+                if (pendingCrashReports > 0) {
+                    FilledTonalButton(onClick = {
+                        val reports = CrashReportRepository.getUnsentReports()
+                        reports.forEach { (_, report) ->
+                            CrashReportRepository.openCrashAsGitHubIssue(report)
+                        }
+                        CrashReportRepository.markAllAsSent()
+                    }) {
+                        Text(stringResource(Res.string.crash_send))
+                    }
+                }
+            },
+            onClick = {
+                val reports = CrashReportRepository.getUnsentReports()
+                if (reports.isNotEmpty()) {
+                    reports.forEach { (_, report) ->
+                        CrashReportRepository.openCrashAsGitHubIssue(report)
+                    }
+                    CrashReportRepository.markAllAsSent()
+                }
+            }
         )
     }
 }

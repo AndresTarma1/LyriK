@@ -606,4 +606,5 @@
     <string name="send_crash_report">Send crash report</string>
     <string name="send_crash_report_subtitle">Send pending crash reports to GitHub</string>
     <string name="no_crash_reports">No pending crash reports</string>
+    <string name="crash_pending_count">%1$d pending report(s) — GitHub will open with the details</string>
 </resources>

@@ -623,4 +623,5 @@
     <string name="send_crash_report">Enviar reporte de error</string>
     <string name="send_crash_report_subtitle">Envía los reportes de error pendientes a GitHub</string>
     <string name="no_crash_reports">No hay reportes de error pendientes</string>
+    <string name="crash_pending_count">%1$d reporte(s) pendiente(s) — se abrirá GitHub con los detalles</string>
 </resources>
