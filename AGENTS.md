@@ -1,4 +1,4 @@
-# LyriK Engineering Rules
+# MusicApp Engineering Rules
 
 ## Architecture
 - Follow Clean Architecture boundaries: UI renders state and sends user intents; ViewModels coordinate use cases; repositories/services own data, network, database, player, and download work.

@@ -1,24 +1,26 @@
 <div align="center">
-  <img src="composeApp/src/jvmMain/composeResources/drawable/Music_note_circle.svg" alt="Logo de LyriK" width="120" height="120">
+  <img src="composeApp/src/jvmMain/composeResources/drawable/Music_note_circle.svg" alt="Logo de MusicApp" width="120" height="120">
 
-  # LyriK
+  # MusicApp
 
   **Un reproductor de música de escritorio para YouTube Music — Windows (y Linux en _alpha_).**
 
   Streaming en alta calidad, letras sincronizadas y escucha compartida — en una interfaz limpia con temas que se adaptan a cada carátula.
 
+  > *Nombre temporal mientras se define un nombre propio.*
+
   ![Plataforma](https://img.shields.io/badge/Windows-10%2F11-0078D6?logo=windows&logoColor=white)
   ![Plataforma](https://img.shields.io/badge/Linux-alpha-FCC624?logo=linux&logoColor=black)
   ![UI](https://img.shields.io/badge/Compose-Multiplatform-4285F4?logo=jetpackcompose&logoColor=white)
   ![Kotlin](https://img.shields.io/badge/Kotlin-2.4.0-7F52FF?logo=kotlin&logoColor=white)
-  ![Versión](https://img.shields.io/badge/versión-0.5.0-orange)
+  ![Versión](https://img.shields.io/badge/versión-0.6.0-orange)
   ![Licencia](https://img.shields.io/badge/licencia-GPL--3.0-blue)
 
   [Descargar](../../releases) · [Reportar un problema](../../issues)
 
   <br>
 
-  <img src="docs/screenshots/home.png" alt="Pantalla principal de LyriK" width="90%">
+  <img src="docs/screenshots/home.png" alt="Pantalla principal de MusicApp" width="90%">
 
 </div>
 
@@ -84,7 +86,7 @@ plataforma principal y la mejor soportada.
 problemas de dependencias). Instálalos con tu gestor de paquetes:
 
 ```bash
-# Debian / Ubuntu — libmpv2 is the actual client library LyriK links against;
+# Debian / Ubuntu — libmpv2 is the actual client library MusicApp links against;
 # the "mpv" package alone doesn't pull it in.
 sudo apt install mpv libmpv2 yt-dlp
 # Fedora
