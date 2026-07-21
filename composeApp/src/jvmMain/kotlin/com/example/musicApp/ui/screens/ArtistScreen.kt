@@ -98,7 +98,7 @@ data class ArtistScreenActions(
     val onRadioArtist: () -> Unit = {},
 )
 
-@OptIn(ExperimentalComposeUiApi::class)
+
 @Composable
 fun ArtistScreen(
     uiState: ArtistState,
@@ -162,7 +162,7 @@ private fun ArtistScreenContent(
     playerViewModel: PlayerViewModel
 ) {
     val lazyListState = rememberLazyListState()
-    val surface = MaterialTheme.colorScheme.surface
+    val surface = MaterialTheme.colorScheme.background
 
     Box(modifier = Modifier.fillMaxSize()) {
 

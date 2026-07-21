@@ -51,6 +51,55 @@ fun onYTItemClick(
     }
 }
 
+private fun playYTItem(
+    item: YTItem,
+    onNavigate: (Route) -> Unit,
+    playerViewModel: PlayerViewModel,
+    onClick: (YTItem) -> Unit,
+) {
+    when (item) {
+        is SongItem -> playerViewModel.playSingle(item)
+        is AlbumItem -> playerViewModel.playAlbumFromBrowseId(
+            browseId = item.browseId,
+            playlistId = item.playlistId,
+            title = item.title,
+            onEmpty = { onClick(item) }
+        )
+        is PlaylistItem -> playerViewModel.playPlaylistFromId(
+            playlistId = item.id,
+            endpoint = item.playEndpoint,
+            title = item.title,
+            onEmpty = { onClick(item) }
+        )
+        is ArtistItem -> onNavigate(Route.Artist(item.id))
+        else -> onClick(item)
+    }
+}
+
+private fun shuffleYTItem(
+    item: YTItem,
+    playerViewModel: PlayerViewModel,
+    onClick: (YTItem) -> Unit,
+) {
+    when (item) {
+        is AlbumItem -> playerViewModel.playAlbumFromBrowseId(
+            browseId = item.browseId,
+            playlistId = item.playlistId,
+            title = item.title,
+            shuffle = true,
+            onEmpty = { onClick(item) }
+        )
+        is PlaylistItem -> playerViewModel.playPlaylistFromId(
+            playlistId = item.id,
+            endpoint = item.shuffleEndpoint ?: item.playEndpoint,
+            title = item.title,
+            shuffle = true,
+            onEmpty = { onClick(item) }
+        )
+        else -> onClick(item)
+    }
+}
+
 
 @Composable
 fun SongGridItem(
@@ -228,6 +277,7 @@ fun ArtistGridItem(
     )
 }
 
+
 @Composable
 fun SectionListItem(
     item: YTItem,
@@ -235,54 +285,13 @@ fun SectionListItem(
     modifier: Modifier = Modifier,
     playerViewModel: PlayerViewModel
 ) {
-
     val onClick = { it: YTItem -> onYTItemClick(it, onNavigate, playerViewModel) }
-
-    val onPlay = { it: YTItem ->
-        when (it) {
-            is SongItem -> playerViewModel.playSingle(it)
-            is AlbumItem -> playerViewModel.playAlbumFromBrowseId(
-                browseId = it.browseId,
-                playlistId = it.playlistId,
-                title = it.title,
-                onEmpty = { onClick(it) }
-            )
-            is PlaylistItem -> playerViewModel.playPlaylistFromId(
-                playlistId = it.id,
-                endpoint = it.playEndpoint,
-                title = it.title,
-                onEmpty = { onClick(it) }
-            )
-            is ArtistItem -> onNavigate(Route.Artist(it.id))
-            else -> onClick(it)
-        }
-    }
-
-    val onShuffle = { it: YTItem ->
-        when (it) {
-            is AlbumItem -> playerViewModel.playAlbumFromBrowseId(
-                browseId = it.browseId,
-                playlistId = it.playlistId,
-                title = it.title,
-                shuffle = true,
-                onEmpty = { onClick(it) }
-            )
-            is PlaylistItem -> playerViewModel.playPlaylistFromId(
-                playlistId = it.id,
-                endpoint = it.shuffleEndpoint ?: it.playEndpoint,
-                title = it.title,
-                shuffle = true,
-                onEmpty = { onClick(it) }
-            )
-            else -> onClick(it)
-        }
-    }
 
     YoutubeListItem(
         item = item,
         onClick = onClick,
-        onPlay = onPlay,
-        onShuffle = onShuffle,
+        onPlay = { playYTItem(it, onNavigate, playerViewModel, onClick) },
+        onShuffle = { shuffleYTItem(it, playerViewModel, onClick) },
         modifier = modifier,
         source = ItemContentSource.YOUTUBE,
     )
@@ -296,46 +305,9 @@ fun SectionGridItem(
     modifier: Modifier = Modifier,
 ) {
     val onClick = { it: YTItem -> onYTItemClick(it, onNavigate, playerViewModel) }
+    val onPlay = { it: YTItem -> playYTItem(it, onNavigate, playerViewModel, onClick) }
+    val onShuffle = { it: YTItem -> shuffleYTItem(it, playerViewModel, onClick) }
 
-    val onPlay = { it: YTItem ->
-        when (it) {
-            is SongItem -> playerViewModel.playSingle(it)
-            is AlbumItem -> playerViewModel.playAlbumFromBrowseId(
-                browseId = it.browseId,
-                playlistId = it.playlistId,
-                title = it.title,
-                onEmpty = { onClick(it) }
-            )
-            is PlaylistItem -> playerViewModel.playPlaylistFromId(
-                playlistId = it.id,
-                endpoint = it.playEndpoint,
-                title = it.title,
-                onEmpty = { onClick(it) }
-            )
-            is ArtistItem -> onNavigate(Route.Artist(it.id))
-            else -> onClick(it)
-        }
-    }
-
-    val onShuffle = { it: YTItem ->
-        when (it) {
-            is AlbumItem -> playerViewModel.playAlbumFromBrowseId(
-                browseId = it.browseId,
-                playlistId = it.playlistId,
-                title = it.title,
-                shuffle = true,
-                onEmpty = { onClick(it) }
-            )
-            is PlaylistItem -> playerViewModel.playPlaylistFromId(
-                playlistId = it.id,
-                endpoint = it.shuffleEndpoint ?: it.playEndpoint,
-                title = it.title,
-                shuffle = true,
-                onEmpty = { onClick(it) }
-            )
-            else -> onClick(it)
-        }
-    }
     when (item) {
         is SongItem -> SongGridItem(
             item = item,

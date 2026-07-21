@@ -27,6 +27,7 @@ import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowState
 import com.example.musicApp.data.account.AccountManager
 import com.example.musicApp.data.repository.AppLocale
+import com.example.musicApp.data.repository.NavigationRailStyle
 import com.example.musicApp.data.repository.OVERLAY_POS_UNSET
 import com.example.musicApp.data.repository.ThemeMode
 import com.example.musicApp.data.repository.UserPreferencesRepository
@@ -216,22 +217,22 @@ fun ApplicationScope.App(
     }
 
     AppTheme(artworkColors = artworkColors, userPreferences = userPreferences) {
-        val surfaceColor = MaterialTheme.colorScheme.background
+        val background = MaterialTheme.colorScheme.background
 
         val titleBarStyle = if (isDark) {
             TitleBarStyle.dark(
                 colors = TitleBarColors.dark(
-                    backgroundColor = surfaceColor,
-                    inactiveBackground = surfaceColor,
-                    borderColor = surfaceColor,
+                    backgroundColor = background,
+                    inactiveBackground = background,
+                    borderColor = background,
                 )
             )
         } else {
             TitleBarStyle.light(
                 colors = TitleBarColors.light(
-                    backgroundColor = surfaceColor,
-                    inactiveBackground = surfaceColor,
-                    borderColor = surfaceColor,
+                    backgroundColor = background,
+                    inactiveBackground = background,
+                    borderColor = background,
                 )
             )
         }
@@ -374,7 +375,11 @@ fun ApplicationScope.App(
                     }
 
                     key(appLocale) {
-                        NavigationDesktop(rootComponent)
+                        NavigationDesktop(
+                            rootComponent = rootComponent,
+                            userPreferences = userPreferences
+                        )
+
                     }
                 }
             }

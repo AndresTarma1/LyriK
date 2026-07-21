@@ -1,138 +1,98 @@
 package com.example.musicApp.ui.components.context
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
+import androidx.compose.material.icons.automirrored.filled.QueueMusic
+import androidx.compose.material.icons.filled.AddCircleOutline
+import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Radio
+import androidx.compose.material.icons.filled.RemoveCircleOutline
+import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.window.Popup
-import androidx.compose.ui.window.PopupProperties
-import androidx.compose.ui.window.rememberCursorPositionProvider
-import com.example.musicApp.models.toMediaMetadata
-import com.example.musicApp.ui.components.song.AddToPlaylistDialog
-import com.example.musicApp.ui.helpers.rememberSongDownloadState
-import com.example.musicApp.ui.helpers.rememberSongLikedState
-import com.example.musicApp.utils.LocalDownloadViewModel
-import com.example.musicApp.utils.LocalPlayerViewModel
-import com.example.musicApp.utils.LocalPlaylistsViewModel
-import com.example.musicApp.utils.LocalSnackbarHostState
-import com.example.musicApp.utils.LocalSnackbarScope
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.unit.dp
+import com.example.musicApp.download.DownloadState
 import com.metrolist.innertube.models.SongItem
-import com.metrolist.innertube.models.WatchEndpoint
-import kotlinx.coroutines.launch
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.*
-import org.jetbrains.compose.resources.getString
+import org.jetbrains.compose.resources.stringResource
 
+sealed interface SongMenuAction {
+    data object StartRadio : SongMenuAction
+    data object ToggleLike : SongMenuAction
+    data object Download : SongMenuAction
+    data object CancelDownload : SongMenuAction
+    data object RemoveDownload : SongMenuAction
+    data object PlayNext : SongMenuAction
+    data object AddToQueue : SongMenuAction
+    data object AddToPlaylist : SongMenuAction
+    data object RemoveFromLibrary : SongMenuAction
+    data object RemoveFromPlaylist : SongMenuAction
+}
+
+/** Evita repetir tamaño + contentDescription en cada leadingIcon del menú. */
 @Composable
-fun SongContextMenuPopup(
-    expanded: Boolean,
-    onDismiss: () -> Unit,
-    song: SongItem,
-    showQueueActions: Boolean = true,
-    onRemoveFromLibrary: (() -> Unit)? = null,
-    onRemoveFromPlaylist: (() -> Unit)? = null,
+private fun MenuLeadingIcon(
+    icon: ImageVector,
+    tint: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
-    val playerViewModel = LocalPlayerViewModel.current
-    val downloadViewModel = LocalDownloadViewModel.current
-    val playlistsViewModel = LocalPlaylistsViewModel.current
-    val liked = rememberSongLikedState(song.id, playerViewModel)
-    val downloadState by rememberSongDownloadState(song.id, downloadViewModel)
-    val snackbar = LocalSnackbarHostState.current
-    val scope = LocalSnackbarScope.current
+    Icon(
+        imageVector = icon,
+        contentDescription = null,
+        tint = tint,
+    )
+}
 
-    var showPlaylistDialog by remember { mutableStateOf(false) }
+private data class DownloadMenuSpec(
+    val label: String,
+    val icon: ImageVector,
+    val tint: Color,
+    val action: SongMenuAction,
+)
 
-    if (expanded) {
-        val cursorPositionProvider = rememberCursorPositionProvider()
-
-        Popup(
-            onDismissRequest = onDismiss,
-            popupPositionProvider = cursorPositionProvider,
-            properties = PopupProperties(focusable = true)
-        ) {
-            SongContextMenuContent(
-                song = song,
-                liked = liked,
-                downloadState = downloadState,
-                showQueueActions = showQueueActions,
-                showRemoveFromLibrary = onRemoveFromLibrary != null,
-                showRemoveFromPlaylist = onRemoveFromPlaylist != null,
-                onAction = { action ->
-                    when (action) {
-                        SongMenuAction.StartRadio -> {
-                            val endpoint = song.endpoint
-                            val preview = song.toMediaMetadata()
-                            if (endpoint != null) {
-                                playerViewModel.playEndpoint(endpoint, previewSong = preview)
-                            } else {
-                                playerViewModel.playEndpoint(WatchEndpoint(videoId = song.id), previewSong = preview)
-                            }
-                            onDismiss()
-                        }
-                        SongMenuAction.ToggleLike -> {
-                            playerViewModel.toggleLikeForSong(song)
-                            onDismiss()
-                        }
-                        SongMenuAction.Download -> {
-                            downloadViewModel.downloadSong(song)
-                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_added_to_downloads, song.title)) }
-                            onDismiss()
-                        }
-                        SongMenuAction.CancelDownload -> {
-                            downloadViewModel.cancelDownload(song.id)
-                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_download_cancelled)) }
-                            onDismiss()
-                        }
-                        SongMenuAction.RemoveDownload -> {
-                            downloadViewModel.removeDownload(song.id)
-                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_download_removed)) }
-                            onDismiss()
-                        }
-                        SongMenuAction.PlayNext -> {
-                            playerViewModel.playNextResolved(song)
-                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_play_next, song.title)) }
-                            onDismiss()
-                        }
-                        SongMenuAction.AddToQueue -> {
-                            playerViewModel.addToQueueResolved(song)
-                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_added_to_queue, song.title)) }
-                            onDismiss()
-                        }
-                        SongMenuAction.AddToPlaylist -> {
-                            showPlaylistDialog = true
-                        }
-                        SongMenuAction.RemoveFromLibrary -> {
-                            onRemoveFromLibrary?.invoke()
-                            onDismiss()
-                        }
-                        SongMenuAction.RemoveFromPlaylist -> {
-                            onRemoveFromPlaylist?.invoke()
-                            scope.launch { snackbar.showSnackbar(getString(Res.string.snackbar_removed_from_playlist, song.title)) }
-                            onDismiss()
-                        }
-                    }
-                }
-            )
+/** Surface compartida por ambos menús: mismo ancho, forma, elevación y borde. */
+@Composable
+private fun MenuSurface(content: @Composable () -> Unit) {
+    Surface(
+        modifier = Modifier.width(260.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 0.dp,
+        shadowElevation = 8.dp,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
+    ) {
+        Column(modifier = Modifier.padding(vertical = 6.dp)) {
+            content()
         }
-    }
-
-    if (showPlaylistDialog) {
-        AddToPlaylistDialog(
-            song = song,
-            playlistsViewModel = playlistsViewModel,
-            onDismiss = {
-                showPlaylistDialog = false
-                onDismiss()
-            }
-        )
     }
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun CollectionContextMenuPopup(
-    expanded: Boolean,
-    onDismiss: () -> Unit,
+fun CollectionContextMenuContent(
     title: String,
     isPlaylist: Boolean,
     onOpen: () -> Unit,
@@ -140,22 +100,158 @@ fun CollectionContextMenuPopup(
     onShuffle: (() -> Unit)? = null,
     onRemoveFromLibrary: (() -> Unit)? = null,
 ) {
-    if (!expanded) return
-
-    val cursorPositionProvider = rememberCursorPositionProvider()
-
-    Popup(
-        onDismissRequest = onDismiss,
-        popupPositionProvider = cursorPositionProvider,
-        properties = PopupProperties(focusable = true)
-    ) {
-        CollectionContextMenuContent(
-            title = title,
-            isPlaylist = isPlaylist,
-            onOpen = { onOpen(); onDismiss() },
-            onPlay = onPlay?.let { { it(); onDismiss() } },
-            onShuffle = onShuffle?.let { { it(); onDismiss() } },
-            onRemoveFromLibrary = onRemoveFromLibrary?.let { { it(); onDismiss() } },
+    MenuSurface {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall,
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
         )
+
+        HorizontalDivider(modifier = Modifier.padding(MenuDefaults.HorizontalDividerPadding))
+
+        DropdownMenuItem(
+            text = {
+                Text(
+                    stringResource(
+                        if (isPlaylist) Res.string.context_open_playlist
+                        else Res.string.context_open_album
+                    )
+                )
+            },
+            leadingIcon = { MenuLeadingIcon(Icons.AutoMirrored.Filled.OpenInNew) },
+            onClick = onOpen,
+        )
+
+        onPlay?.let { action ->
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.context_play)) },
+                leadingIcon = { MenuLeadingIcon(Icons.Default.PlayArrow, MaterialTheme.colorScheme.primary) },
+                onClick = action,
+            )
+        }
+
+        onShuffle?.let { action ->
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.context_shuffle)) },
+                leadingIcon = { MenuLeadingIcon(Icons.Default.Shuffle, MaterialTheme.colorScheme.primary) },
+                onClick = action,
+            )
+        }
+
+        onRemoveFromLibrary?.let { action ->
+            HorizontalDivider(modifier = Modifier.padding(MenuDefaults.HorizontalDividerPadding))
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.context_remove_library)) },
+                leadingIcon = { MenuLeadingIcon(Icons.Default.Delete, MaterialTheme.colorScheme.error) },
+                onClick = action,
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+fun SongContextMenuContent(
+    song: SongItem,
+    liked: Boolean,
+    downloadState: DownloadState?,
+    showQueueActions: Boolean = true,
+    showRemoveFromLibrary: Boolean = false,
+    showRemoveFromPlaylist: Boolean = false,
+    onAction: (SongMenuAction) -> Unit,
+) {
+    MenuSurface {
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.context_start_radio)) },
+            leadingIcon = { MenuLeadingIcon(Icons.Default.Radio) },
+            onClick = { onAction(SongMenuAction.StartRadio) },
+        )
+
+        DropdownMenuItem(
+            text = {
+                Text(stringResource(if (liked) Res.string.context_unlike else Res.string.context_like))
+            },
+            leadingIcon = {
+                MenuLeadingIcon(
+                    icon = if (liked) Icons.Outlined.Favorite else Icons.Outlined.FavoriteBorder,
+                    tint = if (liked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            onClick = { onAction(SongMenuAction.ToggleLike) },
+        )
+
+        val downloadSpec = when (downloadState) {
+            is DownloadState.Completed -> DownloadMenuSpec(
+                label = stringResource(Res.string.context_remove_download),
+                icon = Icons.Default.DeleteOutline,
+                tint = MaterialTheme.colorScheme.error,
+                action = SongMenuAction.RemoveDownload,
+            )
+            is DownloadState.Downloading, is DownloadState.Queued -> DownloadMenuSpec(
+                label = stringResource(Res.string.context_cancel_download),
+                icon = Icons.Default.Cancel,
+                tint = MaterialTheme.colorScheme.error,
+                action = SongMenuAction.CancelDownload,
+            )
+            else -> DownloadMenuSpec(
+                label = stringResource(Res.string.context_download),
+                icon = Icons.Default.Download,
+                tint = MaterialTheme.colorScheme.primary,
+                action = SongMenuAction.Download,
+            )
+        }
+
+        DropdownMenuItem(
+            text = { Text(downloadSpec.label) },
+            leadingIcon = { MenuLeadingIcon(downloadSpec.icon, downloadSpec.tint) },
+            onClick = { onAction(downloadSpec.action) },
+        )
+
+        if (showQueueActions) {
+            HorizontalDivider(
+                modifier = Modifier.padding(MenuDefaults.HorizontalDividerPadding),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+            )
+
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.context_play_next)) },
+                leadingIcon = { MenuLeadingIcon(Icons.AutoMirrored.Filled.PlaylistAdd) },
+                onClick = { onAction(SongMenuAction.PlayNext) },
+            )
+
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.context_add_queue)) },
+                leadingIcon = { MenuLeadingIcon(Icons.AutoMirrored.Filled.QueueMusic) },
+                onClick = { onAction(SongMenuAction.AddToQueue) },
+            )
+        }
+
+        HorizontalDivider(
+            modifier = Modifier.padding(MenuDefaults.HorizontalDividerPadding),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+        )
+
+        DropdownMenuItem(
+            text = { Text(stringResource(Res.string.context_add_playlist)) },
+            leadingIcon = { MenuLeadingIcon(Icons.Default.AddCircleOutline) },
+            onClick = { onAction(SongMenuAction.AddToPlaylist) },
+        )
+
+        if (showRemoveFromLibrary) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.context_remove_library)) },
+                leadingIcon = { MenuLeadingIcon(Icons.Default.Delete, MaterialTheme.colorScheme.error) },
+                onClick = { onAction(SongMenuAction.RemoveFromLibrary) },
+            )
+        }
+
+        if (showRemoveFromPlaylist) {
+            DropdownMenuItem(
+                text = { Text(stringResource(Res.string.context_remove_playlist)) },
+                leadingIcon = { MenuLeadingIcon(Icons.Default.RemoveCircleOutline, MaterialTheme.colorScheme.error) },
+                onClick = { onAction(SongMenuAction.RemoveFromPlaylist) },
+            )
+        }
     }
 }

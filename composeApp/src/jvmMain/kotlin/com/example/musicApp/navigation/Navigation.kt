@@ -29,6 +29,8 @@ import com.arkivanov.decompose.extensions.compose.stack.animation.stackAnimation
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.example.musicApp.FpsCounter
 import com.example.musicApp.data.repository.LayoutMode
+import com.example.musicApp.data.repository.NavigationRailStyle
+import com.example.musicApp.data.repository.UserPreferencesRepository
 import com.example.musicApp.ui.components.MiniPlayer
 import com.example.musicApp.ui.components.dialogs.SnackBar
 import com.example.musicApp.ui.components.player.NowPlayingLayout
@@ -56,13 +58,13 @@ data class TabInfo(
     val icon: ImageVector
 )
 
-private val mainTabs = listOf(
+val mainTabs = listOf(
     TabInfo(ScreenConfig.Home, Icons.Filled.Home),
     TabInfo(ScreenConfig.Search, Icons.Filled.Search),
     TabInfo(ScreenConfig.Library, Icons.Filled.LibraryMusic),
 )
 
-private val bottomTabs = listOf(
+val bottomTabs = listOf(
     TabInfo(ScreenConfig.ListenTogether, Icons.Filled.Groups),
     TabInfo(ScreenConfig.Account, Icons.Filled.Person),
     TabInfo(ScreenConfig.Settings, Icons.Filled.Settings),
@@ -70,7 +72,7 @@ private val bottomTabs = listOf(
 
 
 @Composable
-fun NavigationDesktop(rootComponent: RootComponent) {
+fun NavigationDesktop(rootComponent: RootComponent, userPreferences: UserPreferencesRepository) {
     val childStack by rootComponent.childStack.subscribeAsState()
     val activeConfig = childStack.active.configuration
 
@@ -78,6 +80,8 @@ fun NavigationDesktop(rootComponent: RootComponent) {
     val snackbarHostState = LocalSnackbarHostState.current
     val playlistsViewModel = koinInject<LibraryPlaylistsViewModel>()
     val csvImportState by playlistsViewModel.csvImportState.collectAsState()
+
+    val navigationRailStyle by userPreferences.navigationRailStyle.collectAsState(NavigationRailStyle.DEFAULT)
 
     val playerState by playerViewModel.uiState.collectAsState()
     val progressState by playerViewModel.progressState.collectAsState()
@@ -108,67 +112,25 @@ fun NavigationDesktop(rootComponent: RootComponent) {
             // CONTENIDO PRINCIPAL
             Column(modifier = Modifier.fillMaxSize()) {
                 Row(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                        NavigationRail(
-                            modifier = Modifier.width(90.dp),
-                            containerColor = Color.Transparent,
-                        ) {
-                            Column(
-                                modifier = Modifier.fillMaxHeight(),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Spacer(Modifier.height(20.dp))
 
-                                mainTabs.forEach { tab ->
-                                    NavigationRailItem(
-                                        selected = activeConfig == tab.config,
-                                        onClick = {
-                                            isNowPlayingExpanded = false
-                                            rootComponent.switchTab(tab.config)
-                                        },
-                                        icon = { Icon(tab.icon, null) },
-                                        label = {
-                                            Text(
-                                                when (tab.config) {
-                                                    ScreenConfig.Home -> stringResource(Res.string.nav_home)
-                                                    ScreenConfig.Search -> stringResource(Res.string.nav_search)
-                                                    ScreenConfig.Library -> stringResource(Res.string.nav_library)
-                                                    else -> ""
-                                                }
-                                            )
-                                        },
-                                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
-                                        alwaysShowLabel = false,
-                                    )
-                                }
+                    when(navigationRailStyle){
+                        NavigationRailStyle.DEFAULT -> {
+                            NavigationRailDefault(
+                                activeConfig = activeConfig,
+                                changeQueueVisible = { isQueueVisible = it },
+                                rootComponent = rootComponent,
+                                changeNowPlayingExpanded = { isNowPlayingExpanded = it }
+                            )
+                        }
 
-                                Spacer(Modifier.weight(1f))
-
-                                bottomTabs.forEach { tab ->
-                                    NavigationRailItem(
-                                        selected = activeConfig == tab.config,
-                                        onClick = {
-                                            isNowPlayingExpanded = false
-                                            isQueueVisible = false
-                                            rootComponent.switchTab(tab.config)
-                                        },
-                                        icon = { Icon(tab.icon, null) },
-                                        label = {
-                                            Text(
-                                                when (tab.config) {
-                                                    ScreenConfig.Account -> stringResource(Res.string.nav_account)
-                                                    ScreenConfig.Settings -> stringResource(Res.string.nav_settings)
-                                                    ScreenConfig.ListenTogether -> stringResource(Res.string.nav_listen_together)
-                                                    else -> ""
-                                                }
-                                            )
-                                        },
-                                        modifier = Modifier.pointerHoverIcon(PointerIcon.Hand),
-                                        alwaysShowLabel = false,
-                                    )
-                                }
-                                Spacer(Modifier.height(16.dp))
-                            }
-
+                        NavigationRailStyle.WIDE -> {
+                            WideNavigationRail(
+                                activeConfig = activeConfig,
+                                changeQueueVisible = { isQueueVisible = it },
+                                rootComponent = rootComponent,
+                                changeNowPlayingExpanded = { isNowPlayingExpanded = it }
+                            )
+                        }
                     }
 
                     val currentSong = playerState.currentSong
