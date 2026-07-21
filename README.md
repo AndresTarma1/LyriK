@@ -35,7 +35,7 @@
 - 🔎 **Búsqueda e historial** — con biblioteca local persistente (playlists, "Me gusta", suscripciones a artistas) sincronizada de forma bidireccional con tu cuenta de YouTube Music.
 - ⬇️ **Descargas y caché** — guarda canciones para escuchar sin conexión o sin gastar datos.
 - ⌨️ **Integración de escritorio** — controles desde la miniatura de la barra de tareas, bandeja del sistema, tecla multimedia global (SMTC) y un overlay estilo Steam activable con atajo global.
-- 🎚️ **Ecualizador de 10 bandas**, velocidad de reproducción ajustable y control fino de volumen/calidad de streaming.
+- 🎚️ **Ecualizador de 5 bandas**, velocidad de reproducción ajustable y control fino de volumen/calidad de streaming.
 
 ---
 
@@ -44,8 +44,11 @@
 <div align="center">
 
 <!-- Hero: artist screen (la más visual) -->
-<img src="docs/screenshots/artist-screen.png" alt="Pantalla de artista" width="90%">
+<img src="docs/screenshots/artist-screen.png" alt="Pantalla de artista" width="1000%">
 <sub><b>Artista</b> · discografía, sencillos y shuffle play</sub>
+
+<img src="docs/screenshots/nowplaying-queue.png" alt="Now Playing">
+<br><sub><b>Now Playing</b> · letras y cola de reproducción</sub>
 
 <br><br>
 
@@ -53,7 +56,6 @@
   <tr>
     <td width="33%"><img src="docs/screenshots/home.png" alt="Inicio"><br><sub><b>Inicio</b> · recomendaciones y recientes</sub></td>
     <td width="33%"><img src="docs/screenshots/album-screen.png" alt="Álbum"><br><sub><b>Álbum</b> · tracklist con carátula</sub></td>
-    <td width="33%"><img src="docs/screenshots/nowplaying-queue.png" alt="Now Playing"><br><sub><b>Now Playing</b> · letras y cola de reproducción</sub></td>
   </tr>
   <tr>
     <td width="33%"><img src="docs/screenshots/search.png" alt="Búsqueda"><br><sub><b>Búsqueda</b> · géneros y novedades</sub></td>

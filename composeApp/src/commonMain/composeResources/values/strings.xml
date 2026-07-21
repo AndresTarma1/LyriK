@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App -->
-    <string name="app_name">LyriK</string>
-    <string name="tray_tooltip">LyriK</string>
+    <string name="app_name">MusicApp</string>
+    <string name="tray_tooltip">MusicApp</string>
 
     <!-- Navigation -->
     <string name="nav_home">Inicio</string>
@@ -17,12 +17,12 @@
     <string name="tray_play">Reproducir</string>
     <string name="tray_next">Siguiente</string>
     <string name="tray_previous">Anterior</string>
-    <string name="tray_open">Abrir LyriK</string>
+                        <string name="tray_open">Abrir MusicApp</string>
     <string name="tray_exit">Salir</string>
 
     <!-- Update dialog -->
     <string name="update_title">Actualización disponible</string>
-    <string name="update_message">Hay una nueva versión de LyriK disponible.\n\nVersión actual: %1$s\nNueva versión: %2$s\n\n¿Deseas actualizar ahora?</string>
+    <string name="update_message">Hay una nueva versión de MusicApp disponible.\n\nVersión actual: %1$s\nNueva versión: %2$s\n\n¿Deseas actualizar ahora?</string>
     <string name="update_download">Descargar</string>
     <string name="update_install">Actualizar</string>
     <string name="update_downloading">Descargando…</string>
@@ -83,7 +83,7 @@
     <string name="overlay_shortcut_set">Cambiar atajo</string>
     <string name="overlay_capture_title">Presiona la nueva combinación</string>
     <string name="overlay_capture_message">Mantén tus modificadores (Ctrl, Alt, Shift o Win) y presiona una tecla para asignar el atajo.</string>
-    <string name="overlay_title">LyriK</string>
+    <string name="overlay_title">MusicApp</string>
     <string name="overlay_nothing_playing">Nada en reproducción</string>
     <string name="overlay_search_hint">Buscar canciones…</string>
     <string name="overlay_no_results">Sin resultados</string>
@@ -108,7 +108,7 @@
     <string name="trim_memory_on_tray">Liberar memoria al minimizar a la bandeja</string>
     <string name="trim_memory_on_tray_subtitle">Devuelve al sistema la RAM no usada cuando la app se oculta en la bandeja. Reduce el consumo en segundo plano; las páginas se recargan al volver.</string>
     <string name="launch_at_startup">Iniciar al encender Windows</string>
-    <string name="launch_at_startup_subtitle">Abre LyriK automáticamente al iniciar sesión en Windows.</string>
+    <string name="launch_at_startup_subtitle">Abre MusicApp automáticamente al iniciar sesión en Windows.</string>
     <string name="cache_images">Caché de imágenes en disco</string>
     <string name="download_cache">Caché de descargas</string>
     <string name="open_data_folder">Abrir carpeta de datos</string>
@@ -121,7 +121,7 @@
     <string name="render_api_restart">Render API (requiere reinicio)</string>
     <string name="section_support">Ayuda y soporte</string>
     <string name="check_updates">Buscar actualizaciones</string>
-    <string name="check_updates_subtitle">Comprueba si hay una nueva versión de LyriK</string>
+    <string name="check_updates_subtitle">Comprueba si hay una nueva versión de MusicApp</string>
     <string name="check_updates_checking">Buscando…</string>
     <string name="check_updates_up_to_date">Ya tienes la última versión</string>
     <string name="check_updates_failed">No se pudo comprobar. Revisa tu conexión.</string>
@@ -129,7 +129,7 @@
     <string name="report_bug">Reportar un error</string>
     <string name="report_bug_subtitle">Abre una incidencia en GitHub con la versión y el sistema operativo</string>
     <string name="btn_report">Reportar</string>
-    <string name="about_title">LyriK</string>
+    <string name="about_title">MusicApp</string>
     <string name="about_subtitle">Reproductor de música de escritorio</string>
     <string name="version_prefix">v</string>
     <string name="clear_downloads_title">Limpiar caché de descargas</string>
@@ -611,8 +611,8 @@
     <!-- Crash reports -->
     <string name="crash_detected">Error detectado</string>
     <string name="crash_detected_count">%d errores detectados</string>
-    <string name="crash_description">LyriK se cerró inesperadamente la última vez.</string>
-    <string name="crash_description_count">LyriK se cerró inesperadamente la última vez. Se encontraron %1$d reportes de error.</string>
+    <string name="crash_description">MusicApp se cerró inesperadamente la última vez.</string>
+    <string name="crash_description_count">MusicApp se cerró inesperadamente la última vez. Se encontraron %1$d reportes de error.</string>
     <string name="crash_version_info">Versión: %1$s  •  SO: %2$s</string>
     <string name="crash_send_prompt">¿Deseas enviar el reporte a GitHub? Se abrirá un issue con los detalles del error.</string>
     <string name="crash_send">Enviar reporte</string>

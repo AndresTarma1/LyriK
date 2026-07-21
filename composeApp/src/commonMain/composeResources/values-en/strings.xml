@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- App -->
-    <string name="app_name">LyriK</string>
-    <string name="tray_tooltip">LyriK</string>
+    <string name="app_name">MusicApp</string>
+    <string name="tray_tooltip">MusicApp</string>
 
     <!-- Navigation -->
     <string name="nav_home">Home</string>
@@ -17,12 +17,12 @@
     <string name="tray_play">Play</string>
     <string name="tray_next">Next</string>
     <string name="tray_previous">Previous</string>
-    <string name="tray_open">Open LyriK</string>
+    <string name="tray_open">Open MusicApp</string>
     <string name="tray_exit">Exit</string>
 
     <!-- Update dialog -->
     <string name="update_title">Update Available</string>
-    <string name="update_message">A new version of LyriK is available.\n\nCurrent version: %1$s\nNew version: %2$s\n\nDo you want to update now?</string>
+    <string name="update_message">A new version of MusicApp is available.\n\nCurrent version: %1$s\nNew version: %2$s\n\nDo you want to update now?</string>
     <string name="update_download">Download</string>
     <string name="update_install">Update</string>
     <string name="update_downloading">Downloading…</string>
@@ -81,7 +81,7 @@
     <string name="overlay_shortcut_set">Change shortcut</string>
     <string name="overlay_capture_title">Press the new combination</string>
     <string name="overlay_capture_message">Hold your modifiers (Ctrl, Alt, Shift or Win) and press a key to assign the shortcut.</string>
-    <string name="overlay_title">LyriK</string>
+    <string name="overlay_title">MusicApp</string>
     <string name="overlay_nothing_playing">Nothing playing</string>
     <string name="overlay_search_hint">Search songs…</string>
     <string name="overlay_no_results">No results</string>
@@ -106,7 +106,7 @@
     <string name="trim_memory_on_tray">Free memory when minimized to tray</string>
     <string name="trim_memory_on_tray_subtitle">Returns unused RAM to the OS while the app is hidden in the tray. Lowers background usage; pages fault back in on restore.</string>
     <string name="launch_at_startup">Launch on Windows startup</string>
-    <string name="launch_at_startup_subtitle">Opens LyriK automatically when you sign in to Windows.</string>
+    <string name="launch_at_startup_subtitle">Opens MusicApp automatically when you sign in to Windows.</string>
     <string name="cache_images">Cache images on disk</string>
     <string name="download_cache">Download cache</string>
     <string name="open_data_folder">Open data folder</string>
@@ -119,7 +119,7 @@
     <string name="render_api_restart">Render API (requires restart)</string>
     <string name="section_support">Help &amp; support</string>
     <string name="check_updates">Check for updates</string>
-    <string name="check_updates_subtitle">Checks whether a new version of LyriK is available</string>
+    <string name="check_updates_subtitle">Checks whether a new version of MusicApp is available</string>
     <string name="check_updates_checking">Checking…</string>
     <string name="check_updates_up_to_date">You have the latest version</string>
     <string name="check_updates_failed">Couldn\'t check. Check your connection.</string>
@@ -127,7 +127,7 @@
     <string name="report_bug">Report a bug</string>
     <string name="report_bug_subtitle">Opens a GitHub issue with the app version and OS</string>
     <string name="btn_report">Report</string>
-    <string name="about_title">LyriK</string>
+    <string name="about_title">MusicApp</string>
     <string name="about_subtitle">Desktop music player</string>
     <string name="version_prefix">v</string>
     <string name="clear_downloads_title">Clear download cache</string>
@@ -594,8 +594,8 @@
     <!-- Crash reports -->
     <string name="crash_detected">Error detected</string>
     <string name="crash_detected_count">%d errors detected</string>
-    <string name="crash_description">LyriK closed unexpectedly last time.</string>
-    <string name="crash_description_count">LyriK closed unexpectedly last time. %1$d error reports found.</string>
+    <string name="crash_description">MusicApp closed unexpectedly last time.</string>
+    <string name="crash_description_count">MusicApp closed unexpectedly last time. %1$d error reports found.</string>
     <string name="crash_version_info">Version: %1$s  •  OS: %2$s</string>
     <string name="crash_send_prompt">Would you like to send the report to GitHub? An issue will be opened with the error details.</string>
     <string name="crash_send">Send report</string>
