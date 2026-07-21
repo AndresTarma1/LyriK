@@ -384,7 +384,7 @@ internal fun SongListItem(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = "Play",
+                                            contentDescription = stringResource(Res.string.play),
                                             tint = Color.White.copy(alpha = if (isHovered) 1f else 0f),
                                             modifier = Modifier.size(28.dp)
                                         )

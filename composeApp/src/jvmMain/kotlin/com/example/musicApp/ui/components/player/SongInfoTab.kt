@@ -46,11 +46,12 @@ fun SongInfoContent(
 ) {
     val scrollState = rememberScrollState()
 
-    val artistName = remember(song.artists, mediaInfo) {
+    val unknownArtistLabel = stringResource(Res.string.unknown_artist)
+    val artistName = remember(song.artists, mediaInfo, unknownArtistLabel) {
         if (song.artists.isNotEmpty()) {
             song.artists.joinToString(", ") { it.name }
         } else {
-            mediaInfo?.author ?: "Artista desconocido"
+            mediaInfo?.author ?: unknownArtistLabel
         }
     }
 
@@ -95,7 +96,7 @@ fun SongInfoContent(
                 }
                 InfoRow(
                     icon = Icons.AutoMirrored.Filled.QueueMusic,
-                    title = "Reproduciendo desde",
+                    title = stringResource(Res.string.playing_from),
                     subtitle = originLabel
                 )
             }
@@ -103,7 +104,7 @@ fun SongInfoContent(
             mediaInfo?.uploadDate?.let { date ->
                 InfoRow(
                     icon = Icons.Rounded.CalendarToday,
-                    title = "Fecha de publicación",
+                    title = stringResource(Res.string.upload_date),
                     subtitle = date
                 )
             }
@@ -112,7 +113,7 @@ fun SongInfoContent(
                 if (views > 0) {
                     InfoRow(
                         icon = Icons.Rounded.BarChart,
-                        title = "Reproducciones",
+                        title = stringResource(Res.string.play_count),
                         subtitle = formatViewCount(views)
                     )
                 }

@@ -40,6 +40,7 @@ import com.example.musicApp.models.MediaMetadata
 import com.metrolist.innertube.models.Artist
 import lyrik.composeapp.generated.resources.Res
 import lyrik.composeapp.generated.resources.artist_title
+import lyrik.composeapp.generated.resources.view_artist
 import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.jewel.foundation.modifier.onHover
 
@@ -226,7 +227,7 @@ private fun ArtistListItem(
         if (isClickable) {
             Icon(
                 imageVector = Icons.AutoMirrored.Rounded.ArrowForwardIos,
-                contentDescription = "Ver artista",
+                contentDescription = stringResource(Res.string.view_artist),
                 modifier = Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
             )

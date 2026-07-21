@@ -607,4 +607,33 @@
     <string name="send_crash_report_subtitle">Send pending crash reports to GitHub</string>
     <string name="no_crash_reports">No pending crash reports</string>
     <string name="crash_pending_count">%1$d pending report(s) — GitHub will open with the details</string>
+
+    <!-- Song info tab -->
+    <string name="playing_from">Playing from</string>
+    <string name="upload_date">Upload date</string>
+    <string name="play_count">Plays</string>
+
+    <!-- Accessibility -->
+    <string name="view_artist">View artist</string>
+    <string name="play">Play</string>
+    <string name="selected">Selected</string>
+
+    <!-- Navigation rail (missing EN) -->
+    <string name="navigation_rail">Navigation rail</string>
+    <string name="navigation_rail_style">Navigation rail style</string>
+
+    <!-- Spotify import (missing EN) -->
+    <string name="cd_import_spotify">Import from Spotify</string>
+    <string name="spotify_import_title">Import Spotify playlist</string>
+    <string name="spotify_import_url_label">Playlist URL</string>
+    <string name="spotify_import_url_placeholder">https://open.spotify.com/playlist/...</string>
+    <string name="spotify_btn_fetch">Fetch playlist</string>
+    <string name="spotify_btn_import">Import %1$d songs</string>
+    <string name="spotify_import_fetching">Fetching Spotify playlist…</string>
+    <string name="spotify_tracks_found">%1$d songs found on Spotify</string>
+    <string name="spotify_import_searching">Searching %1$d of %2$d: %3$s</string>
+    <string name="spotify_import_complete">Import complete</string>
+    <string name="spotify_import_result">%1$d of %2$d songs imported</string>
+    <string name="spotify_import_error">Error: %1$s</string>
+    <string name="spotify_not_configured">Spotify not configured. Check the .env file</string>
 </resources>

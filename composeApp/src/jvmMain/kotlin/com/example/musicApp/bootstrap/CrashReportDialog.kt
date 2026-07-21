@@ -37,19 +37,21 @@ fun CrashReportDialog(
         title = {
             Text(
                 if (count == 1) stringResource(Res.string.crash_detected)
-                else stringResource(Res.string.crash_detected_count, count)
+                else stringResource(Res.string.crash_detected_count).replace("%d", count.toString())
             )
         },
         text = {
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 Text(
                     text = if (count == 1) stringResource(Res.string.crash_description)
-                    else stringResource(Res.string.crash_description_count, count),
+                    else stringResource(Res.string.crash_description_count).replace("%1\$d", count.toString()),
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = stringResource(Res.string.crash_version_info, latest.appVersion, latest.os),
+                    text = stringResource(Res.string.crash_version_info)
+                        .replace("%1\$s", latest.appVersion)
+                        .replace("%2\$s", latest.os),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

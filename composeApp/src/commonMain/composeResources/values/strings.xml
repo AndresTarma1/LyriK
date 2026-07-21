@@ -624,4 +624,14 @@
     <string name="send_crash_report_subtitle">Envía los reportes de error pendientes a GitHub</string>
     <string name="no_crash_reports">No hay reportes de error pendientes</string>
     <string name="crash_pending_count">%1$d reporte(s) pendiente(s) — se abrirá GitHub con los detalles</string>
+
+    <!-- Song info tab -->
+    <string name="playing_from">Reproduciendo desde</string>
+    <string name="upload_date">Fecha de publicación</string>
+    <string name="play_count">Reproducciones</string>
+
+    <!-- Accessibility -->
+    <string name="view_artist">Ver artista</string>
+    <string name="play">Reproducir</string>
+    <string name="selected">Seleccionado</string>
 </resources>

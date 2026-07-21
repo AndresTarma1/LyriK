@@ -247,7 +247,7 @@ private fun ChipFilterRow(
                         if (isSelected) {
                             Icon(
                                 imageVector = Icons.Default.Check,
-                                contentDescription = "selected",
+                                contentDescription = stringResource(Res.string.selected),
                                 tint = MaterialTheme.colorScheme.onPrimary,
                             )
                         }
