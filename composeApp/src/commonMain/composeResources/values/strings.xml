@@ -115,6 +115,7 @@
     <string name="btn_open">Abrir</string>
     <string name="clear_download_cache">Limpiar caché de descargas</string>
     <string name="btn_clear">Limpiar</string>
+    <string name="btn_send">Enviar</string>
     <string name="btn_cancel">Cancelar</string>
     <string name="skiko_rendering">Renderizado (Skiko)</string>
     <string name="render_api_restart">Render API (requiere reinicio)</string>
@@ -606,4 +607,20 @@
 
     <!-- Loading -->
     <string name="loading_more_songs">Cargando más canciones…</string>
+
+    <!-- Crash reports -->
+    <string name="crash_detected">Error detectado</string>
+    <string name="crash_detected_count">%d errores detectados</string>
+    <string name="crash_description">LyriK se cerró inesperadamente la última vez.</string>
+    <string name="crash_description_count">LyriK se cerró inesperadamente la última vez. Se encontraron %1$d reportes de error.</string>
+    <string name="crash_version_info">Versión: %1$s  •  SO: %2$s</string>
+    <string name="crash_send_prompt">¿Deseas enviar el reporte a GitHub? Se abrirá un issue con los detalles del error.</string>
+    <string name="crash_send">Enviar reporte</string>
+    <string name="crash_no_send">No enviar</string>
+    <string name="crash_send_all">Enviar todos</string>
+    <string name="crash_report_sent">Reporte enviado</string>
+    <string name="crash_report_ignored">Reporte omitido</string>
+    <string name="send_crash_report">Enviar reporte de error</string>
+    <string name="send_crash_report_subtitle">Envía los reportes de error pendientes a GitHub</string>
+    <string name="no_crash_reports">No hay reportes de error pendientes</string>
 </resources>

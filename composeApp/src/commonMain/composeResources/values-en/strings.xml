@@ -113,6 +113,7 @@
     <string name="btn_open">Open</string>
     <string name="clear_download_cache">Clear download cache</string>
     <string name="btn_clear">Clear</string>
+    <string name="btn_send">Send</string>
     <string name="btn_cancel">Cancel</string>
     <string name="skiko_rendering">Rendering (Skiko)</string>
     <string name="render_api_restart">Render API (requires restart)</string>
@@ -589,4 +590,20 @@
 
     <!-- Loading -->
     <string name="loading_more_songs">Loading more songs…</string>
+
+    <!-- Crash reports -->
+    <string name="crash_detected">Error detected</string>
+    <string name="crash_detected_count">%d errors detected</string>
+    <string name="crash_description">LyriK closed unexpectedly last time.</string>
+    <string name="crash_description_count">LyriK closed unexpectedly last time. %1$d error reports found.</string>
+    <string name="crash_version_info">Version: %1$s  •  OS: %2$s</string>
+    <string name="crash_send_prompt">Would you like to send the report to GitHub? An issue will be opened with the error details.</string>
+    <string name="crash_send">Send report</string>
+    <string name="crash_no_send">Don\'t send</string>
+    <string name="crash_send_all">Send all</string>
+    <string name="crash_report_sent">Report sent</string>
+    <string name="crash_report_ignored">Report ignored</string>
+    <string name="send_crash_report">Send crash report</string>
+    <string name="send_crash_report_subtitle">Send pending crash reports to GitHub</string>
+    <string name="no_crash_reports">No pending crash reports</string>
 </resources>

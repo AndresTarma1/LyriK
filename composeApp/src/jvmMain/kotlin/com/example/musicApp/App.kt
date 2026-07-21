@@ -29,9 +29,12 @@ import com.example.musicApp.data.account.AccountManager
 import com.example.musicApp.data.repository.AppLocale
 import com.example.musicApp.data.repository.NavigationRailStyle
 import com.example.musicApp.data.repository.OVERLAY_POS_UNSET
+import com.example.musicApp.data.repository.CrashReport
+import com.example.musicApp.data.repository.CrashReportRepository
 import com.example.musicApp.data.repository.ThemeMode
 import com.example.musicApp.data.repository.UserPreferencesRepository
 import com.example.musicApp.data.repository.YouTubeRegion
+import com.example.musicApp.bootstrap.CrashReportDialog
 import com.metrolist.innertube.YouTube
 import com.metrolist.innertube.models.YouTubeLocale
 import java.util.Locale
@@ -303,6 +306,33 @@ fun ApplicationScope.App(
                                     Text(stringResource(Res.string.cancel))
                                 }
                             }
+                        )
+                    }
+
+                    // Crash report dialog — show on startup if unsent reports exist
+                    var unsentCrashReports by remember { mutableStateOf<List<Pair<java.io.File, CrashReport>>>(emptyList()) }
+                    var showCrashDialog by remember { mutableStateOf(false) }
+                    LaunchedEffect(Unit) {
+                        val reports = CrashReportRepository.getUnsentReports()
+                        if (reports.isNotEmpty()) {
+                            unsentCrashReports = reports
+                            showCrashDialog = true
+                        }
+                    }
+                    if (showCrashDialog && unsentCrashReports.isNotEmpty()) {
+                        CrashReportDialog(
+                            reports = unsentCrashReports,
+                            onSend = {
+                                unsentCrashReports.forEach { (file, report) ->
+                                    CrashReportRepository.openCrashAsGitHubIssue(report)
+                                }
+                                CrashReportRepository.markAllAsSent()
+                                showCrashDialog = false
+                            },
+                            onDismiss = {
+                                CrashReportRepository.markAllAsSent()
+                                showCrashDialog = false
+                            },
                         )
                     }
 
